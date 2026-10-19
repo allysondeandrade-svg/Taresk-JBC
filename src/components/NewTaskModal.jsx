@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Search, Calendar, User, FileText, CheckSquare, Plus, AlertCircle } from 'lucide-react';
 import { DEFAULT_CHECKLIST_ITEMS } from '../data/initialData';
 
@@ -25,6 +25,18 @@ export default function NewTaskModal({
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
   const [notes, setNotes] = useState('');
+  const dateInputRef = useRef(null);
+
+  const handleOpenDatePicker = () => {
+    if (dateInputRef.current) {
+      if (typeof dateInputRef.current.showPicker === 'function') {
+        dateInputRef.current.showPicker();
+      } else {
+        dateInputRef.current.focus();
+        dateInputRef.current.click();
+      }
+    }
+  };
 
   // Subtarefas para tarefa especial
   const [subtasks, setSubtasks] = useState([
@@ -452,13 +464,16 @@ export default function NewTaskModal({
                 {/* Seletor de data via Calendário que formata automaticamente em dd/mm */}
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <input
+                    ref={dateInputRef}
                     id="new-task-date-picker"
                     type="date"
                     value={(() => {
                       if (dueDate && dueDate.includes('/')) {
-                        const [d, m] = dueDate.split('/');
-                        const y = new Date().getFullYear();
-                        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                        const parts = dueDate.split('/');
+                        if (parts[0] && parts[1]) {
+                          const y = new Date().getFullYear();
+                          return `${y}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        }
                       }
                       return '';
                     })()}
@@ -470,21 +485,23 @@ export default function NewTaskModal({
                     }}
                     style={{
                       position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
                       opacity: 0,
-                      cursor: 'pointer',
-                      zIndex: 10
+                      width: '1px',
+                      height: '1px',
+                      pointerEvents: 'none',
+                      bottom: 0,
+                      right: 0
                     }}
                   />
-                  <div
+                  <button
+                    type="button"
+                    onClick={handleOpenDatePicker}
+                    title="Escolher data no calendário"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: '10px 14px',
+                      padding: '0 14px',
                       borderRadius: '10px',
                       background: '#ede9fe',
                       border: '1.5px solid #c4b5fd',
@@ -492,11 +509,13 @@ export default function NewTaskModal({
                       height: '42px',
                       boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                       cursor: 'pointer',
-                      pointerEvents: 'none'
+                      transition: 'all 0.15s ease'
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#ddd6fe'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = '#ede9fe'; }}
                   >
                     📅
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>

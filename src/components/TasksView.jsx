@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Eye, CheckCircle2, Clock, Calendar, User, Sparkles, Filter, Plus, ArrowUpRight, Edit2, Trash2, X, Check } from 'lucide-react';
 
 export default function TasksView({
@@ -28,6 +28,18 @@ export default function TasksView({
     assignedTo: '',
     notes: ''
   });
+  const editDateInputRef = useRef(null);
+
+  const handleOpenEditDatePicker = () => {
+    if (editDateInputRef.current) {
+      if (typeof editDateInputRef.current.showPicker === 'function') {
+        editDateInputRef.current.showPicker();
+      } else {
+        editDateInputRef.current.focus();
+        editDateInputRef.current.click();
+      }
+    }
+  };
 
   const handleStartEdit = (t) => {
     setEditingTask(t);
@@ -799,13 +811,16 @@ export default function TasksView({
                       />
                       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                         <input
+                          ref={editDateInputRef}
                           id="edit-task-date-picker"
                           type="date"
                           value={(() => {
                             if (editForm.dueDate && editForm.dueDate.includes('/')) {
-                              const [d, m] = editForm.dueDate.split('/');
-                              const y = new Date().getFullYear();
-                              return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                              const parts = editForm.dueDate.split('/');
+                              if (parts[0] && parts[1]) {
+                                const y = new Date().getFullYear();
+                                return `${y}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                              }
                             }
                             return '';
                           })()}
@@ -817,32 +832,36 @@ export default function TasksView({
                           }}
                           style={{
                             position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
                             opacity: 0,
-                            cursor: 'pointer',
-                            zIndex: 10
+                            width: '1px',
+                            height: '1px',
+                            pointerEvents: 'none',
+                            bottom: 0,
+                            right: 0
                           }}
                         />
-                        <div
+                        <button
+                          type="button"
+                          onClick={handleOpenEditDatePicker}
+                          title="Escolher data no calendário"
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '10px 12px',
+                            padding: '0 12px',
                             borderRadius: '10px',
                             background: '#ede9fe',
                             border: '1.5px solid #c4b5fd',
                             fontSize: '18px',
                             height: '38px',
                             cursor: 'pointer',
-                            pointerEvents: 'none'
+                            transition: 'all 0.15s ease'
                           }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#ddd6fe'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = '#ede9fe'; }}
                         >
                           📅
-                        </div>
+                        </button>
                       </div>
                     </div>
                   </div>
