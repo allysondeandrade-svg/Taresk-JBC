@@ -301,8 +301,12 @@ export default function TasksView({
                   width: '100%',
                   marginBottom: isSpecial ? '0px' : '4px'
                 }}>
-                  <div
-                    title={isSpecial ? 'Tarefa Especial' : (task.title || 'Produto')}
+                    <div
+                    title={
+                      isSpecial
+                        ? 'Tarefa Especial'
+                        : (task.title || products?.find(p => p.id === task.productId || p.sku === task.productId)?.title || 'Produto')
+                    }
                     style={{
                       fontSize: isSpecial ? '15px' : '14px',
                       fontWeight: '800',
@@ -314,7 +318,9 @@ export default function TasksView({
                       flex: 1
                     }}
                   >
-                    {isSpecial ? 'Tarefa Especial' : (task.title || 'Produto')}
+                    {isSpecial
+                      ? 'Tarefa Especial'
+                      : (task.title || products?.find(p => p.id === task.productId || p.sku === task.productId)?.title || 'Produto')}
                   </div>
 
                   {!isSpecial && (

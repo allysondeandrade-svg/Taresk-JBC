@@ -404,7 +404,28 @@ export default function App() {
 
   // Se não estiver logado, exibe a tela de login idêntica à Página 1 do PDF
   if (!currentUser) {
-    return <LoginScreen onLogin={handleLogin} users={users} />;
+    return (
+      <>
+        <LoginScreen
+          onLogin={handleLogin}
+          users={users}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
+          isSyncing={isSyncing}
+          onSync={() => refreshFromSheets(true)}
+        />
+        <SettingsModal
+          isOpen={isSettingsModalOpen}
+          onClose={() => {
+            setIsSettingsModalOpen(false);
+            refreshFromSheets(true);
+          }}
+          currentTheme={currentTheme}
+          onSelectTheme={setCurrentTheme}
+          defaultChecklistItems={defaultChecklist}
+          onUpdateDefaultChecklist={setDefaultChecklist}
+        />
+      </>
+    );
   }
 
   return (

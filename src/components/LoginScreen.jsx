@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Lock, Mail, ShieldCheck, ArrowRight, UserCheck, AlertCircle } from 'lucide-react';
+import { Lock, Mail, ShieldCheck, ArrowRight, UserCheck, AlertCircle, Settings, RefreshCw } from 'lucide-react';
 
-export default function LoginScreen({ onLogin, users }) {
+export default function LoginScreen({ onLogin, users, onOpenSettings, isSyncing, onSync }) {
   const [email, setEmail] = useState('eletrojbc@gmail.com');
   const [password, setPassword] = useState('Jbc29378125@');
   const [error, setError] = useState('');
@@ -38,8 +38,57 @@ export default function LoginScreen({ onLogin, users }) {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'linear-gradient(135deg, #f8fafc 0%, #ede9fe 100%)',
-      padding: '20px'
+      padding: '20px',
+      position: 'relative'
     }}>
+      {/* Botão de Configurações da Planilha no topo */}
+      {onOpenSettings && (
+        <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', gap: '8px' }}>
+          {onSync && (
+            <button
+              onClick={onSync}
+              title="Sincronizar dados da Planilha"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                border: '1.5px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#334155',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
+              }}
+            >
+              <RefreshCw size={14} style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} />
+              <span>{isSyncing ? 'Sincronizando...' : 'Planilha'}</span>
+            </button>
+          )}
+          <button
+            onClick={onOpenSettings}
+            title="Configurações (Conectar Planilha)"
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              border: '1.5px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#475569',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
+            }}
+          >
+            <Settings size={18} />
+          </button>
+        </div>
+      )}
+
       <div style={{
         background: '#ffffff',
         borderRadius: '24px',
