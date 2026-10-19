@@ -371,7 +371,7 @@ function getUsersDataAsJson() {
 
 /**
  * Retorna Produtos da aba "Produtos"
- * Colunas: [SKU (0), Titulo (1), Custo (2), Largura (3), Comprimento (4), Altura (5), Peso (6)]
+ * Detecta cabeçalhos dinamicamente (SKU, Titulo, Custo, Largura, Comprimento, Altura, Peso)
  */
 function getProductsDataAsJson() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -381,26 +381,38 @@ function getProductsDataAsJson() {
   const values = sheet.getDataRange().getValues();
   if (values.length <= 1) return [];
 
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
   const rows = values.slice(1);
 
-  return rows.map(r => {
-    const sku = String(r[0] || '').trim();
+  const idxSku = headers.indexOf('sku');
+  const idxTitulo = headers.findIndex(h => h.includes('titulo') || h.includes('nome'));
+  const idxCusto = headers.indexOf('custo');
+  const idxLargura = headers.indexOf('largura');
+  const idxComp = headers.findIndex(h => h.includes('comp'));
+  const idxAltura = headers.indexOf('altura');
+  const idxPeso = headers.indexOf('peso');
+
+  return rows.map((r, i) => {
+    // Se a coluna SKU existir pelo cabeçalho, usa ela. Senão pega a coluna 0 ou 1.
+    const sku = idxSku !== -1 ? String(r[idxSku] || '').trim() : String(r[0] || '').trim();
+    const titulo = idxTitulo !== -1 && r[idxTitulo] ? String(r[idxTitulo]).trim() : '';
+
     return {
-      id: sku,
+      id: sku || ('prod_' + (i + 1)),
       sku: sku,
-      title: String(r[1] || sku),
-      cost: parseBrazilianNumber(r[2]),
-      width: parseBrazilianNumber(r[3]),
-      length: parseBrazilianNumber(r[4]),
-      height: parseBrazilianNumber(r[5]),
-      weight: parseBrazilianNumber(r[6])
+      title: titulo,
+      cost: idxCusto !== -1 ? parseBrazilianNumber(r[idxCusto]) : 0,
+      width: idxLargura !== -1 ? parseBrazilianNumber(r[idxLargura]) : 0,
+      length: idxComp !== -1 ? parseBrazilianNumber(r[idxComp]) : 0,
+      height: idxAltura !== -1 ? parseBrazilianNumber(r[idxAltura]) : 0,
+      weight: idxPeso !== -1 ? parseBrazilianNumber(r[idxPeso]) : 0
     };
   });
 }
 
 /**
  * Retorna Plataformas da aba "Plataformas"
- * Colunas: [Nome (0), Cor (1)]
+ * Detecta cabeçalhos dinamicamente (Nome, Cor, Descricao)
  */
 function getPlatformsDataAsJson() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -410,16 +422,23 @@ function getPlatformsDataAsJson() {
   const values = sheet.getDataRange().getValues();
   if (values.length <= 1) return [];
 
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
   const rows = values.slice(1);
 
-  return rows.map(r => {
-    const name = String(r[0] || '').trim();
-    const id = 'plat_' + encodeURIComponent(name).toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_');
+  const idxNome = headers.findIndex(h => h === 'nome' || h.includes('plataforma'));
+  const idxCor = headers.indexOf('cor');
+  const idxDesc = headers.findIndex(h => h.includes('desc'));
+
+  return rows.map((r, i) => {
+    const nome = idxNome !== -1 ? String(r[idxNome] || '').trim() : String(r[1] || r[0] || '').trim();
+    const cor = idxCor !== -1 && r[idxCor] ? String(r[idxCor]).trim() : '#5925dc';
+    const desc = idxDesc !== -1 && r[idxDesc] ? String(r[idxDesc]).trim() : '';
+
     return {
-      id: id,
-      name: name,
-      color: String(r[1] || '#5925dc'),
-      description: ''
+      id: 'plat_' + encodeURIComponent(nome).toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_'),
+      name: nome,
+      color: cor,
+      description: desc
     };
   });
 }
