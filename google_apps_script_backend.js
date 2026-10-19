@@ -5,6 +5,13 @@
  * Este script transforma sua Planilha do Google Sheets em uma API REST completa
  * para sincronizar Usuários, Produtos, Plataformas, Tarefas, Checklists e Precificações.
  * 
+ * ESTRUTURA ATUALIZADA:
+ * - Sem coluna ID em nenhuma das páginas.
+ * - Usuários: [Nome, Email, Senha, Plataformas_JSON] (sem Cargo, Avatar, Badge).
+ * - Plataformas: [Nome, Cor] (sem Descrição).
+ * - Produtos: [SKU, Titulo, Custo, Largura, Comprimento, Altura, Peso].
+ * - Tarefas / Tarefas_Finalizadas: [Tipo, ProdutoID, Titulo, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm].
+ * 
  * INSTRUÇÕES RÁPIDAS DE INSTALAÇÃO:
  * 1. Abra sua planilha no Google Sheets (ex: "Banco_Dados_Taresk").
  * 2. Clique no menu superior em: "Extensões" > "Apps Script".
@@ -35,26 +42,26 @@ const SHEETS = {
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // 1. Aba Usuários
+  // 1. Aba Usuários: [Nome, Email, Senha, Plataformas_JSON]
   let userSheet = ss.getSheetByName(SHEETS.USERS);
   if (!userSheet) {
     userSheet = ss.insertSheet(SHEETS.USERS);
-    userSheet.appendRow(['ID', 'Nome', 'Email', 'Senha', 'Cargo', 'Avatar', 'Badge', 'Plataformas_JSON']);
-    userSheet.appendRow(['user_master', 'JBC Eletro (Admin)', 'eletrojbc@gmail.com', 'Jbc29378125@', 'premium_admin', '⚡', 'Administrador Premium', JSON.stringify([
+    userSheet.appendRow(['Nome', 'Email', 'Senha', 'Plataformas_JSON']);
+    userSheet.appendRow(['JBC Eletro', 'eletrojbc@gmail.com', 'Jbc29378125@', JSON.stringify([
       { id: 'plat_shopee_1', name: 'Shopee Principal', color: '#f97316' },
       { id: 'plat_shopee_2', name: 'Shopee Loja 2', color: '#ea580c' },
       { id: 'plat_ml_1', name: 'Mercado L', color: '#facc15' },
       { id: 'plat_amazon_1', name: 'Amazon', color: '#334155' },
       { id: 'plat_magalu_1', name: 'Magalu', color: '#38bdf8' }
     ])]);
-    userSheet.appendRow(['user_colab_1', 'Mariana Souza', 'mariana@jbceletro.com', '123', 'operator', '👩‍💻', 'Especialista em Catálogo', JSON.stringify([
+    userSheet.appendRow(['Mariana Souza', 'mariana@jbceletro.com', '123', JSON.stringify([
       { id: 'plat_shopee_1', name: 'Shopee Oficial', color: '#f97316' },
       { id: 'plat_shopee_2', name: 'Shopee Secundária', color: '#ea580c' },
       { id: 'plat_ml_1', name: 'Mercado L', color: '#facc15' },
       { id: 'plat_amazon_1', name: 'Amazon', color: '#334155' },
       { id: 'plat_magalu_1', name: 'Magalu', color: '#38bdf8' }
     ])]);
-    userSheet.appendRow(['user_colab_2', 'Carlos Oliveira', 'carlos@jbceletro.com', '123', 'operator', '👨‍🔧', 'Mídia & Imagens', JSON.stringify([
+    userSheet.appendRow(['Carlos Oliveira', 'carlos@jbceletro.com', '123', JSON.stringify([
       { id: 'plat_shopee_1', name: 'Shopee', color: '#f97316' },
       { id: 'plat_ml_1', name: 'Mercado L', color: '#facc15' },
       { id: 'plat_amazon_1', name: 'Amazon', color: '#334155' }
@@ -62,38 +69,37 @@ function setupSheets() {
     styleHeader(userSheet);
   }
 
-  // 2. Aba Produtos (SKU, Custo, Largura, Comp, Altura, Peso)
+  // 2. Aba Produtos: [SKU, Titulo, Custo, Largura, Comprimento, Altura, Peso]
   let prodSheet = ss.getSheetByName(SHEETS.PRODUCTS);
   if (!prodSheet) {
     prodSheet = ss.insertSheet(SHEETS.PRODUCTS);
-    prodSheet.appendRow(['ID', 'SKU', 'Titulo', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
-    prodSheet.appendRow(['p1', 'FOG-02-BOC', 'Fogão 2 Bocas Alta Pressão Inox', 145.00, 32, 54, 18, 4.80]);
-    prodSheet.appendRow(['p2', 'PAN-ELE-05L', 'Panela Elétrica Multifunção 5L Inox', 120.00, 30, 30, 35, 3.50]);
-    prodSheet.appendRow(['p3', 'VENT-COL-40', 'Ventilador Coluna 40cm Turbo Silencioso', 89.90, 45, 45, 130, 5.20]);
-    prodSheet.appendRow(['p4', 'FRIT-AIR-4L', 'Fritadeira Air Fryer 4L Digital Preto', 185.00, 33, 33, 38, 4.60]);
+    prodSheet.appendRow(['SKU', 'Titulo', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
+    prodSheet.appendRow(['FOG-02-BOC', 'Fogão 2 Bocas Alta Pressão Inox', 145.00, 32, 54, 18, 4.80]);
+    prodSheet.appendRow(['PAN-ELE-05L', 'Panela Elétrica Multifunção 5L Inox', 120.00, 30, 30, 35, 3.50]);
+    prodSheet.appendRow(['VENT-COL-40', 'Ventilador Coluna 40cm Turbo Silencioso', 89.90, 45, 45, 130, 5.20]);
+    prodSheet.appendRow(['FRIT-AIR-4L', 'Fritadeira Air Fryer 4L Digital Preto', 185.00, 33, 33, 38, 4.60]);
     styleHeader(prodSheet);
   }
 
-  // 3. Aba Plataformas (Canais de Vendas)
+  // 3. Aba Plataformas: [Nome, Cor]
   let platSheet = ss.getSheetByName(SHEETS.PLATFORMS);
   if (!platSheet) {
     platSheet = ss.insertSheet(SHEETS.PLATFORMS);
-    platSheet.appendRow(['ID', 'Nome', 'Cor', 'Descricao']);
-    platSheet.appendRow(['plat_shopee', 'Shopee', '#f97316', 'Marketplace Shopee Brasil']);
-    platSheet.appendRow(['plat_ml', 'Mercado Livre', '#facc15', 'Mercado Livre Oficial & Filiais']);
-    platSheet.appendRow(['plat_amazon', 'Amazon', '#334155', 'Amazon Seller Central']);
-    platSheet.appendRow(['plat_magalu', 'Magalu', '#38bdf8', 'Magazine Luiza Marketplace']);
-    platSheet.appendRow(['plat_shein', 'Shein', '#000000', 'Shein Marketplace']);
-    platSheet.appendRow(['plat_tiktok', 'TikTok Shop', '#ff004f', 'TikTok E-commerce']);
+    platSheet.appendRow(['Nome', 'Cor']);
+    platSheet.appendRow(['Shopee', '#f97316']);
+    platSheet.appendRow(['Mercado Livre', '#facc15']);
+    platSheet.appendRow(['Amazon', '#334155']);
+    platSheet.appendRow(['Magalu', '#38bdf8']);
+    platSheet.appendRow(['Shein', '#000000']);
+    platSheet.appendRow(['TikTok Shop', '#ff004f']);
     styleHeader(platSheet);
   }
 
-  // 4. Aba Tarefas Ativas
+  // 4. Aba Tarefas Ativas: [Tipo, ProdutoID, Titulo, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm]
   let taskSheet = ss.getSheetByName(SHEETS.TASKS);
   if (!taskSheet) {
     taskSheet = ss.insertSheet(SHEETS.TASKS);
     taskSheet.appendRow([
-      'ID',
       'Tipo',
       'ProdutoID',
       'Titulo',
@@ -110,12 +116,11 @@ function setupSheets() {
     styleHeader(taskSheet);
   }
 
-  // 5. Aba Tarefas Finalizadas (Concluídas)
+  // 5. Aba Tarefas Finalizadas: [Tipo, ProdutoID, Titulo, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, FinalizadoEm]
   let compTaskSheet = ss.getSheetByName(SHEETS.COMPLETED_TASKS);
   if (!compTaskSheet) {
     compTaskSheet = ss.insertSheet(SHEETS.COMPLETED_TASKS);
     compTaskSheet.appendRow([
-      'ID',
       'Tipo',
       'ProdutoID',
       'Titulo',
@@ -144,11 +149,12 @@ function setupSheets() {
     styleHeader(pricingSheet);
   }
 
-  Logger.log('Todas as abas do Taresk foram criadas/atualizadas com sucesso no Google Sheets!');
+  Logger.log('Todas as abas do Taresk foram configuradas com sucesso no Google Sheets!');
 }
 
 function styleHeader(sheet) {
-  const headerRange = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const headerRange = sheet.getRange(1, 1, 1, lastCol);
   headerRange.setBackground('#5925dc');
   headerRange.setFontColor('#ffffff');
   headerRange.setFontWeight('bold');
@@ -157,7 +163,6 @@ function styleHeader(sheet) {
 
 /**
  * Endpoint GET: Permite ler todas as coleções de dados
- * Exemplo: ?action=getAllData ou ?action=getTasks ou ?action=getProducts
  */
 function doGet(e) {
   try {
@@ -167,7 +172,7 @@ function doGet(e) {
     if (action === 'getAllData') {
       responseData = {
         users: getUsersDataAsJson(),
-        products: getSheetDataAsJson(SHEETS.PRODUCTS),
+        products: getProductsDataAsJson(),
         platforms: getPlatformsDataAsJson(),
         tasks: getTasksDataAsJson(SHEETS.TASKS),
         completedTasks: getTasksDataAsJson(SHEETS.COMPLETED_TASKS),
@@ -178,7 +183,7 @@ function doGet(e) {
     } else if (action === 'getCompletedTasks') {
       responseData = getTasksDataAsJson(SHEETS.COMPLETED_TASKS);
     } else if (action === 'getProducts') {
-      responseData = getSheetDataAsJson(SHEETS.PRODUCTS);
+      responseData = getProductsDataAsJson();
     } else if (action === 'getPlatforms') {
       responseData = getPlatformsDataAsJson();
     } else if (action === 'getUsers') {
@@ -218,7 +223,7 @@ function doPost(e) {
         break;
 
       case 'deleteTask':
-        result = deleteRowById(SHEETS.TASKS, data.id);
+        result = deleteTaskRecord(SHEETS.TASKS, data);
         break;
 
       case 'saveProduct':
@@ -226,7 +231,7 @@ function doPost(e) {
         break;
 
       case 'deleteProduct':
-        result = deleteRowById(SHEETS.PRODUCTS, data.id);
+        result = deleteProductRecord(data);
         break;
 
       case 'savePlatform':
@@ -235,7 +240,7 @@ function doPost(e) {
         break;
 
       case 'deletePlatform':
-        result = deleteRowById(SHEETS.PLATFORMS, data.id);
+        result = deletePlatformRecord(data);
         break;
 
       case 'saveUser':
@@ -244,7 +249,7 @@ function doPost(e) {
         break;
 
       case 'deleteUser':
-        result = deleteRowById(SHEETS.USERS, data.id);
+        result = deleteUserRecord(data);
         break;
 
       case 'finishTask':
@@ -255,8 +260,12 @@ function doPost(e) {
         result = moveTaskToActive(data);
         break;
 
+      case 'saveCompletedTask':
+        result = upsertCompletedTask(data);
+        break;
+
       case 'deleteCompletedTask':
-        result = deleteRowById(SHEETS.COMPLETED_TASKS, data.id);
+        result = deleteTaskRecord(SHEETS.COMPLETED_TASKS, data);
         break;
 
       default:
@@ -270,20 +279,17 @@ function doPost(e) {
 }
 
 /**
- * Converte qualquer valor (incluindo texto com vírgula "91,00" ou "R$ 91,00") em número Float válido
+ * Converte qualquer valor em número Float válido
  */
 function parseBrazilianNumber(val) {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   if (!val) return 0;
-  // Remove R$, espaços e caracteres não numéricos exceto vírgula, ponto e sinal de menos
   var str = String(val).replace(/[^0-9,-.]/g, '').trim();
   if (!str) return 0;
 
-  // Se tiver formato brasileiro como 1.250,50
   if (str.indexOf('.') !== -1 && str.indexOf(',') !== -1) {
     str = str.replace(/\./g, '').replace(',', '.');
   } else if (str.indexOf(',') !== -1) {
-    // Formato simples como 91,00
     str = str.replace(',', '.');
   }
   var parsed = parseFloat(str);
@@ -319,7 +325,9 @@ function getSheetDataAsJson(sheetName) {
 }
 
 /**
- * Retorna usuários com o array de plataformas decodificado
+ * Retorna Usuários da aba "Usuarios"
+ * Colunas: [Nome (0), Email (1), Senha (2), Plataformas_JSON (3)]
+ * Deriva role, avatar e badge automaticamente para compatibilidade total com a interface
  */
 function getUsersDataAsJson() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -331,29 +339,68 @@ function getUsersDataAsJson() {
 
   const rows = values.slice(1);
 
-  return rows.map(r => {
+  return rows.map((r, index) => {
+    const name = String(r[0] || '').trim();
+    const email = String(r[1] || '').trim();
+    const password = String(r[2] || '');
     let platforms = [];
     try {
-      platforms = r[7] ? JSON.parse(r[7]) : [];
+      platforms = r[3] ? JSON.parse(r[3]) : [];
     } catch (e) {
       platforms = [];
     }
 
+    const isMaster = email.toLowerCase() === 'eletrojbc@gmail.com' || index === 0;
+    const role = isMaster ? 'premium_admin' : 'operator';
+    const avatar = isMaster ? '⚡' : '👤';
+    const badge = isMaster ? 'Admin' : 'Operador';
+    const id = isMaster ? 'user_master' : 'user_' + encodeURIComponent(email).replace(/[^a-zA-Z0-9_]/g, '_');
+
     return {
-      id: String(r[0]),
-      name: String(r[1]),
-      email: String(r[2]),
-      password: String(r[3]),
-      role: String(r[4]),
-      avatar: String(r[5] || '👤'),
-      badge: String(r[6] || 'Operador'),
+      id: id,
+      name: name,
+      email: email,
+      password: password,
+      role: role,
+      avatar: avatar,
+      badge: badge,
       platforms: platforms
     };
   });
 }
 
 /**
- * Retorna plataformas cadastradas
+ * Retorna Produtos da aba "Produtos"
+ * Colunas: [SKU (0), Titulo (1), Custo (2), Largura (3), Comprimento (4), Altura (5), Peso (6)]
+ */
+function getProductsDataAsJson() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.PRODUCTS);
+  if (!sheet) return [];
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  const rows = values.slice(1);
+
+  return rows.map(r => {
+    const sku = String(r[0] || '').trim();
+    return {
+      id: sku,
+      sku: sku,
+      title: String(r[1] || sku),
+      cost: parseBrazilianNumber(r[2]),
+      width: parseBrazilianNumber(r[3]),
+      length: parseBrazilianNumber(r[4]),
+      height: parseBrazilianNumber(r[5]),
+      weight: parseBrazilianNumber(r[6])
+    };
+  });
+}
+
+/**
+ * Retorna Plataformas da aba "Plataformas"
+ * Colunas: [Nome (0), Cor (1)]
  */
 function getPlatformsDataAsJson() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -365,16 +412,21 @@ function getPlatformsDataAsJson() {
 
   const rows = values.slice(1);
 
-  return rows.map(r => ({
-    id: String(r[0]),
-    name: String(r[1]),
-    color: String(r[2] || '#5925dc'),
-    description: String(r[3] || '')
-  }));
+  return rows.map(r => {
+    const name = String(r[0] || '').trim();
+    const id = 'plat_' + encodeURIComponent(name).toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_');
+    return {
+      id: id,
+      name: name,
+      color: String(r[1] || '#5925dc'),
+      description: ''
+    };
+  });
 }
 
 /**
- * Retorna as tarefas com os JSONs internos (Checklist e Marketplaces) decodificados
+ * Retorna as tarefas
+ * Colunas: [Tipo (0), ProdutoID (1), Titulo (2), AtribuidoPara (3), AtribuidoPor (4), CriadoPor (5), Prazo (6), Status (7), Marketplaces_JSON (8), Checklist_JSON (9), Observacoes (10), DataHora (11)]
  */
 function getTasksDataAsJson(sheetName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -386,27 +438,42 @@ function getTasksDataAsJson(sheetName) {
 
   const rows = values.slice(1);
 
-  return rows.map(r => {
+  return rows.map((r, index) => {
     let marketplaces = {};
     let checklist = [];
 
-    try { marketplaces = r[9] ? JSON.parse(r[9]) : {}; } catch (e) { }
-    try { checklist = r[10] ? JSON.parse(r[10]) : []; } catch (e) { }
+    try { marketplaces = r[8] ? JSON.parse(r[8]) : {}; } catch (e) { }
+    try { checklist = r[9] ? JSON.parse(r[9]) : []; } catch (e) { }
+
+    const type = r[0] || 'product_catalog';
+    const productId = r[1] || '';
+    const title = r[2] || '';
+    const assignedTo = r[3] || '';
+    const assignedByName = r[4] || '';
+    const createdById = r[5] || '';
+    const dueDate = r[6] || '';
+    const status = r[7] || (sheetName === SHEETS.COMPLETED_TASKS ? 'completed' : 'in_progress');
+    const notes = r[10] || '';
+    const timeField = r[11] || '';
+
+    // ID derivado estável para a interface
+    const taskId = 'task_' + (productId ? (productId + '_') : '') + encodeURIComponent(title).replace(/[^a-zA-Z0-9_]/g, '_');
 
     return {
-      id: String(r[0]),
-      type: r[1],
-      productId: r[2],
-      title: r[3],
-      assignedTo: r[4],
-      assignedByName: r[5],
-      createdById: r[6],
-      dueDate: r[7],
-      status: r[8],
+      id: taskId || ('task_' + (index + 1)),
+      type: type,
+      productId: productId,
+      title: title,
+      assignedTo: assignedTo,
+      assignedByName: assignedByName,
+      createdById: createdById,
+      dueDate: dueDate,
+      status: status,
       marketplaces: marketplaces,
       checklist: checklist,
-      notes: r[11],
-      updatedAt: r[12]
+      notes: notes,
+      updatedAt: timeField,
+      finalizadoEm: timeField
     };
   });
 }
@@ -426,14 +493,18 @@ function upsertTask(task) {
   let rowIndex = -1;
 
   for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(task.id)) {
+    const rowProdId = String(values[i][1] || '').trim();
+    const rowTitle = String(values[i][2] || '').trim();
+    const targetProdId = String(task.productId || '').trim();
+    const targetTitle = String(task.title || '').trim();
+
+    if ((targetProdId && rowProdId === targetProdId) || (targetTitle && rowTitle === targetTitle)) {
       rowIndex = i + 1;
       break;
     }
   }
 
   const rowData = [
-    task.id,
     task.type || 'product_catalog',
     task.productId || '',
     task.title || '',
@@ -454,13 +525,13 @@ function upsertTask(task) {
     sheet.appendRow(rowData);
   }
 
-  return { id: task.id, updated: true };
+  return { id: task.id || task.title, updated: true };
 }
 
 /**
- * Move tarefa para a aba de Tarefas_Finalizadas
+ * Salva ou atualiza tarefa concluída
  */
-function moveTaskToCompleted(task) {
+function upsertCompletedTask(task) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let compSheet = ss.getSheetByName(SHEETS.COMPLETED_TASKS);
   if (!compSheet) {
@@ -468,19 +539,22 @@ function moveTaskToCompleted(task) {
     compSheet = ss.getSheetByName(SHEETS.COMPLETED_TASKS);
   }
 
-  deleteRowById(SHEETS.TASKS, task.id);
-
   const values = compSheet.getDataRange().getValues();
   let rowIndex = -1;
+
   for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(task.id)) {
+    const rowProdId = String(values[i][1] || '').trim();
+    const rowTitle = String(values[i][2] || '').trim();
+    const targetProdId = String(task.productId || '').trim();
+    const targetTitle = String(task.title || '').trim();
+
+    if ((targetProdId && rowProdId === targetProdId) || (targetTitle && rowTitle === targetTitle)) {
       rowIndex = i + 1;
       break;
     }
   }
 
   const rowData = [
-    task.id,
     task.type || 'product_catalog',
     task.productId || '',
     task.title || '',
@@ -501,14 +575,46 @@ function moveTaskToCompleted(task) {
     compSheet.appendRow(rowData);
   }
 
-  return { id: task.id, movedToCompleted: true };
+  return { id: task.id || task.title, updated: true };
+}
+
+/**
+ * Move tarefa para a aba de Tarefas_Finalizadas
+ */
+function moveTaskToCompleted(task) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let compSheet = ss.getSheetByName(SHEETS.COMPLETED_TASKS);
+  if (!compSheet) {
+    setupSheets();
+    compSheet = ss.getSheetByName(SHEETS.COMPLETED_TASKS);
+  }
+
+  deleteTaskRecord(SHEETS.TASKS, task);
+
+  const rowData = [
+    task.type || 'product_catalog',
+    task.productId || '',
+    task.title || '',
+    task.assignedTo || '',
+    task.assignedByName || '',
+    task.createdById || '',
+    task.dueDate || '',
+    'completed',
+    JSON.stringify(task.marketplaces || {}),
+    JSON.stringify(task.checklist || []),
+    task.notes || '',
+    new Date().toISOString()
+  ];
+
+  compSheet.appendRow(rowData);
+  return { id: task.id || task.title, movedToCompleted: true };
 }
 
 /**
  * Move tarefa de volta para tarefas ativas
  */
 function moveTaskToActive(task) {
-  deleteRowById(SHEETS.COMPLETED_TASKS, task.id);
+  deleteTaskRecord(SHEETS.COMPLETED_TASKS, task);
   return upsertTask({ ...task, status: 'in_progress' });
 }
 
@@ -518,6 +624,7 @@ function saveTasksBatch(tasksList) {
 
 /**
  * Salva ou atualiza um Produto no catálogo
+ * Linha: [SKU, Titulo, Custo, Largura, Comprimento, Altura, Peso]
  */
 function upsertProduct(prod) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -529,18 +636,18 @@ function upsertProduct(prod) {
 
   const values = sheet.getDataRange().getValues();
   let rowIndex = -1;
+  const targetSku = String(prod.sku || prod.id || '').toUpperCase().trim();
 
   for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(prod.id) || String(values[i][1]).toUpperCase() === String(prod.sku).toUpperCase()) {
+    if (String(values[i][0]).toUpperCase().trim() === targetSku) {
       rowIndex = i + 1;
       break;
     }
   }
 
   const rowData = [
-    prod.id,
-    prod.sku,
-    prod.title || prod.sku,
+    prod.sku || prod.id || '',
+    prod.title || prod.sku || '',
     parseBrazilianNumber(prod.cost),
     parseBrazilianNumber(prod.width),
     parseBrazilianNumber(prod.length),
@@ -554,7 +661,7 @@ function upsertProduct(prod) {
     sheet.appendRow(rowData);
   }
 
-  return { id: prod.id, updated: true };
+  return { sku: prod.sku, updated: true };
 }
 
 function saveProductsBatch(productsList) {
@@ -563,6 +670,7 @@ function saveProductsBatch(productsList) {
 
 /**
  * Salva ou atualiza uma Plataforma
+ * Linha: [Nome, Cor]
  */
 function upsertPlatform(plat) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -574,19 +682,18 @@ function upsertPlatform(plat) {
 
   const values = sheet.getDataRange().getValues();
   let rowIndex = -1;
+  const targetName = String(plat.name || '').toLowerCase().trim();
 
   for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(plat.id) || String(values[i][1]).toLowerCase() === String(plat.name).toLowerCase()) {
+    if (String(values[i][0]).toLowerCase().trim() === targetName) {
       rowIndex = i + 1;
       break;
     }
   }
 
   const rowData = [
-    plat.id,
-    plat.name,
-    plat.color || '#5925dc',
-    plat.description || ''
+    plat.name || '',
+    plat.color || '#5925dc'
   ];
 
   if (rowIndex > 0) {
@@ -595,7 +702,7 @@ function upsertPlatform(plat) {
     sheet.appendRow(rowData);
   }
 
-  return { id: plat.id, updated: true };
+  return { name: plat.name, updated: true };
 }
 
 function savePlatformsBatch(platformsList) {
@@ -604,6 +711,7 @@ function savePlatformsBatch(platformsList) {
 
 /**
  * Salva ou atualiza usuário
+ * Linha: [Nome, Email, Senha, Plataformas_JSON]
  */
 function upsertUser(user) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -615,22 +723,19 @@ function upsertUser(user) {
 
   const values = sheet.getDataRange().getValues();
   let rowIndex = -1;
+  const targetEmail = String(user.email || '').toLowerCase().trim();
 
   for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(user.id) || String(values[i][2]).toLowerCase() === String(user.email).toLowerCase()) {
+    if (String(values[i][1]).toLowerCase().trim() === targetEmail) {
       rowIndex = i + 1;
       break;
     }
   }
 
   const rowData = [
-    user.id,
-    user.name,
-    user.email,
+    user.name || '',
+    user.email || '',
     user.password || '123',
-    user.role || 'operator',
-    user.avatar || '👤',
-    user.badge || 'Operador',
     JSON.stringify(user.platforms || [])
   ];
 
@@ -640,7 +745,7 @@ function upsertUser(user) {
     sheet.appendRow(rowData);
   }
 
-  return { id: user.id, updated: true };
+  return { email: user.email, updated: true };
 }
 
 function saveUsersBatch(usersList) {
@@ -648,21 +753,85 @@ function saveUsersBatch(usersList) {
 }
 
 /**
- * Remove linha pelo ID na coluna A
+ * Remove usuário pelo Email (coluna B)
  */
-function deleteRowById(sheetName, id) {
+function deleteUserRecord(userOrData) {
+  const email = String((userOrData && (userOrData.email || userOrData.id)) || '').toLowerCase().trim();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.USERS);
+  if (!sheet) return { deleted: false };
+
+  const values = sheet.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][1]).toLowerCase().trim() === email) {
+      sheet.deleteRow(i + 1);
+      return { email: email, deleted: true };
+    }
+  }
+  return { email: email, deleted: false };
+}
+
+/**
+ * Remove produto pelo SKU (coluna A)
+ */
+function deleteProductRecord(prodOrData) {
+  const sku = String((prodOrData && (prodOrData.sku || prodOrData.id)) || '').toUpperCase().trim();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.PRODUCTS);
+  if (!sheet) return { deleted: false };
+
+  const values = sheet.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]).toUpperCase().trim() === sku) {
+      sheet.deleteRow(i + 1);
+      return { sku: sku, deleted: true };
+    }
+  }
+  return { sku: sku, deleted: false };
+}
+
+/**
+ * Remove plataforma pelo Nome (coluna A)
+ */
+function deletePlatformRecord(platOrData) {
+  const name = String((platOrData && (platOrData.name || platOrData.id)) || '').toLowerCase().trim();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.PLATFORMS);
+  if (!sheet) return { deleted: false };
+
+  const values = sheet.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]).toLowerCase().trim() === name) {
+      sheet.deleteRow(i + 1);
+      return { name: name, deleted: true };
+    }
+  }
+  return { name: name, deleted: false };
+}
+
+/**
+ * Remove tarefa por Titulo ou ProdutoID
+ */
+function deleteTaskRecord(sheetName, taskOrData) {
+  const targetId = String((taskOrData && taskOrData.id) || '');
+  const targetProdId = String((taskOrData && taskOrData.productId) || '');
+  const targetTitle = String((taskOrData && taskOrData.title) || '');
+
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return { deleted: false };
 
   const values = sheet.getDataRange().getValues();
   for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(id)) {
+    const rowProdId = String(values[i][1] || '').trim();
+    const rowTitle = String(values[i][2] || '').trim();
+
+    if ((targetProdId && rowProdId === targetProdId) || (targetTitle && rowTitle === targetTitle)) {
       sheet.deleteRow(i + 1);
-      return { id: id, deleted: true };
+      return { deleted: true };
     }
   }
-  return { id: id, deleted: false };
+  return { deleted: false };
 }
 
 /**
