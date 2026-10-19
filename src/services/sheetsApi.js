@@ -2,8 +2,8 @@
  * Serviço de Conexão com o Google Sheets (Apps Script Web App)
  */
 
-// URL do Apps Script (armazenada em cache local para você trocar a qualquer momento pelo app ou config)
-const DEFAULT_APPS_SCRIPT_URL = localStorage.getItem('taresk_sheets_api_url') || '';
+// URL do Apps Script oficial da JBC Eletro
+const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby8f8_gggTpEgxWEblfw5o4JU1OVh0CYZpmD7rhcpoMNaR-FSC87Tql3_TbIl7-GeBn/exec';
 
 export const SheetsApi = {
   getUrl: () => localStorage.getItem('taresk_sheets_api_url') || DEFAULT_APPS_SCRIPT_URL,

@@ -130,7 +130,27 @@ export default function App() {
     try {
       const data = await SheetsApi.fetchAllData();
       if (data) {
-        if (Array.isArray(data.tasks) && data.tasks.length > 0) setTasks(data.tasks);
+        if (Array.isArray(data.tasks)) {
+          const sanitizedTasks = data.tasks.map(t => {
+            let chk = t.checklist;
+            let mp = t.marketplaces;
+            if (typeof chk === 'string') {
+              try { chk = JSON.parse(chk); } catch (e) { chk = []; }
+            }
+            if (!Array.isArray(chk) && typeof t.notes === 'string' && t.notes.startsWith('[')) {
+              try { chk = JSON.parse(t.notes); } catch (e) { }
+            }
+            if (typeof mp === 'string') {
+              try { mp = JSON.parse(mp); } catch (e) { mp = {}; }
+            }
+            return {
+              ...t,
+              checklist: Array.isArray(chk) ? chk : [],
+              marketplaces: (mp && typeof mp === 'object') ? mp : {}
+            };
+          });
+          setTasks(sanitizedTasks);
+        }
         if (Array.isArray(data.completedTasks)) setCompletedTasks(data.completedTasks);
         if (Array.isArray(data.products) && data.products.length > 0) {
           const parseNum = (v) => {
