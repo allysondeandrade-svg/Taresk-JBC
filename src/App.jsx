@@ -439,8 +439,11 @@ export default function App() {
             setIsSettingsModalOpen(false);
             refreshFromSheets(true);
           }}
-          currentTheme={currentTheme}
-          onSelectTheme={setCurrentTheme}
+          currentTheme={appTheme}
+          onSelectTheme={(thId) => {
+            setAppTheme(thId);
+            localStorage.setItem('taresk_app_theme', thId);
+          }}
           defaultChecklistItems={defaultChecklist}
           onUpdateDefaultChecklist={setDefaultChecklist}
         />
