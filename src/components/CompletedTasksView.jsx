@@ -270,7 +270,12 @@ export default function CompletedTasksView({
                     />
                   ) : (
                     <span style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>
-                      {task.title}
+                      {(() => {
+                        if (task.type === 'special') return task.title || 'Tarefa Especial';
+                        if (task.title && task.title !== 'Produto' && task.title !== 'Produto Novo') return task.title;
+                        const p = products?.find(prod => (task.productId && (prod.sku === task.productId || prod.id === task.productId)) || (task.title && prod.sku === task.title));
+                        return p?.sku || task.productId || p?.title || task.title || 'Produto';
+                      })()}
                     </span>
                   )}
 

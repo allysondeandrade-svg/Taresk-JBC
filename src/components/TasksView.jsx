@@ -4,6 +4,7 @@ import { Eye, CheckCircle2, Clock, Calendar, User, Sparkles, Filter, Plus, Arrow
 export default function TasksView({
   tasks,
   users,
+  platforms = [],
   currentUser,
   onOpenChecklistModal,
   onToggleMarketplace,
@@ -54,39 +55,40 @@ export default function TasksView({
     }
   };
 
-  // Se o usuário não for admin, ele vê as tarefas atribuídas a ele ou criadas por ele
-  const visibleTasks = tasks.filter((task) => {
-    // Filtro de permissão
-    if (currentUser.role !== 'premium_admin') {
-      if (task.assignedTo !== currentUser.id && task.createdById !== currentUser.id) {
-        return false;
-      }
-    } else {
-      if (filterUser !== 'all' && task.assignedTo !== filterUser) {
-        return false;
-      }
-    }
+  function getAssignee(userId) {
+    return users.find(u => u.id === userId || u.name === userId) || { id: null, name: '', avatar: '' };
+  }
 
-    // Filtro de status
-    if (filterStatus === 'completed') {
-      // Cálculo de conclusão
-      const percent = calculateTaskProgress(task);
-      if (percent < 100) return false;
-    } else if (filterStatus === 'in_progress') {
-      const percent = calculateTaskProgress(task);
-      if (percent === 100) return false;
+  function getTaskPlatforms(task) {
+    const assignee = getAssignee(task.assignedTo);
+    if (assignee && assignee.platforms && assignee.platforms.length > 0) {
+      return assignee.platforms;
     }
-
-    // Filtro de busca
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = task.title.toLowerCase().includes(q);
-      const matchNotes = (task.notes || '').toLowerCase().includes(q);
-      if (!matchTitle && !matchNotes) return false;
+    // Se a tarefa já tiver chaves de marketplaces gravadas
+    if (task.marketplaces && Object.keys(task.marketplaces).length > 0) {
+      const keys = Object.keys(task.marketplaces);
+      const matched = [];
+      keys.forEach(k => {
+        const item = task.marketplaces[k];
+        const plat = platforms.find(p => p.id === k || p.name.toLowerCase() === k.toLowerCase());
+        matched.push({
+          id: k,
+          name: item?.name || plat?.name || k,
+          color: item?.color || plat?.color || '#5925dc'
+        });
+      });
+      if (matched.length > 0) return matched;
     }
-
-    return true;
-  });
+    if (platforms && platforms.length > 0) {
+      return platforms.slice(0, 4);
+    }
+    return [
+      { id: 'shopee', name: 'Shopee', color: '#f97316' },
+      { id: 'mercadoLivre', name: 'Mercado L', color: '#facc15' },
+      { id: 'amazon', name: 'Amazon', color: '#334155' },
+      { id: 'magalu', name: 'Magalu', color: '#38bdf8' }
+    ];
+  }
 
   function calculateTaskProgress(task) {
     if (task.type === 'special') {
@@ -97,17 +99,18 @@ export default function TasksView({
 
     // Para produtos:
     // 1. Fotos / Checklist dentro do produto representam 40% da conclusão total.
-    //    Divide a quantidade de fotos feitas pelo total de itens do checklist.
     const totalChecks = task.checklist?.length || 0;
     const doneChecks = task.checklist?.filter(c => c.completed).length || 0;
     const photoProgress = totalChecks > 0 ? (doneChecks / totalChecks) * 40 : 0;
 
-    // 2. O restante (60%) é distribuído entre as plataformas e seus botões (U e O).
-    //    São 4 plataformas com 2 botões cada (total de 8 botões, cada botão vale 60% / 8 = 7.5%).
+    // 2. O restante (60%) é distribuído entre as plataformas do usuário
+    const taskPlats = getTaskPlatforms(task);
+    const totalButtons = Math.max(taskPlats.length * 2, 2);
     const mp = task.marketplaces || {};
     let mpButtonsCount = 0;
-    ['shopee', 'mercadoLivre', 'amazon', 'magalu'].forEach(ch => {
-      const channel = mp[ch];
+
+    taskPlats.forEach(plat => {
+      const channel = mp[plat.id] || mp[plat.name] || mp[plat.name.toLowerCase()] || mp[plat.name.replace(/\s+/g, '')];
       if (channel) {
         if (channel.u) mpButtonsCount++;
         if (channel.o) mpButtonsCount++;
@@ -115,14 +118,43 @@ export default function TasksView({
       }
     });
 
-    const mpProgress = (mpButtonsCount / 8) * 60;
-
+    const mpProgress = (mpButtonsCount / totalButtons) * 60;
     return Math.round(photoProgress + mpProgress);
   }
 
-  function getAssignee(userId) {
-    return users.find(u => u.id === userId) || { id: null, name: '', avatar: '' };
-  }
+  // Se o usuário não for admin, ele vê as tarefas atribuídas a ele ou criadas por ele
+  const visibleTasks = tasks.filter((task) => {
+    // Filtro de permissão
+    if (currentUser.role !== 'premium_admin') {
+      if (task.assignedTo !== currentUser.id && task.assignedTo !== currentUser.name && task.createdById !== currentUser.id) {
+        return false;
+      }
+    } else {
+      if (filterUser !== 'all' && task.assignedTo !== filterUser) {
+        return false;
+      }
+    }
+
+    // Filtro de status
+    if (filterStatus === 'completed') {
+      const percent = calculateTaskProgress(task);
+      if (percent < 100) return false;
+    } else if (filterStatus === 'in_progress') {
+      const percent = calculateTaskProgress(task);
+      if (percent === 100) return false;
+    }
+
+    // Filtro de busca
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = (task.title || '').toLowerCase().includes(q);
+      const matchProduct = (task.productId || '').toLowerCase().includes(q);
+      const matchNotes = (task.notes || '').toLowerCase().includes(q);
+      if (!matchTitle && !matchProduct && !matchNotes) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px' }}>
@@ -242,6 +274,21 @@ export default function TasksView({
           const totalChecks = task.checklist?.length || 0;
           const doneChecks = task.checklist?.filter(c => c.completed).length || 0;
 
+          // Resolve o SKU do Produto para exibição
+          const matchedProduct = products?.find(p =>
+            (task.productId && (p.sku === task.productId || p.id === task.productId)) ||
+            (task.title && (p.sku === task.title || p.title === task.title))
+          );
+          const productSkuDisplay = isSpecial
+            ? (task.title || 'Tarefa Especial')
+            : (
+                (task.title && task.title !== 'Produto' && task.title !== 'Produto Novo')
+                  ? task.title
+                  : (matchedProduct?.sku || task.productId || matchedProduct?.title || 'Produto')
+              );
+
+          const taskPlatforms = getTaskPlatforms(task);
+
           return (
             <div
               key={task.id}
@@ -257,7 +304,8 @@ export default function TasksView({
                   : '0 3px 10px rgba(0, 0, 0, 0.04)',
                 border: isDone ? '1.5px solid #a7f3d0' : '1px solid #e2e8f0',
                 position: 'relative',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                overflowX: 'auto'
               }}
             >
               {/* Badge do Responsável posicionado no topo superior esquerdo do card */}
@@ -276,7 +324,7 @@ export default function TasksView({
                 color: '#475569'
               }}>
                 <User size={11} color="#475569" />
-                <span>{assignee.name || 'Jeremias'}</span>
+                <span>{assignee.name || task.assignedByName || 'Colaborador'}</span>
               </div>
 
               {/* Coluna 1: Bloco Cinza do Produto ou Tarefa Especial */}
@@ -302,11 +350,7 @@ export default function TasksView({
                   marginBottom: isSpecial ? '0px' : '4px'
                 }}>
                     <div
-                    title={
-                      isSpecial
-                        ? 'Tarefa Especial'
-                        : (task.title || products?.find(p => p.id === task.productId || p.sku === task.productId)?.title || 'Produto')
-                    }
+                    title={productSkuDisplay}
                     style={{
                       fontSize: isSpecial ? '15px' : '14px',
                       fontWeight: '800',
@@ -318,9 +362,7 @@ export default function TasksView({
                       flex: 1
                     }}
                   >
-                    {isSpecial
-                      ? 'Tarefa Especial'
-                      : (task.title || products?.find(p => p.id === task.productId || p.sku === task.productId)?.title || 'Produto')}
+                    {productSkuDisplay}
                   </div>
 
                   {!isSpecial && (
@@ -455,52 +497,50 @@ export default function TasksView({
                   </div>
                 </div>
               ) : (
-                /* Para Produtos: 4 Canais alinhados lado a lado perfeitamente */
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ width: '130px', flexShrink: 0 }}>
-                    <MarketplaceCard
-                      name="Shopee"
-                      defaultColor="#f97316"
-                      activeColor="#22c55e"
-                      channelState={task.marketplaces?.shopee}
-                      onToggleU={() => onToggleMarketplace(task.id, 'shopee', 'u')}
-                      onToggleO={() => onToggleMarketplace(task.id, 'shopee', 'o')}
-                    />
-                  </div>
+                /* Para Produtos: Canais de marketplace do colaborador atribuído */
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'nowrap' }}>
+                  {taskPlatforms.map((plat) => {
+                    const channelKey = plat.id || plat.name;
+                    const channelState =
+                      task.marketplaces?.[plat.id] ||
+                      task.marketplaces?.[plat.name] ||
+                      task.marketplaces?.[plat.name.toLowerCase()] ||
+                      task.marketplaces?.[plat.name.replace(/\s+/g, '')] ||
+                      (plat.name.toLowerCase().includes('shopee') ? task.marketplaces?.shopee : null) ||
+                      (plat.name.toLowerCase().includes('mercado') ? task.marketplaces?.mercadoLivre : null) ||
+                      (plat.name.toLowerCase().includes('amazon') ? task.marketplaces?.amazon : null) ||
+                      (plat.name.toLowerCase().includes('magalu') ? task.marketplaces?.magalu : null) ||
+                      {};
 
-                  <div style={{ width: '135px', flexShrink: 0 }}>
-                    <MarketplaceCard
-                      name="Mercado L"
-                      defaultColor="#facc15"
-                      activeColor="#22c55e"
-                      textColor="#1e293b"
-                      channelState={task.marketplaces?.mercadoLivre}
-                      onToggleU={() => onToggleMarketplace(task.id, 'mercadoLivre', 'u')}
-                      onToggleO={() => onToggleMarketplace(task.id, 'mercadoLivre', 'o')}
-                    />
-                  </div>
+                    // Determina a cor padrão baseada no nome ou cor cadastrada
+                    let defaultColor = plat.color;
+                    if (!defaultColor || defaultColor === '#5925dc') {
+                      const lower = plat.name.toLowerCase();
+                      if (lower.includes('shopee')) defaultColor = '#f97316';
+                      else if (lower.includes('mercado') || lower.includes('ml')) defaultColor = '#facc15';
+                      else if (lower.includes('amazon')) defaultColor = '#334155';
+                      else if (lower.includes('magalu')) defaultColor = '#38bdf8';
+                      else if (lower.includes('shein')) defaultColor = '#0f172a';
+                      else defaultColor = '#6366f1';
+                    }
 
-                  <div style={{ width: '130px', flexShrink: 0 }}>
-                    <MarketplaceCard
-                      name="Amazon"
-                      defaultColor="#334155"
-                      activeColor="#22c55e"
-                      channelState={task.marketplaces?.amazon}
-                      onToggleU={() => onToggleMarketplace(task.id, 'amazon', 'u')}
-                      onToggleO={() => onToggleMarketplace(task.id, 'amazon', 'o')}
-                    />
-                  </div>
+                    const isYellow = defaultColor === '#facc15' || plat.name.toLowerCase().includes('mercado');
+                    const textColor = isYellow ? '#1e293b' : '#ffffff';
 
-                  <div style={{ width: '130px', flexShrink: 0 }}>
-                    <MarketplaceCard
-                      name="Magalu"
-                      defaultColor="#38bdf8"
-                      activeColor="#22c55e"
-                      channelState={task.marketplaces?.magalu}
-                      onToggleU={() => onToggleMarketplace(task.id, 'magalu', 'u')}
-                      onToggleO={() => onToggleMarketplace(task.id, 'magalu', 'o')}
-                    />
-                  </div>
+                    return (
+                      <div key={plat.id || plat.name} style={{ width: '132px', flexShrink: 0 }}>
+                        <MarketplaceCard
+                          name={plat.name}
+                          defaultColor={defaultColor}
+                          activeColor="#22c55e"
+                          textColor={textColor}
+                          channelState={channelState}
+                          onToggleU={() => onToggleMarketplace(task.id, channelKey, 'u')}
+                          onToggleO={() => onToggleMarketplace(task.id, channelKey, 'o')}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

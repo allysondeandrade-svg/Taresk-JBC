@@ -5,14 +5,15 @@ import { DEFAULT_CHECKLIST_ITEMS } from '../data/initialData';
 export default function NewTaskModal({
   isOpen,
   onClose,
-  products,
-  users,
+  products = [],
+  users = [],
+  platforms = [],
   currentUser,
   onCreateTask,
   defaultChecklistItems
 }) {
   const [taskType, setTaskType] = useState('product_catalog'); // 'product_catalog' ou 'special'
-  const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || '');
+  const [selectedProductId, setSelectedProductId] = useState(() => products[0]?.sku || products[0]?.id || '');
   const [productSearch, setProductSearch] = useState('');
   const [specialTitle, setSpecialTitle] = useState('');
   const [assignedTo, setAssignedTo] = useState(
@@ -54,6 +55,8 @@ export default function NewTaskModal({
       ? defaultChecklistItems
       : DEFAULT_CHECKLIST_ITEMS;
 
+    const assignedUser = users.find(u => u.id === assignedTo) || currentUser;
+
     if (taskType === 'special') {
       if (!specialTitle.trim()) {
         alert('Por favor, descreva a tarefa especial.');
@@ -66,7 +69,7 @@ export default function NewTaskModal({
         productId: null,
         title: specialTitle.trim(),
         assignedTo,
-        assignedByName: currentUser.name,
+        assignedByName: assignedUser?.name || currentUser.name,
         createdById: currentUser.id,
         dueDate: dueDate.trim() || '25/10',
         status: 'in_progress',
@@ -78,25 +81,37 @@ export default function NewTaskModal({
         notes
       });
     } else {
-      const prod = products.find(p => p.id === selectedProductId);
-      const title = prod ? prod.title : 'Produto Novo';
+      const prod = products.find(p => p.sku === selectedProductId || p.id === selectedProductId) || products[0];
+      const title = prod ? (prod.sku || prod.title || 'Produto') : (selectedProductId || 'Produto Novo');
+      const finalProductId = prod?.sku || prod?.id || selectedProductId;
+
+      // Monta os marketplaces com base nas plataformas do usuário atribuído (ou gerais)
+      const userPlats = (assignedUser?.platforms && assignedUser.platforms.length > 0)
+        ? assignedUser.platforms
+        : (platforms && platforms.length > 0 ? platforms : [
+            { id: 'shopee', name: 'Shopee' },
+            { id: 'mercadoLivre', name: 'Mercado L' },
+            { id: 'amazon', name: 'Amazon' },
+            { id: 'magalu', name: 'Magalu' }
+          ]);
+
+      const initialMarketplaces = {};
+      userPlats.forEach(p => {
+        const key = p.id || p.name;
+        initialMarketplaces[key] = { status: 'pending', active: false, u: false, o: false, name: p.name, color: p.color };
+      });
 
       onCreateTask({
         id: 'task_' + Date.now(),
         type: 'product_catalog',
-        productId: selectedProductId,
+        productId: finalProductId,
         title: title,
         assignedTo,
-        assignedByName: currentUser.name,
+        assignedByName: assignedUser?.name || currentUser.name,
         createdById: currentUser.id,
         dueDate: dueDate.trim() || '25/10',
         status: 'in_progress',
-        marketplaces: {
-          shopee: { status: 'pending', active: false },
-          mercadoLivre: { status: 'pending', active: false },
-          amazon: { status: 'pending', active: false },
-          magalu: { status: 'pending', active: false }
-        },
+        marketplaces: initialMarketplaces,
         checklist: activeChecklistDefaults.map((item, idx) => ({
           id: `chk_${Date.now()}_${idx}`,
           label: item,
@@ -110,7 +125,9 @@ export default function NewTaskModal({
   };
 
   const filteredProducts = products.filter(p =>
-    !productSearch || p.title.toLowerCase().includes(productSearch.toLowerCase()) || p.sku.toLowerCase().includes(productSearch.toLowerCase())
+    !productSearch ||
+    (p.title && p.title.toLowerCase().includes(productSearch.toLowerCase())) ||
+    (p.sku && p.sku.toLowerCase().includes(productSearch.toLowerCase()))
   );
 
   return (
@@ -255,13 +272,13 @@ export default function NewTaskModal({
                 }}
               >
                 {filteredProducts.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.sku} - {p.title} (Custo: R$ {Number(p.cost).toFixed(2)})
+                  <option key={p.id || p.sku} value={p.sku || p.id}>
+                    {p.sku} {p.title ? `- ${p.title}` : ''} {p.cost ? `(Custo: R$ ${Number(p.cost).toFixed(2)})` : ''}
                   </option>
                 ))}
               </select>
               <span style={{ fontSize: '12px', color: '#64748b', marginTop: '6px', display: 'block' }}>
-                Ao criar, esta tarefa gerará o checklist de fotos IA, descrições e os 4 canais (Shopee, ML, Amazon, Magalu).
+                Ao criar, esta tarefa gerará o checklist de fotos e os canais de marketplace do colaborador atribuído.
               </span>
             </div>
           ) : (

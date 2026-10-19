@@ -473,6 +473,7 @@ export default function App() {
             tasks={tasks}
             users={users}
             products={products}
+            platforms={platforms}
             currentUser={currentUser}
             onOpenChecklistModal={(task) => setActiveChecklistTask(task)}
             onToggleMarketplace={handleToggleMarketplace}
@@ -540,6 +541,7 @@ export default function App() {
         onClose={() => setIsNewTaskModalOpen(false)}
         products={products}
         users={users}
+        platforms={platforms}
         currentUser={currentUser}
         onCreateTask={handleCreateTask}
         defaultChecklistItems={defaultChecklist}
