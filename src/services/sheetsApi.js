@@ -81,9 +81,13 @@ export const SheetsApi = {
   /**
    * Exclui uma tarefa ativa
    */
-  async deleteTask(taskId) {
+  async deleteTask(taskOrId) {
     const url = this.getUrl();
     if (!url) return false;
+
+    const payloadData = typeof taskOrId === 'object'
+      ? { id: taskOrId.id, sku: taskOrId.sku || taskOrId.productId || taskOrId.title, title: taskOrId.title, productId: taskOrId.productId }
+      : { id: taskOrId, sku: taskOrId, title: taskOrId };
 
     try {
       await fetch(url, {
@@ -91,7 +95,7 @@ export const SheetsApi = {
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           action: 'deleteTask',
-          data: { id: taskId }
+          data: payloadData
         })
       });
       return true;
@@ -173,9 +177,13 @@ export const SheetsApi = {
   /**
    * Exclui tarefa finalizada
    */
-  async deleteCompletedTask(taskId) {
+  async deleteCompletedTask(taskOrId) {
     const url = this.getUrl();
     if (!url) return false;
+
+    const payloadData = typeof taskOrId === 'object'
+      ? { id: taskOrId.id, sku: taskOrId.sku || taskOrId.productId || taskOrId.title, title: taskOrId.title, productId: taskOrId.productId }
+      : { id: taskOrId, sku: taskOrId, title: taskOrId };
 
     try {
       await fetch(url, {
@@ -183,7 +191,7 @@ export const SheetsApi = {
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           action: 'deleteCompletedTask',
-          data: { id: taskId }
+          data: payloadData
         })
       });
       return true;

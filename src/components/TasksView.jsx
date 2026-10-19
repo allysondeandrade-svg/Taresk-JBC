@@ -80,8 +80,8 @@ export default function TasksView({
   };
 
   const handleDelete = (task) => {
-    if (window.confirm(`Tem certeza que deseja excluir a tarefa "${task.title}"?`)) {
-      onDeleteTask(task.id);
+    if (window.confirm(`Tem certeza que deseja excluir a tarefa "${task.title || task.sku || 'selecionada'}"?`)) {
+      onDeleteTask(task);
     }
   };
 

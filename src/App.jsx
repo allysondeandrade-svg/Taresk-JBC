@@ -300,9 +300,10 @@ export default function App() {
     }));
   };
 
-  const handleDeleteTask = (id) => {
+  const handleDeleteTask = (taskOrId) => {
+    const id = typeof taskOrId === 'object' ? taskOrId.id : taskOrId;
     setTasks(tasks.filter(t => t.id !== id));
-    SheetsApi.deleteTask(id);
+    SheetsApi.deleteTask(taskOrId);
   };
 
   // Handlers para Tarefas Finalizadas / Concluídas
@@ -337,9 +338,10 @@ export default function App() {
     SheetsApi.unfinishTask(reactivated);
   };
 
-  const handleDeleteCompletedTask = (id) => {
+  const handleDeleteCompletedTask = (taskOrId) => {
+    const id = typeof taskOrId === 'object' ? taskOrId.id : taskOrId;
     setCompletedTasks(completedTasks.filter(t => t.id !== id));
-    SheetsApi.deleteCompletedTask(id);
+    SheetsApi.deleteCompletedTask(taskOrId);
   };
 
   const handleUpdateCompletedTask = (id, updatedFields) => {

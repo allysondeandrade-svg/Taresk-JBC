@@ -415,8 +415,8 @@ export default function CompletedTasksView({
                 {/* Excluir Definitivamente */}
                 <button
                   onClick={() => {
-                    if (confirm(`Excluir permanentemente a tarefa "${task.title}" da planilha?`)) {
-                      onDeleteCompletedTask(task.id);
+                    if (confirm(`Excluir permanentemente a tarefa "${task.title || task.sku || 'selecionada'}" da planilha?`)) {
+                      onDeleteCompletedTask(task);
                     }
                   }}
                   title="Excluir Tarefa"

@@ -875,21 +875,35 @@ function deletePlatformRecord(platOrData) {
  * Remove tarefa por SKU (coluna B) ou Titulo/ID
  */
 function deleteTaskRecord(sheetName, taskOrData) {
-  const targetSku = String((taskOrData && (taskOrData.sku || taskOrData.productId || taskOrData.title || taskOrData.id)) || '').trim().toLowerCase();
-
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return { deleted: false };
+
+  // Identificadores possíveis passados pelo frontend
+  const sku = String((taskOrData && (taskOrData.sku || taskOrData.productId)) || '').trim().toLowerCase();
+  const title = String((taskOrData && taskOrData.title) || '').trim().toLowerCase();
+  const id = String((taskOrData && taskOrData.id) || '').trim().toLowerCase();
 
   const values = sheet.getDataRange().getValues();
   for (let i = 1; i < values.length; i++) {
     const rowCol1 = String(values[i][1] || '').trim().toLowerCase(); // Coluna B (SKU)
     const rowCol0 = String(values[i][0] || '').trim().toLowerCase(); // Coluna A (Tipo ou SKU)
-    const rowCol2 = String(values[i][2] || '').trim().toLowerCase(); // Coluna C
+    const rowCol2 = String(values[i][2] || '').trim().toLowerCase(); // Coluna C (AtribuidoPara ou Titulo)
 
-    if (targetSku && (rowCol1 === targetSku || rowCol0 === targetSku || rowCol2 === targetSku)) {
+    // Se bater por SKU (coluna B ou A)
+    if (sku && (rowCol1 === sku || rowCol0 === sku)) {
       sheet.deleteRow(i + 1);
-      return { deleted: true };
+      return { deleted: true, matchedBy: 'sku' };
+    }
+    // Se bater por Title
+    if (title && (rowCol1 === title || rowCol0 === title || rowCol2 === title)) {
+      sheet.deleteRow(i + 1);
+      return { deleted: true, matchedBy: 'title' };
+    }
+    // Se bater por taskId contendo o SKU
+    if (id && rowCol1 && id.includes(rowCol1)) {
+      sheet.deleteRow(i + 1);
+      return { deleted: true, matchedBy: 'id_contains' };
     }
   }
   return { deleted: false };
