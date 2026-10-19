@@ -17,7 +17,9 @@ export const SheetsApi = {
     if (!url) return null;
 
     try {
-      const resp = await fetch(`${url}?action=getAllData`);
+      const resp = await fetch(`${url}?action=getAllData&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
       const json = await resp.json();
       if (json.status === 'success') {
         return json.data;
