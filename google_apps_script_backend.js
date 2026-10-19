@@ -8,9 +8,9 @@
  * ESTRUTURA ATUALIZADA:
  * - Sem coluna ID em nenhuma das páginas.
  * - Usuários: [Nome, Email, Senha, Plataformas_JSON] (sem Cargo, Avatar, Badge).
+ * - Produtos: [SKU, Custo, Largura, Comprimento, Altura, Peso] (sem Título).
  * - Plataformas: [Nome, Cor] (sem Descrição).
- * - Produtos: [SKU, Titulo, Custo, Largura, Comprimento, Altura, Peso].
- * - Tarefas / Tarefas_Finalizadas: [Tipo, ProdutoID, Titulo, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm].
+ * - Tarefas / Tarefas_Finalizadas: [Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm] (sem ID e sem Título, SKU no lugar de ProdutoID).
  * 
  * INSTRUÇÕES RÁPIDAS DE INSTALAÇÃO:
  * 1. Abra sua planilha no Google Sheets (ex: "Banco_Dados_Taresk").
@@ -69,19 +69,19 @@ function setupSheets() {
     styleHeader(userSheet);
   }
 
-  // 2. Aba Produtos: [SKU, Titulo, Custo, Largura, Comprimento, Altura, Peso]
+  // 2. Aba Produtos: [SKU, Custo, Largura, Comprimento, Altura, Peso] (Sem Título)
   let prodSheet = ss.getSheetByName(SHEETS.PRODUCTS);
   if (!prodSheet) {
     prodSheet = ss.insertSheet(SHEETS.PRODUCTS);
-    prodSheet.appendRow(['SKU', 'Titulo', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
-    prodSheet.appendRow(['FOG-02-BOC', 'Fogão 2 Bocas Alta Pressão Inox', 145.00, 32, 54, 18, 4.80]);
-    prodSheet.appendRow(['PAN-ELE-05L', 'Panela Elétrica Multifunção 5L Inox', 120.00, 30, 30, 35, 3.50]);
-    prodSheet.appendRow(['VENT-COL-40', 'Ventilador Coluna 40cm Turbo Silencioso', 89.90, 45, 45, 130, 5.20]);
-    prodSheet.appendRow(['FRIT-AIR-4L', 'Fritadeira Air Fryer 4L Digital Preto', 185.00, 33, 33, 38, 4.60]);
+    prodSheet.appendRow(['SKU', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
+    prodSheet.appendRow(['FOG-02-BOC', 145.00, 32, 54, 18, 4.80]);
+    prodSheet.appendRow(['PAN-ELE-05L', 120.00, 30, 30, 35, 3.50]);
+    prodSheet.appendRow(['VENT-COL-40', 89.90, 45, 45, 130, 5.20]);
+    prodSheet.appendRow(['FRIT-AIR-4L', 185.00, 33, 33, 38, 4.60]);
     styleHeader(prodSheet);
   }
 
-  // 3. Aba Plataformas: [Nome, Cor]
+  // 3. Aba Plataformas: [Nome, Cor] (Sem Descrição)
   let platSheet = ss.getSheetByName(SHEETS.PLATFORMS);
   if (!platSheet) {
     platSheet = ss.insertSheet(SHEETS.PLATFORMS);
@@ -95,14 +95,13 @@ function setupSheets() {
     styleHeader(platSheet);
   }
 
-  // 4. Aba Tarefas Ativas: [Tipo, ProdutoID, Titulo, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm]
+  // 4. Aba Tarefas Ativas: [Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm]
   let taskSheet = ss.getSheetByName(SHEETS.TASKS);
   if (!taskSheet) {
     taskSheet = ss.insertSheet(SHEETS.TASKS);
     taskSheet.appendRow([
       'Tipo',
-      'ProdutoID',
-      'Titulo',
+      'SKU',
       'AtribuidoPara',
       'AtribuidoPor',
       'CriadoPor',
@@ -116,14 +115,13 @@ function setupSheets() {
     styleHeader(taskSheet);
   }
 
-  // 5. Aba Tarefas Finalizadas: [Tipo, ProdutoID, Titulo, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, FinalizadoEm]
+  // 5. Aba Tarefas Finalizadas: [Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, FinalizadoEm]
   let compTaskSheet = ss.getSheetByName(SHEETS.COMPLETED_TASKS);
   if (!compTaskSheet) {
     compTaskSheet = ss.insertSheet(SHEETS.COMPLETED_TASKS);
     compTaskSheet.appendRow([
       'Tipo',
-      'ProdutoID',
-      'Titulo',
+      'SKU',
       'AtribuidoPara',
       'AtribuidoPor',
       'CriadoPor',
@@ -491,24 +489,26 @@ function getTasksDataAsJson(sheetName) {
     try { checklist = rawChk ? JSON.parse(rawChk) : []; } catch (e) { }
 
     const type = (idxTipo !== -1 && r[idxTipo]) ? r[idxTipo] : (r[0] || 'product_catalog');
-    const productId = (idxProdId !== -1 && r[idxProdId]) ? String(r[idxProdId]) : String(r[1] || '');
-    const title = (idxTitulo !== -1 && r[idxTitulo]) ? String(r[idxTitulo]) : String(r[2] || '');
-    const assignedTo = (idxAtribPara !== -1 && r[idxAtribPara]) ? String(r[idxAtribPara]) : String(r[3] || '');
-    const assignedByName = (idxAtribPor !== -1 && r[idxAtribPor]) ? String(r[idxAtribPor]) : String(r[4] || '');
-    const createdById = (idxCriadoPor !== -1 && r[idxCriadoPor]) ? String(r[idxCriadoPor]) : String(r[5] || '');
-    const dueDate = (idxPrazo !== -1 && r[idxPrazo]) ? String(r[idxPrazo]) : String(r[6] || '');
-    const status = (idxStatus !== -1 && r[idxStatus]) ? String(r[idxStatus]) : (sheetName === SHEETS.COMPLETED_TASKS ? 'completed' : 'in_progress');
-    const notes = (idxObs !== -1 && r[idxObs]) ? String(r[idxObs]) : String(r[10] || '');
-    const timeField = (idxDataHora !== -1 && r[idxDataHora]) ? String(r[idxDataHora]) : String(r[11] || '');
+    const sku = (idxProdId !== -1 && r[idxProdId]) ? String(r[idxProdId]).trim() : String(r[1] || '').trim();
+    // Se a coluna Titulo existir na planilha antiga lê dela, senão usa o próprio SKU ou nota
+    const title = (idxTitulo !== -1 && r[idxTitulo]) ? String(r[idxTitulo]).trim() : sku;
+    const assignedTo = (idxAtribPara !== -1 && r[idxAtribPara]) ? String(r[idxAtribPara]).trim() : String(r[2] || '').trim();
+    const assignedByName = (idxAtribPor !== -1 && r[idxAtribPor]) ? String(r[idxAtribPor]).trim() : String(r[3] || '').trim();
+    const createdById = (idxCriadoPor !== -1 && r[idxCriadoPor]) ? String(r[idxCriadoPor]).trim() : String(r[4] || '').trim();
+    const dueDate = (idxPrazo !== -1 && r[idxPrazo]) ? String(r[idxPrazo]).trim() : String(r[5] || '').trim();
+    const status = (idxStatus !== -1 && r[idxStatus]) ? String(r[idxStatus]).trim() : (sheetName === SHEETS.COMPLETED_TASKS ? 'completed' : 'in_progress');
+    const notes = (idxObs !== -1 && r[idxObs]) ? String(r[idxObs]) : '';
+    const timeField = (idxDataHora !== -1 && r[idxDataHora]) ? String(r[idxDataHora]) : '';
 
     // ID derivado estável para a interface
-    const taskId = 'task_' + (productId ? (productId + '_') : '') + encodeURIComponent(title || ('item_' + (index + 1))).replace(/[^a-zA-Z0-9_]/g, '_');
+    const taskId = 'task_' + (sku ? (sku + '_') : '') + (index + 1);
 
     return {
-      id: taskId || ('task_' + (index + 1)),
+      id: taskId,
       type: type,
-      productId: productId,
-      title: title,
+      productId: sku,
+      sku: sku,
+      title: title || sku || ('Tarefa ' + (index + 1)),
       assignedTo: assignedTo,
       assignedByName: assignedByName,
       createdById: createdById,
@@ -525,6 +525,7 @@ function getTasksDataAsJson(sheetName) {
 
 /**
  * Salva ou atualiza uma Tarefa específica
+ * Linha: [Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm]
  */
 function upsertTask(task) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -536,14 +537,11 @@ function upsertTask(task) {
 
   const values = sheet.getDataRange().getValues();
   let rowIndex = -1;
+  const targetSku = String(task.sku || task.productId || task.title || '').trim().toLowerCase();
 
   for (let i = 1; i < values.length; i++) {
-    const rowProdId = String(values[i][1] || '').trim();
-    const rowTitle = String(values[i][2] || '').trim();
-    const targetProdId = String(task.productId || '').trim();
-    const targetTitle = String(task.title || '').trim();
-
-    if ((targetProdId && rowProdId === targetProdId) || (targetTitle && rowTitle === targetTitle)) {
+    const rowSku = String(values[i][1] || values[i][0] || '').trim().toLowerCase();
+    if (targetSku && rowSku === targetSku) {
       rowIndex = i + 1;
       break;
     }
@@ -551,8 +549,7 @@ function upsertTask(task) {
 
   const rowData = [
     task.type || 'product_catalog',
-    task.productId || '',
-    task.title || '',
+    task.sku || task.productId || task.title || '',
     task.assignedTo || '',
     task.assignedByName || '',
     task.createdById || '',
@@ -570,7 +567,7 @@ function upsertTask(task) {
     sheet.appendRow(rowData);
   }
 
-  return { id: task.id || task.title, updated: true };
+  return { id: task.id || targetSku, updated: true };
 }
 
 /**
@@ -586,14 +583,11 @@ function upsertCompletedTask(task) {
 
   const values = compSheet.getDataRange().getValues();
   let rowIndex = -1;
+  const targetSku = String(task.sku || task.productId || task.title || '').trim().toLowerCase();
 
   for (let i = 1; i < values.length; i++) {
-    const rowProdId = String(values[i][1] || '').trim();
-    const rowTitle = String(values[i][2] || '').trim();
-    const targetProdId = String(task.productId || '').trim();
-    const targetTitle = String(task.title || '').trim();
-
-    if ((targetProdId && rowProdId === targetProdId) || (targetTitle && rowTitle === targetTitle)) {
+    const rowSku = String(values[i][1] || values[i][0] || '').trim().toLowerCase();
+    if (targetSku && rowSku === targetSku) {
       rowIndex = i + 1;
       break;
     }
@@ -601,8 +595,7 @@ function upsertCompletedTask(task) {
 
   const rowData = [
     task.type || 'product_catalog',
-    task.productId || '',
-    task.title || '',
+    task.sku || task.productId || task.title || '',
     task.assignedTo || '',
     task.assignedByName || '',
     task.createdById || '',
@@ -620,7 +613,7 @@ function upsertCompletedTask(task) {
     compSheet.appendRow(rowData);
   }
 
-  return { id: task.id || task.title, updated: true };
+  return { id: task.id || targetSku, updated: true };
 }
 
 /**
@@ -636,10 +629,10 @@ function moveTaskToCompleted(task) {
 
   deleteTaskRecord(SHEETS.TASKS, task);
 
+  const targetSku = task.sku || task.productId || task.title || '';
   const rowData = [
     task.type || 'product_catalog',
-    task.productId || '',
-    task.title || '',
+    targetSku,
     task.assignedTo || '',
     task.assignedByName || '',
     task.createdById || '',
@@ -652,7 +645,7 @@ function moveTaskToCompleted(task) {
   ];
 
   compSheet.appendRow(rowData);
-  return { id: task.id || task.title, movedToCompleted: true };
+  return { id: task.id || targetSku, movedToCompleted: true };
 }
 
 /**
@@ -692,7 +685,6 @@ function upsertProduct(prod) {
 
   const rowData = [
     prod.sku || prod.id || '',
-    prod.title || prod.sku || '',
     parseBrazilianNumber(prod.cost),
     parseBrazilianNumber(prod.width),
     parseBrazilianNumber(prod.length),
@@ -855,12 +847,10 @@ function deletePlatformRecord(platOrData) {
 }
 
 /**
- * Remove tarefa por Titulo ou ProdutoID
+ * Remove tarefa por SKU (coluna B) ou Titulo/ID
  */
 function deleteTaskRecord(sheetName, taskOrData) {
-  const targetId = String((taskOrData && taskOrData.id) || '');
-  const targetProdId = String((taskOrData && taskOrData.productId) || '');
-  const targetTitle = String((taskOrData && taskOrData.title) || '');
+  const targetSku = String((taskOrData && (taskOrData.sku || taskOrData.productId || taskOrData.title || taskOrData.id)) || '').trim().toLowerCase();
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
@@ -868,10 +858,11 @@ function deleteTaskRecord(sheetName, taskOrData) {
 
   const values = sheet.getDataRange().getValues();
   for (let i = 1; i < values.length; i++) {
-    const rowProdId = String(values[i][1] || '').trim();
-    const rowTitle = String(values[i][2] || '').trim();
+    const rowCol1 = String(values[i][1] || '').trim().toLowerCase(); // Coluna B (SKU)
+    const rowCol0 = String(values[i][0] || '').trim().toLowerCase(); // Coluna A (Tipo ou SKU)
+    const rowCol2 = String(values[i][2] || '').trim().toLowerCase(); // Coluna C
 
-    if ((targetProdId && rowProdId === targetProdId) || (targetTitle && rowTitle === targetTitle)) {
+    if (targetSku && (rowCol1 === targetSku || rowCol0 === targetSku || rowCol2 === targetSku)) {
       sheet.deleteRow(i + 1);
       return { deleted: true };
     }
