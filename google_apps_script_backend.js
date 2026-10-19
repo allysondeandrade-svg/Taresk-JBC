@@ -326,8 +326,7 @@ function getSheetDataAsJson(sheetName) {
 
 /**
  * Retorna Usuários da aba "Usuarios"
- * Colunas: [Nome (0), Email (1), Senha (2), Plataformas_JSON (3)]
- * Deriva role, avatar e badge automaticamente para compatibilidade total com a interface
+ * Detecta cabeçalhos dinamicamente (Nome, Email, Senha, Plataformas) independente da ordem ou presença de ID
  */
 function getUsersDataAsJson() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -337,24 +336,34 @@ function getUsersDataAsJson() {
   const values = sheet.getDataRange().getValues();
   if (values.length <= 1) return [];
 
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
   const rows = values.slice(1);
 
+  const idxId = headers.indexOf('id');
+  const idxNome = headers.findIndex(h => h === 'nome' || h.includes('usuario'));
+  const idxEmail = headers.findIndex(h => h.includes('email') || h.includes('e-mail') || h.includes('login'));
+  const idxSenha = headers.findIndex(h => h.includes('senha') || h.includes('password'));
+  const idxCargo = headers.indexOf('cargo');
+  const idxAvatar = headers.indexOf('avatar');
+  const idxBadge = headers.indexOf('badge');
+  const idxPlat = headers.findIndex(h => h.includes('plataforma'));
+
   return rows.map((r, index) => {
-    const name = String(r[0] || '').trim();
-    const email = String(r[1] || '').trim();
-    const password = String(r[2] || '');
+    // Busca os campos pelo cabeçalho
+    const email = idxEmail !== -1 ? String(r[idxEmail] || '').trim() : String(r[1] || '').trim();
+    const name = idxNome !== -1 ? String(r[idxNome] || '').trim() : String(r[0] || '').trim();
+    const password = idxSenha !== -1 ? String(r[idxSenha] || '') : String(r[2] || '');
+
     let platforms = [];
-    try {
-      platforms = r[3] ? JSON.parse(r[3]) : [];
-    } catch (e) {
-      platforms = [];
+    if (idxPlat !== -1 && r[idxPlat]) {
+      try { platforms = JSON.parse(r[idxPlat]); } catch (e) { platforms = []; }
     }
 
-    const isMaster = email.toLowerCase() === 'eletrojbc@gmail.com' || index === 0;
-    const role = isMaster ? 'premium_admin' : 'operator';
-    const avatar = isMaster ? '⚡' : '👤';
-    const badge = isMaster ? 'Admin' : 'Operador';
-    const id = isMaster ? 'user_master' : 'user_' + encodeURIComponent(email).replace(/[^a-zA-Z0-9_]/g, '_');
+    const isMaster = email.toLowerCase() === 'eletrojbc@gmail.com' || (idxCargo !== -1 && String(r[idxCargo]).includes('admin')) || index === 0;
+    const role = isMaster ? 'premium_admin' : (idxCargo !== -1 && r[idxCargo] ? String(r[idxCargo]) : 'operator');
+    const avatar = (idxAvatar !== -1 && r[idxAvatar]) ? String(r[idxAvatar]) : (isMaster ? '⚡' : '👤');
+    const badge = (idxBadge !== -1 && r[idxBadge]) ? String(r[idxBadge]) : (isMaster ? 'Admin' : 'Operador');
+    const id = idxId !== -1 && r[idxId] ? String(r[idxId]) : (isMaster ? 'user_master' : 'user_' + encodeURIComponent(email).replace(/[^a-zA-Z0-9_]/g, '_'));
 
     return {
       id: id,

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Lock, Mail, ShieldCheck, ArrowRight, UserCheck, AlertCircle, Settings, RefreshCw } from 'lucide-react';
+import { Lock, Mail, ShieldCheck, ArrowRight, UserCheck, AlertCircle, Settings, RefreshCw, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginScreen({ onLogin, users, onOpenSettings, isSyncing, onSync }) {
   const [email, setEmail] = useState('eletrojbc@gmail.com');
   const [password, setPassword] = useState('Jbc29378125@');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -192,17 +193,17 @@ export default function LoginScreen({ onLogin, users, onOpenSettings, isSyncing,
             <Mail size={18} color="#64748b" style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)' }} />
           </div>
 
-          {/* Campo Senha em formato de cápsula arredondada */}
+          {/* Campo Senha em formato de cápsula arredondada com botão de Olho */}
           <div style={{ position: 'relative' }}>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Digite sua senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               style={{
                 width: '100%',
-                padding: '15px 22px 15px 44px',
+                padding: '15px 50px 15px 44px',
                 borderRadius: '9999px',
                 border: '2px solid #334155',
                 fontSize: '15px',
@@ -213,6 +214,27 @@ export default function LoginScreen({ onLogin, users, onOpenSettings, isSyncing,
               }}
             />
             <Lock size={18} color="#64748b" style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)' }} />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              title={showPassword ? 'Ocultar senha' : 'Ver senha'}
+              style={{
+                position: 'absolute',
+                right: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px'
+              }}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
           <div style={{
