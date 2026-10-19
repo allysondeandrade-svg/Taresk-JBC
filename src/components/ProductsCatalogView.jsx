@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Check, Package, Sparkles, Users, Globe, Layers } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Package, Sparkles, Users, Globe, Layers, Search } from 'lucide-react';
 import UsersCatalogTab from './UsersCatalogTab';
 import PlatformsCatalogTab from './PlatformsCatalogTab';
 
@@ -25,6 +25,7 @@ export default function ProductsCatalogView({
 
   const [isAdding, setIsAdding] = useState(false);
   const [filterCatalogStatus, setFilterCatalogStatus] = useState('all'); // 'all', 'cataloged', 'pending'
+  const [productSearch, setProductSearch] = useState('');
   const [newProduct, setNewProduct] = useState({
     sku: '',
     title: '',
@@ -301,7 +302,27 @@ export default function ProductsCatalogView({
               </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              {/* Campo de Busca Rápida por SKU ou Nome */}
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Buscar por SKU ou Nome..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  style={{
+                    padding: '9px 14px 9px 34px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '13px',
+                    width: '220px',
+                    background: '#ffffff',
+                    color: '#1e293b'
+                  }}
+                />
+                <Search size={15} color="#64748b" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+              </div>
+
               {/* Filtro: Todos, Já Cadastrados, Pendentes */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '700' }}>Filtro:</span>
@@ -576,6 +597,12 @@ export default function ProductsCatalogView({
           <tbody>
             {products
               .filter(prod => {
+                if (productSearch.trim()) {
+                  const q = productSearch.toLowerCase().trim();
+                  const matchSku = (prod.sku || '').toLowerCase().includes(q);
+                  const matchTitle = (prod.title || '').toLowerCase().includes(q);
+                  if (!matchSku && !matchTitle) return false;
+                }
                 const isCataloged = hasAnyPlatformActive(prod);
                 if (filterCatalogStatus === 'cataloged') return isCataloged;
                 if (filterCatalogStatus === 'pending') return !isCataloged;

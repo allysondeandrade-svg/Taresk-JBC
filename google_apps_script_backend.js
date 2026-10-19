@@ -454,7 +454,7 @@ function getPlatformsDataAsJson() {
 
 /**
  * Retorna as tarefas
- * Colunas: [Tipo (0), ProdutoID (1), Titulo (2), AtribuidoPara (3), AtribuidoPor (4), CriadoPor (5), Prazo (6), Status (7), Marketplaces_JSON (8), Checklist_JSON (9), Observacoes (10), DataHora (11)]
+ * Detecta cabeçalhos dinamicamente (Tipo, ProdutoID, Titulo, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm)
  */
 function getTasksDataAsJson(sheetName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -464,28 +464,45 @@ function getTasksDataAsJson(sheetName) {
   const values = sheet.getDataRange().getValues();
   if (values.length <= 1) return [];
 
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
   const rows = values.slice(1);
+
+  const idxTipo = headers.findIndex(h => h.includes('tipo'));
+  const idxProdId = headers.findIndex(h => h.includes('produtoid') || h.includes('produto') || h.includes('sku'));
+  const idxTitulo = headers.findIndex(h => h.includes('titulo') || h.includes('nome'));
+  const idxAtribPara = headers.findIndex(h => h.includes('atrib') && h.includes('para'));
+  const idxAtribPor = headers.findIndex(h => h.includes('atrib') && h.includes('por'));
+  const idxCriadoPor = headers.findIndex(h => h.includes('criado'));
+  const idxPrazo = headers.findIndex(h => h.includes('prazo') || h.includes('data'));
+  const idxStatus = headers.findIndex(h => h.includes('status'));
+  const idxMarketplaces = headers.findIndex(h => h.includes('market') || h.includes('canal'));
+  const idxChecklist = headers.findIndex(h => h.includes('check'));
+  const idxObs = headers.findIndex(h => h.includes('obs') || h.includes('nota'));
+  const idxDataHora = headers.findIndex(h => h.includes('atualizado') || h.includes('finalizado') || h.includes('timestamp'));
 
   return rows.map((r, index) => {
     let marketplaces = {};
     let checklist = [];
 
-    try { marketplaces = r[8] ? JSON.parse(r[8]) : {}; } catch (e) { }
-    try { checklist = r[9] ? JSON.parse(r[9]) : []; } catch (e) { }
+    const rawMp = idxMarketplaces !== -1 ? r[idxMarketplaces] : r[8];
+    const rawChk = idxChecklist !== -1 ? r[idxChecklist] : r[9];
 
-    const type = r[0] || 'product_catalog';
-    const productId = r[1] || '';
-    const title = r[2] || '';
-    const assignedTo = r[3] || '';
-    const assignedByName = r[4] || '';
-    const createdById = r[5] || '';
-    const dueDate = r[6] || '';
-    const status = r[7] || (sheetName === SHEETS.COMPLETED_TASKS ? 'completed' : 'in_progress');
-    const notes = r[10] || '';
-    const timeField = r[11] || '';
+    try { marketplaces = rawMp ? JSON.parse(rawMp) : {}; } catch (e) { }
+    try { checklist = rawChk ? JSON.parse(rawChk) : []; } catch (e) { }
+
+    const type = (idxTipo !== -1 && r[idxTipo]) ? r[idxTipo] : (r[0] || 'product_catalog');
+    const productId = (idxProdId !== -1 && r[idxProdId]) ? String(r[idxProdId]) : String(r[1] || '');
+    const title = (idxTitulo !== -1 && r[idxTitulo]) ? String(r[idxTitulo]) : String(r[2] || '');
+    const assignedTo = (idxAtribPara !== -1 && r[idxAtribPara]) ? String(r[idxAtribPara]) : String(r[3] || '');
+    const assignedByName = (idxAtribPor !== -1 && r[idxAtribPor]) ? String(r[idxAtribPor]) : String(r[4] || '');
+    const createdById = (idxCriadoPor !== -1 && r[idxCriadoPor]) ? String(r[idxCriadoPor]) : String(r[5] || '');
+    const dueDate = (idxPrazo !== -1 && r[idxPrazo]) ? String(r[idxPrazo]) : String(r[6] || '');
+    const status = (idxStatus !== -1 && r[idxStatus]) ? String(r[idxStatus]) : (sheetName === SHEETS.COMPLETED_TASKS ? 'completed' : 'in_progress');
+    const notes = (idxObs !== -1 && r[idxObs]) ? String(r[idxObs]) : String(r[10] || '');
+    const timeField = (idxDataHora !== -1 && r[idxDataHora]) ? String(r[idxDataHora]) : String(r[11] || '');
 
     // ID derivado estável para a interface
-    const taskId = 'task_' + (productId ? (productId + '_') : '') + encodeURIComponent(title).replace(/[^a-zA-Z0-9_]/g, '_');
+    const taskId = 'task_' + (productId ? (productId + '_') : '') + encodeURIComponent(title || ('item_' + (index + 1))).replace(/[^a-zA-Z0-9_]/g, '_');
 
     return {
       id: taskId || ('task_' + (index + 1)),
