@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Search, Calendar, User, FileText, CheckSquare, Plus, AlertCircle } from 'lucide-react';
 import { DEFAULT_CHECKLIST_ITEMS } from '../data/initialData';
 
@@ -13,7 +13,7 @@ export default function NewTaskModal({
   defaultChecklistItems
 }) {
   const [taskType, setTaskType] = useState('product_catalog'); // 'product_catalog' ou 'special'
-  const [selectedProductId, setSelectedProductId] = useState(() => products[0]?.sku || products[0]?.id || '');
+  const [selectedProductId, setSelectedProductId] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [specialTitle, setSpecialTitle] = useState('');
   const [assignedTo, setAssignedTo] = useState(
@@ -26,6 +26,13 @@ export default function NewTaskModal({
   });
   const [notes, setNotes] = useState('');
   const dateInputRef = useRef(null);
+
+  // Inicializa e atualiza selectedProductId quando a lista de produtos carrega ou o modal abre
+  useEffect(() => {
+    if (products && products.length > 0 && !selectedProductId) {
+      setSelectedProductId(products[0]?.sku || products[0]?.id || '');
+    }
+  }, [products, selectedProductId, isOpen]);
 
   const handleOpenDatePicker = () => {
     if (dateInputRef.current) {
@@ -93,9 +100,20 @@ export default function NewTaskModal({
         notes
       });
     } else {
-      const prod = products.find(p => p.sku === selectedProductId || p.id === selectedProductId) || products[0];
-      const title = prod ? (prod.sku || prod.title || 'Produto') : (selectedProductId || 'Produto Novo');
-      const finalProductId = prod?.sku || prod?.id || selectedProductId;
+      let prod = products.find(p => p.sku === selectedProductId || p.id === selectedProductId);
+      if (!prod && productSearch.trim()) {
+        prod = products.find(p =>
+          (p.sku && p.sku.toLowerCase().includes(productSearch.toLowerCase())) ||
+          (p.title && p.title.toLowerCase().includes(productSearch.toLowerCase()))
+        );
+      }
+      if (!prod && products.length > 0) {
+        prod = products[0];
+      }
+
+      const finalSku = prod?.sku || selectedProductId || 'PROD';
+      const title = finalSku;
+      const finalProductId = finalSku;
 
       // Monta os marketplaces com base nas plataformas do usuário atribuído (ou gerais)
       const userPlats = (assignedUser?.platforms && assignedUser.platforms.length > 0)
@@ -113,15 +131,25 @@ export default function NewTaskModal({
         initialMarketplaces[key] = { status: 'pending', active: false, u: false, o: false, name: p.name, color: p.color };
       });
 
+      // Garante data no formato dd/mm
+      let formattedDue = dueDate.trim() || '25/10';
+      if (!/^\d{1,2}\/\d{1,2}$/.test(formattedDue)) {
+        const d = new Date(formattedDue);
+        if (!isNaN(d.getTime())) {
+          formattedDue = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+      }
+
       onCreateTask({
         id: 'task_' + Date.now(),
         type: 'product_catalog',
         productId: finalProductId,
+        sku: finalSku,
         title: title,
         assignedTo,
         assignedByName: assignedUser?.name || currentUser.name,
         createdById: currentUser.id,
-        dueDate: dueDate.trim() || '25/10',
+        dueDate: formattedDue,
         status: 'in_progress',
         marketplaces: initialMarketplaces,
         checklist: activeChecklistDefaults.map((item, idx) => ({
@@ -251,9 +279,21 @@ export default function NewTaskModal({
               <div style={{ position: 'relative', marginBottom: '10px' }}>
                 <input
                   type="text"
-                  placeholder="Digite o Produto para buscar..."
+                  placeholder="Digite o SKU do produto para buscar..."
                   value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
+                  onChange={(e) => {
+                    const query = e.target.value;
+                    setProductSearch(query);
+                    if (query.trim()) {
+                      const matched = products.find(p =>
+                        (p.sku && p.sku.toLowerCase().includes(query.toLowerCase())) ||
+                        (p.title && p.title.toLowerCase().includes(query.toLowerCase()))
+                      );
+                      if (matched) {
+                        setSelectedProductId(matched.sku || matched.id);
+                      }
+                    }
+                  }}
                   style={{
                     width: '100%',
                     padding: '14px 20px 14px 44px',

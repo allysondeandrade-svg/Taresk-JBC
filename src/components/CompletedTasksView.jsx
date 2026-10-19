@@ -314,7 +314,15 @@ export default function CompletedTasksView({
                       <span>{assignee.avatar}</span>
                       <strong>{assignee.name}</strong>
                     </span>
-                    <span>Prazo: <strong>{task.dueDate}</strong></span>
+                    <span>Prazo: <strong>{(() => {
+                      const str = String(task.dueDate || '').trim();
+                      if (/^\d{1,2}\/\d{1,2}$/.test(str)) return str;
+                      const d = new Date(str);
+                      if (!isNaN(d.getTime())) {
+                        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+                      }
+                      return str || '25/10';
+                    })()}</strong></span>
                     {task.notes && <span>• <em>"{task.notes}"</em></span>}
                   </div>
                 )}

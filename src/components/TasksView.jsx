@@ -1,6 +1,23 @@
 import React, { useState, useRef } from 'react';
 import { Eye, CheckCircle2, Clock, Calendar, User, Sparkles, Filter, Plus, ArrowUpRight, Edit2, Trash2, X, Check } from 'lucide-react';
 
+// Helper para formatar qualquer string de data em dd/mm
+function formatDueDateDisplay(val) {
+  if (!val) return '25/10';
+  const str = String(val).trim();
+  if (/^\d{1,2}\/\d{1,2}$/.test(str)) {
+    const [d, m] = str.split('/');
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}`;
+  }
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    const day = String(parsed.getDate()).padStart(2, '0');
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}`;
+  }
+  return str;
+}
+
 export default function TasksView({
   tasks,
   users,
@@ -45,7 +62,7 @@ export default function TasksView({
     setEditingTask(t);
     setEditForm({
       title: t.title || '',
-      dueDate: t.dueDate || '',
+      dueDate: formatDueDateDisplay(t.dueDate),
       assignedTo: t.assignedTo || '',
       notes: t.notes || ''
     });
@@ -56,6 +73,7 @@ export default function TasksView({
     if (!editingTask) return;
     onUpdateTask(editingTask.id, {
       ...editForm,
+      dueDate: formatDueDateDisplay(editForm.dueDate),
       assignedByName: users.find(u => u.id === editForm.assignedTo)?.name || 'Colaborador'
     });
     setEditingTask(null);
@@ -582,7 +600,7 @@ export default function TasksView({
                   lineHeight: '1.2',
                   marginTop: '2px'
                 }}>
-                  {task.dueDate ? `${task.dueDate}` : '23/10'}
+                  {formatDueDateDisplay(task.dueDate)}
                 </div>
 
                 {/* Se 100%, botão Finalizar Tarefa */}

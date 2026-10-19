@@ -295,6 +295,31 @@ function parseBrazilianNumber(val) {
 }
 
 /**
+ * Normaliza qualquer data para o formato dd/mm
+ */
+function formatDueDateToDdMm(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    var day = String(val.getDate()).padStart(2, '0');
+    var month = String(val.getMonth() + 1).padStart(2, '0');
+    return day + '/' + month;
+  }
+  var str = String(val).trim();
+  if (!str) return '';
+  if (/^\d{1,2}\/\d{1,2}$/.test(str)) {
+    var parts = str.split('/');
+    return parts[0].padStart(2, '0') + '/' + parts[1].padStart(2, '0');
+  }
+  var d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    var day2 = String(d.getDate()).padStart(2, '0');
+    var month2 = String(d.getMonth() + 1).padStart(2, '0');
+    return day2 + '/' + month2;
+  }
+  return str;
+}
+
+/**
  * Retorna linhas de uma aba genérica convertidas em Objetos JSON
  */
 function getSheetDataAsJson(sheetName) {
@@ -495,7 +520,7 @@ function getTasksDataAsJson(sheetName) {
     const assignedTo = (idxAtribPara !== -1 && r[idxAtribPara]) ? String(r[idxAtribPara]).trim() : String(r[2] || '').trim();
     const assignedByName = (idxAtribPor !== -1 && r[idxAtribPor]) ? String(r[idxAtribPor]).trim() : String(r[3] || '').trim();
     const createdById = (idxCriadoPor !== -1 && r[idxCriadoPor]) ? String(r[idxCriadoPor]).trim() : String(r[4] || '').trim();
-    const dueDate = (idxPrazo !== -1 && r[idxPrazo]) ? String(r[idxPrazo]).trim() : String(r[5] || '').trim();
+    const dueDate = formatDueDateToDdMm(idxPrazo !== -1 ? r[idxPrazo] : r[5]);
     const status = (idxStatus !== -1 && r[idxStatus]) ? String(r[idxStatus]).trim() : (sheetName === SHEETS.COMPLETED_TASKS ? 'completed' : 'in_progress');
     const notes = (idxObs !== -1 && r[idxObs]) ? String(r[idxObs]) : '';
     const timeField = (idxDataHora !== -1 && r[idxDataHora]) ? String(r[idxDataHora]) : '';
@@ -553,7 +578,7 @@ function upsertTask(task) {
     task.assignedTo || '',
     task.assignedByName || '',
     task.createdById || '',
-    task.dueDate || '',
+    formatDueDateToDdMm(task.dueDate) || '25/10',
     task.status || 'in_progress',
     JSON.stringify(task.marketplaces || {}),
     JSON.stringify(task.checklist || []),
@@ -599,7 +624,7 @@ function upsertCompletedTask(task) {
     task.assignedTo || '',
     task.assignedByName || '',
     task.createdById || '',
-    task.dueDate || '',
+    formatDueDateToDdMm(task.dueDate) || '25/10',
     'completed',
     JSON.stringify(task.marketplaces || {}),
     JSON.stringify(task.checklist || []),
@@ -636,7 +661,7 @@ function moveTaskToCompleted(task) {
     task.assignedTo || '',
     task.assignedByName || '',
     task.createdById || '',
-    task.dueDate || '',
+    formatDueDateToDdMm(task.dueDate) || '25/10',
     'completed',
     JSON.stringify(task.marketplaces || {}),
     JSON.stringify(task.checklist || []),
