@@ -19,7 +19,21 @@ export default function CompletedTasksView({
   // Filtro de permissão: admin vê todas, colaboradores veem as suas
   const visibleTasks = completedTasks.filter((task) => {
     if (currentUser.role !== 'premium_admin') {
-      if (task.assignedTo !== currentUser.id && task.createdById !== currentUser.id) {
+      const norm = (s) => String(s || '').toLowerCase().trim();
+      const taskAssignee = norm(task.assignedTo);
+      const taskAssigneeName = norm(task.assignedByName);
+      const taskCreator = norm(task.createdById);
+      const uId = norm(currentUser.id);
+      const uName = norm(currentUser.name);
+      const uEmail = norm(currentUser.email);
+
+      const matches = 
+        (taskAssignee && (taskAssignee === uId || parseInt(taskAssignee, 10) === parseInt(uId, 10))) ||
+        (taskCreator && (taskCreator === uId || parseInt(taskCreator, 10) === parseInt(uId, 10))) ||
+        (uName && (taskAssignee === uName || taskAssigneeName === uName || taskAssignee.includes(uName) || uName.includes(taskAssignee))) ||
+        (uEmail && (taskAssignee === uEmail || taskCreator === uEmail));
+
+      if (!matches) {
         return false;
       }
     }

@@ -108,7 +108,22 @@ export default function TasksView({
   };
 
   function getAssignee(userId) {
-    return users.find(u => u.id === userId || u.name === userId) || { id: null, name: '', avatar: '' };
+    if (!userId) return { id: null, name: '', avatar: '' };
+    const norm = (s) => String(s || '').toLowerCase().trim();
+    const target = norm(userId);
+    const parsedTargetNum = parseInt(target, 10);
+
+    const found = users.find(u => {
+      const uId = norm(u.id);
+      const uName = norm(u.name);
+      const uEmail = norm(u.email);
+      if (uId === target || uName === target || uEmail === target) return true;
+      if (!isNaN(parsedTargetNum) && parseInt(uId, 10) === parsedTargetNum) return true;
+      if (uName.includes(target) || target.includes(uName)) return true;
+      return false;
+    });
+
+    return found || { id: null, name: String(userId), avatar: '👤' };
   }
 
   function getTaskPlatforms(task) {
@@ -223,17 +238,62 @@ export default function TasksView({
     return Math.round(photoProgress + mpProgress);
   }
 
+  // Helper para verificar se a tarefa pertence ao usuário logado
+  function isTaskForUser(task, user) {
+    if (!task || !user) return false;
+    if (user.role === 'premium_admin') return true;
+
+    // Normaliza strings para comparação insensível a maiúsculas/espaços
+    const norm = (s) => String(s || '').toLowerCase().trim();
+    const taskAssignee = norm(task.assignedTo);
+    const taskAssigneeName = norm(task.assignedByName);
+    const taskCreator = norm(task.createdById);
+
+    const uId = norm(user.id);
+    const uName = norm(user.name);
+    const uEmail = norm(user.email);
+
+    // Compara por ID exato ou ID sem zeros à esquerda (ex: "00002" vs "2")
+    if (taskAssignee && (taskAssignee === uId || parseInt(taskAssignee, 10) === parseInt(uId, 10))) return true;
+    if (taskCreator && (taskCreator === uId || parseInt(taskCreator, 10) === parseInt(uId, 10))) return true;
+
+    // Compara por Nome
+    if (uName && (taskAssignee === uName || taskAssigneeName === uName || taskAssignee.includes(uName) || uName.includes(taskAssignee))) {
+      return true;
+    }
+
+    // Compara por Email
+    if (uEmail && (taskAssignee === uEmail || taskCreator === uEmail)) return true;
+
+    // Se o assignee da tarefa apontar para um usuário da lista e esse usuário for o user logado
+    const matchedUser = users.find(u =>
+      norm(u.id) === taskAssignee ||
+      norm(u.name) === taskAssignee ||
+      norm(u.email) === taskAssignee ||
+      (parseInt(u.id, 10) && parseInt(u.id, 10) === parseInt(taskAssignee, 10))
+    );
+    if (matchedUser && norm(matchedUser.id) === uId) return true;
+
+    return false;
+  }
+
   // Se o usuário não for admin, ele vê as tarefas atribuídas a ele ou criadas por ele
   const visibleTasks = tasks
     .filter((task) => {
       // Filtro de permissão
-      if (currentUser.role !== 'premium_admin') {
-        if (task.assignedTo !== currentUser.id && task.assignedTo !== currentUser.name && task.createdById !== currentUser.id) {
-          return false;
-        }
-      } else {
+      if (!isTaskForUser(task, currentUser)) {
+        return false;
+      }
+
+      if (currentUser.role === 'premium_admin') {
         if (filterUser !== 'all' && task.assignedTo !== filterUser) {
-          return false;
+          const norm = (s) => String(s || '').toLowerCase().trim();
+          const target = norm(filterUser);
+          const fUser = users.find(u => norm(u.id) === target || norm(u.name) === target);
+          const tAssigned = norm(task.assignedTo);
+          if (tAssigned !== target && (!fUser || (tAssigned !== norm(fUser.id) && tAssigned !== norm(fUser.name)))) {
+            return false;
+          }
         }
       }
 
