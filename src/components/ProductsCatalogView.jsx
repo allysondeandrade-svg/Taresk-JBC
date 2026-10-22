@@ -561,35 +561,35 @@ export default function ProductsCatalogView({
       <div style={{
         background: '#ffffff',
         borderRadius: '16px',
-        overflow: 'hidden',
+        overflowX: 'auto',
         border: '1px solid #e2e8f0',
         boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
       }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '980px' }}>
           <thead>
             <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
-              <th style={{ padding: '18px 24px', fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>
+              <th style={{ padding: '18px 24px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 SKU
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>
+              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Custo
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>
+              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Largura
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>
+              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Comp
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>
+              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Altura
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>
+              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Peso
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>
+              <th style={{ padding: '18px 20px', fontSize: '16px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Status nos Marketplaces
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '14px', fontWeight: '700', color: '#64748b', textAlign: 'right' }}>
+              <th style={{ padding: '18px 20px', fontSize: '14px', fontWeight: '700', color: '#64748b', textAlign: 'right', whiteSpace: 'nowrap' }}>
                 Ações
               </th>
             </tr>
@@ -648,7 +648,7 @@ export default function ProductsCatalogView({
                   </td>
 
                   {/* Coluna Custo */}
-                  <td style={{ padding: '16px 20px' }}>
+                  <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
                     {isEditing ? (
                       <input
                         type="number"
@@ -658,14 +658,14 @@ export default function ProductsCatalogView({
                         style={{ width: '90px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', fontFamily: 'monospace' }}>
-                        R$ {(typeof prod.cost === 'number' && !isNaN(prod.cost) ? prod.cost : parseFloat(String(prod.cost || 0).replace(',', '.')) || 0).toFixed(2).replace('.', ',')}
+                      <span style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                        R$&nbsp;{(typeof prod.cost === 'number' && !isNaN(prod.cost) ? prod.cost : parseFloat(String(prod.cost || 0).replace(',', '.')) || 0).toFixed(2).replace('.', ',')}
                       </span>
                     )}
                   </td>
 
                   {/* Coluna Largura */}
-                  <td style={{ padding: '16px 20px' }}>
+                  <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
                     {isEditing ? (
                       <input
                         type="number"
@@ -675,14 +675,14 @@ export default function ProductsCatalogView({
                         style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', color: '#334155' }}>
-                        {prod.width} cm
+                      <span style={{ fontSize: '15px', color: '#334155', whiteSpace: 'nowrap' }}>
+                        {prod.width}&nbsp;cm
                       </span>
                     )}
                   </td>
 
                   {/* Coluna Comp */}
-                  <td style={{ padding: '16px 20px' }}>
+                  <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
                     {isEditing ? (
                       <input
                         type="number"
@@ -692,14 +692,14 @@ export default function ProductsCatalogView({
                         style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', color: '#334155' }}>
-                        {prod.length} cm
+                      <span style={{ fontSize: '15px', color: '#334155', whiteSpace: 'nowrap' }}>
+                        {prod.length}&nbsp;cm
                       </span>
                     )}
                   </td>
 
                   {/* Coluna Altura */}
-                  <td style={{ padding: '16px 20px' }}>
+                  <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
                     {isEditing ? (
                       <input
                         type="number"
@@ -709,14 +709,14 @@ export default function ProductsCatalogView({
                         style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', color: '#334155' }}>
-                        {prod.height} cm
+                      <span style={{ fontSize: '15px', color: '#334155', whiteSpace: 'nowrap' }}>
+                        {prod.height}&nbsp;cm
                       </span>
                     )}
                   </td>
 
                   {/* Coluna Peso */}
-                  <td style={{ padding: '16px 20px' }}>
+                  <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
                     {isEditing ? (
                       <input
                         type="number"
@@ -726,8 +726,8 @@ export default function ProductsCatalogView({
                         style={{ width: '80px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', fontWeight: '600', color: '#334155' }}>
-                        {prod.weight} kg
+                      <span style={{ fontSize: '15px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
+                        {prod.weight}&nbsp;kg
                       </span>
                     )}
                   </td>
