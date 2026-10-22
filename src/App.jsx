@@ -337,6 +337,24 @@ export default function App() {
     }));
   };
 
+  const handleUpdateTaskChecklist = (taskId, newChecklist) => {
+    localTaskUpdatesRef.current[taskId] = Date.now();
+    setTasks(prev => prev.map(t => {
+      if (t.id === taskId) {
+        const updatedTask = {
+          ...t,
+          checklist: newChecklist
+        };
+        if (activeChecklistTask && activeChecklistTask.id === taskId) {
+          setActiveChecklistTask(updatedTask);
+        }
+        SheetsApi.syncTask(updatedTask);
+        return updatedTask;
+      }
+      return t;
+    }));
+  };
+
   const handleReassignTask = (taskId, newAssigneeId) => {
     localTaskUpdatesRef.current[taskId] = Date.now();
     setTasks(prev => prev.map(t => {
@@ -699,6 +717,7 @@ export default function App() {
         task={activeChecklistTask}
         onToggleChecklistItem={handleToggleChecklistItem}
         onAddChecklistItem={handleAddChecklistItem}
+        onUpdateTaskChecklist={handleUpdateTaskChecklist}
       />
 
       <DopamineCelebrationModal
