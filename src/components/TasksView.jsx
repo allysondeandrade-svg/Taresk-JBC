@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Eye, CheckCircle2, Clock, Calendar, User, Sparkles, Filter, Plus, ArrowUpRight, Edit2, Trash2, X, Check } from 'lucide-react';
+import { Eye, CheckCircle2, Clock, Calendar, User, Sparkles, Filter, Plus, ArrowUpRight, Edit2, Trash2, X, Check, Copy } from 'lucide-react';
 
 // Helper para formatar qualquer string de data em dd/mm
 function formatDueDateDisplay(val) {
@@ -18,6 +18,27 @@ function formatDueDateDisplay(val) {
   return str;
 }
 
+// Converte prazo (ex: "21/10", "2026-10-21") em timestamp numérico para ordenação correta
+function parseDueDateToTimestamp(val) {
+  if (!val) return 9999999999999;
+  const str = String(val).trim();
+  if (/^\d{1,2}\/\d{1,2}$/.test(str)) {
+    const [d, m] = str.split('/').map(Number);
+    const now = new Date();
+    let year = now.getFullYear();
+    // Se o mês for menor que o mês atual, pode ser do próximo ano
+    if (m < now.getMonth() + 1) {
+      year += 1;
+    }
+    return new Date(year, m - 1, d, 23, 59, 59).getTime();
+  }
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.getTime();
+  }
+  return 9999999999999;
+}
+
 export default function TasksView({
   tasks,
   users,
@@ -30,6 +51,7 @@ export default function TasksView({
   onToggleChecklistItem,
   onUpdateTask,
   onDeleteTask,
+  onDuplicateTask,
   products,
   setActiveTab
 }) {
@@ -153,38 +175,47 @@ export default function TasksView({
   }
 
   // Se o usuário não for admin, ele vê as tarefas atribuídas a ele ou criadas por ele
-  const visibleTasks = tasks.filter((task) => {
-    // Filtro de permissão
-    if (currentUser.role !== 'premium_admin') {
-      if (task.assignedTo !== currentUser.id && task.assignedTo !== currentUser.name && task.createdById !== currentUser.id) {
-        return false;
+  const visibleTasks = tasks
+    .filter((task) => {
+      // Filtro de permissão
+      if (currentUser.role !== 'premium_admin') {
+        if (task.assignedTo !== currentUser.id && task.assignedTo !== currentUser.name && task.createdById !== currentUser.id) {
+          return false;
+        }
+      } else {
+        if (filterUser !== 'all' && task.assignedTo !== filterUser) {
+          return false;
+        }
       }
-    } else {
-      if (filterUser !== 'all' && task.assignedTo !== filterUser) {
-        return false;
+
+      // Filtro de status
+      if (filterStatus === 'completed') {
+        const percent = calculateTaskProgress(task);
+        if (percent < 100) return false;
+      } else if (filterStatus === 'in_progress') {
+        const percent = calculateTaskProgress(task);
+        if (percent === 100) return false;
       }
-    }
 
-    // Filtro de status
-    if (filterStatus === 'completed') {
-      const percent = calculateTaskProgress(task);
-      if (percent < 100) return false;
-    } else if (filterStatus === 'in_progress') {
-      const percent = calculateTaskProgress(task);
-      if (percent === 100) return false;
-    }
+      // Filtro de busca
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = (task.title || '').toLowerCase().includes(q);
+        const matchProduct = (task.productId || '').toLowerCase().includes(q);
+        const matchNotes = (task.notes || '').toLowerCase().includes(q);
+        if (!matchTitle && !matchProduct && !matchNotes) return false;
+      }
 
-    // Filtro de busca
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = (task.title || '').toLowerCase().includes(q);
-      const matchProduct = (task.productId || '').toLowerCase().includes(q);
-      const matchNotes = (task.notes || '').toLowerCase().includes(q);
-      if (!matchTitle && !matchProduct && !matchNotes) return false;
-    }
-
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      // Ordenação: data mais urgente (mais próxima de vencer) no topo, mais distante no final
+      const timeA = parseDueDateToTimestamp(a.dueDate);
+      const timeB = parseDueDateToTimestamp(b.dueDate);
+      if (timeA !== timeB) return timeA - timeB;
+      // Se tiverem a mesma data, tarefas mais novas criadas aparecem primeiro
+      return (b.id || '').localeCompare(a.id || '');
+    });
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px' }}>
@@ -469,19 +500,35 @@ export default function TasksView({
                       {task.title}
                     </span>
 
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        color: '#5b21b6',
-                        background: '#ede9fe',
-                        padding: '3px 12px',
-                        borderRadius: '9999px',
-                        display: 'inline-block'
-                      }}
-                    >
-                      {doneChecks}/{totalChecks} Concluídas
-                    </span>
+                    {totalChecks > 0 ? (
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          color: '#5b21b6',
+                          background: '#ede9fe',
+                          padding: '3px 12px',
+                          borderRadius: '9999px',
+                          display: 'inline-block'
+                        }}
+                      >
+                        {doneChecks}/{totalChecks} Concluídas
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: '700',
+                          color: '#059669',
+                          background: '#dcfce7',
+                          padding: '3px 10px',
+                          borderRadius: '9999px',
+                          display: 'inline-block'
+                        }}
+                      >
+                        Pronta para finalizar
+                      </span>
+                    )}
                   </div>
 
                   <div style={{
@@ -603,8 +650,8 @@ export default function TasksView({
                   {formatDueDateDisplay(task.dueDate)}
                 </div>
 
-                {/* Se 100%, botão Finalizar Tarefa */}
-                {progressPercent === 100 && (
+                {/* Se 100% ou se for Tarefa Especial sem subtarefas, botão Finalizar Tarefa */}
+                {(progressPercent === 100 || (isSpecial && totalChecks === 0)) && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -631,13 +678,52 @@ export default function TasksView({
                   </button>
                 )}
 
-                {/* Botões discretos de Lápis (Editar) e Lixeira (Excluir) */}
+                {/* Botões discretos de Duplicar, Editar e Excluir */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
                   marginTop: '6px'
                 }}>
+                  {onDuplicateTask && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDuplicateTask(task);
+                      }}
+                      title="Duplicar Tarefa"
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '7px',
+                        border: '1px solid #a7f3d0',
+                        background: '#ecfdf5',
+                        color: '#059669',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        padding: 0,
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = '#10b981';
+                        e.currentTarget.style.background = '#d1fae5';
+                        e.currentTarget.style.color = '#047857';
+                        e.currentTarget.style.transform = 'scale(1.08)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#a7f3d0';
+                        e.currentTarget.style.background = '#ecfdf5';
+                        e.currentTarget.style.color = '#059669';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      <Copy size={13} />
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={(e) => {
@@ -935,41 +1021,72 @@ export default function TasksView({
                   />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setEditingTask(null)}
-                    style={{
-                      padding: '10px 18px',
-                      borderRadius: '12px',
-                      border: '1px solid #cbd5e1',
-                      background: '#ffffff',
-                      color: '#475569',
-                      fontSize: '13px',
-                      fontWeight: '700',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    style={{
-                      padding: '10px 22px',
-                      borderRadius: '12px',
-                      border: 'none',
-                      background: '#5925dc',
-                      color: '#ffffff',
-                      fontSize: '13px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <Check size={16} /> Salvar Alterações
-                  </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
+                  {onDuplicateTask && editingTask ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const taskToDup = editingTask;
+                        setEditingTask(null);
+                        onDuplicateTask(taskToDup);
+                      }}
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: '12px',
+                        border: '1px solid #a7f3d0',
+                        background: '#ecfdf5',
+                        color: '#059669',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#d1fae5'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#ecfdf5'; }}
+                    >
+                      <Copy size={15} /> Duplicar Tarefa
+                    </button>
+                  ) : <div />}
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setEditingTask(null)}
+                      style={{
+                        padding: '10px 18px',
+                        borderRadius: '12px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#475569',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      style={{
+                        padding: '10px 22px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: '#5925dc',
+                        color: '#ffffff',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Check size={16} /> Salvar Alterações
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>

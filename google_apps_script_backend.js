@@ -5,24 +5,23 @@
  * Este script transforma sua Planilha do Google Sheets em uma API REST completa
  * para sincronizar Usuários, Produtos, Plataformas, Tarefas, Checklists e Precificações.
  * 
- * ESTRUTURA ATUALIZADA:
- * - Sem coluna ID em nenhuma das páginas.
- * - Usuários: [Nome, Email, Senha, Plataformas_JSON] (sem Cargo, Avatar, Badge).
- * - Produtos: [SKU, Custo, Largura, Comprimento, Altura, Peso] (sem Título).
- * - Plataformas: [Nome, Cor] (sem Descrição).
- * - Tarefas / Tarefas_Finalizadas: [Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm] (sem ID e sem Título, SKU no lugar de ProdutoID).
+ * ESTRUTURA COM SUPORTE A ID FORMATADO (00001, 00002, ...):
+ * - Tarefas / Tarefas_Finalizadas: [ID, Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm]
+ * - Produtos: [ID, SKU, Custo, Largura, Comprimento, Altura, Peso]
+ * - Plataformas: [ID, Nome, Cor]
+ * - Usuários: [ID, Nome, Email, Senha, Plataformas_JSON]
+ * 
+ * NOTA DE COMPATIBILIDADE:
+ * O script detecta automaticamente se a coluna ID está presente nas abas existentes.
+ * Se a coluna ID existir, usa o ID sequencial de 5 dígitos (00001, 00002...).
+ * Se não existir, funciona normalmente por SKU/Nome sem quebrar dados existentes!
  * 
  * INSTRUÇÕES RÁPIDAS DE INSTALAÇÃO:
- * 1. Abra sua planilha no Google Sheets (ex: "Banco_Dados_Taresk").
- * 2. Clique no menu superior em: "Extensões" > "Apps Script".
- * 3. Cole todo este código no arquivo "Código.gs" (substituindo o anterior).
- * 4. Selecione a função "setupSheets" no topo e clique em "Executar" para criar/atualizar
- *    automaticamente as abas com os cabeçalhos corretos!
- * 5. Clique no botão azul no topo direito: "Implantar" > "Gerenciar implantações".
- *    - Clique no ícone de lápis (Editar).
- *    - Em Versão: selecione "Nova versão" (New version).
- *    - Clique em "Implantar".
- * 6. Copie a URL gerada (termina em /exec) e cole no seu Taresk (Configurações ⚙️)!
+ * 1. Abra sua planilha no Google Sheets.
+ * 2. Clique em: "Extensões" > "Apps Script".
+ * 3. Substitua o conteúdo pelo código abaixo.
+ * 4. Execute a função "setupSheets" uma vez para atualizar os cabeçalhos.
+ * 5. Clique em: "Implantar" > "Gerenciar implantações" > Editar (lápis) > Versão: "Nova versão" > "Implantar".
  * ============================================================================
  */
 
@@ -37,69 +36,76 @@ const SHEETS = {
 };
 
 /**
- * Função para inicializar/atualizar a estrutura das abas da planilha automaticamente
+ * Função para inicializar ou atualizar a estrutura das abas da planilha com coluna ID
  */
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // 1. Aba Usuários: [Nome, Email, Senha, Plataformas_JSON]
+  // 1. Aba Usuários: [ID, Nome, Email, Senha, Plataformas_JSON]
   let userSheet = ss.getSheetByName(SHEETS.USERS);
   if (!userSheet) {
     userSheet = ss.insertSheet(SHEETS.USERS);
-    userSheet.appendRow(['Nome', 'Email', 'Senha', 'Plataformas_JSON']);
-    userSheet.appendRow(['JBC Eletro', 'eletrojbc@gmail.com', 'Jbc29378125@', JSON.stringify([
+    userSheet.appendRow(['ID', 'Nome', 'Email', 'Senha', 'Plataformas_JSON']);
+    userSheet.appendRow(['00001', 'JBC Eletro', 'eletrojbc@gmail.com', 'Jbc29378125@', JSON.stringify([
       { id: 'plat_shopee_1', name: 'Shopee Principal', color: '#f97316' },
       { id: 'plat_shopee_2', name: 'Shopee Loja 2', color: '#ea580c' },
       { id: 'plat_ml_1', name: 'Mercado L', color: '#facc15' },
       { id: 'plat_amazon_1', name: 'Amazon', color: '#334155' },
       { id: 'plat_magalu_1', name: 'Magalu', color: '#38bdf8' }
     ])]);
-    userSheet.appendRow(['Mariana Souza', 'mariana@jbceletro.com', '123', JSON.stringify([
+    userSheet.appendRow(['00002', 'Mariana Souza', 'mariana@jbceletro.com', '123', JSON.stringify([
       { id: 'plat_shopee_1', name: 'Shopee Oficial', color: '#f97316' },
       { id: 'plat_shopee_2', name: 'Shopee Secundária', color: '#ea580c' },
       { id: 'plat_ml_1', name: 'Mercado L', color: '#facc15' },
       { id: 'plat_amazon_1', name: 'Amazon', color: '#334155' },
       { id: 'plat_magalu_1', name: 'Magalu', color: '#38bdf8' }
     ])]);
-    userSheet.appendRow(['Carlos Oliveira', 'carlos@jbceletro.com', '123', JSON.stringify([
+    userSheet.appendRow(['00003', 'Carlos Oliveira', 'carlos@jbceletro.com', '123', JSON.stringify([
       { id: 'plat_shopee_1', name: 'Shopee', color: '#f97316' },
       { id: 'plat_ml_1', name: 'Mercado L', color: '#facc15' },
       { id: 'plat_amazon_1', name: 'Amazon', color: '#334155' }
     ])]);
     styleHeader(userSheet);
+  } else {
+    ensureIdColumn(userSheet, 'ID');
   }
 
-  // 2. Aba Produtos: [SKU, Custo, Largura, Comprimento, Altura, Peso] (Sem Título)
+  // 2. Aba Produtos: [ID, SKU, Custo, Largura, Comprimento, Altura, Peso]
   let prodSheet = ss.getSheetByName(SHEETS.PRODUCTS);
   if (!prodSheet) {
     prodSheet = ss.insertSheet(SHEETS.PRODUCTS);
-    prodSheet.appendRow(['SKU', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
-    prodSheet.appendRow(['FOG-02-BOC', 145.00, 32, 54, 18, 4.80]);
-    prodSheet.appendRow(['PAN-ELE-05L', 120.00, 30, 30, 35, 3.50]);
-    prodSheet.appendRow(['VENT-COL-40', 89.90, 45, 45, 130, 5.20]);
-    prodSheet.appendRow(['FRIT-AIR-4L', 185.00, 33, 33, 38, 4.60]);
+    prodSheet.appendRow(['ID', 'SKU', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
+    prodSheet.appendRow(['00001', 'FOG-02-BOC', 145.00, 32, 54, 18, 4.80]);
+    prodSheet.appendRow(['00002', 'PAN-ELE-05L', 120.00, 30, 30, 35, 3.50]);
+    prodSheet.appendRow(['00003', 'VENT-COL-40', 89.90, 45, 45, 130, 5.20]);
+    prodSheet.appendRow(['00004', 'FRIT-AIR-4L', 185.00, 33, 33, 38, 4.60]);
     styleHeader(prodSheet);
+  } else {
+    ensureIdColumn(prodSheet, 'ID');
   }
 
-  // 3. Aba Plataformas: [Nome, Cor] (Sem Descrição)
+  // 3. Aba Plataformas: [ID, Nome, Cor]
   let platSheet = ss.getSheetByName(SHEETS.PLATFORMS);
   if (!platSheet) {
     platSheet = ss.insertSheet(SHEETS.PLATFORMS);
-    platSheet.appendRow(['Nome', 'Cor']);
-    platSheet.appendRow(['Shopee', '#f97316']);
-    platSheet.appendRow(['Mercado Livre', '#facc15']);
-    platSheet.appendRow(['Amazon', '#334155']);
-    platSheet.appendRow(['Magalu', '#38bdf8']);
-    platSheet.appendRow(['Shein', '#000000']);
-    platSheet.appendRow(['TikTok Shop', '#ff004f']);
+    platSheet.appendRow(['ID', 'Nome', 'Cor']);
+    platSheet.appendRow(['00001', 'Shopee', '#f97316']);
+    platSheet.appendRow(['00002', 'Mercado Livre', '#facc15']);
+    platSheet.appendRow(['00003', 'Amazon', '#334155']);
+    platSheet.appendRow(['00004', 'Magalu', '#38bdf8']);
+    platSheet.appendRow(['00005', 'Shein', '#000000']);
+    platSheet.appendRow(['00006', 'TikTok Shop', '#ff004f']);
     styleHeader(platSheet);
+  } else {
+    ensureIdColumn(platSheet, 'ID');
   }
 
-  // 4. Aba Tarefas Ativas: [Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm]
+  // 4. Aba Tarefas Ativas: [ID, Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm]
   let taskSheet = ss.getSheetByName(SHEETS.TASKS);
   if (!taskSheet) {
     taskSheet = ss.insertSheet(SHEETS.TASKS);
     taskSheet.appendRow([
+      'ID',
       'Tipo',
       'SKU',
       'AtribuidoPara',
@@ -113,13 +119,16 @@ function setupSheets() {
       'AtualizadoEm'
     ]);
     styleHeader(taskSheet);
+  } else {
+    ensureIdColumn(taskSheet, 'ID');
   }
 
-  // 5. Aba Tarefas Finalizadas: [Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, FinalizadoEm]
+  // 5. Aba Tarefas Finalizadas: [ID, Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, FinalizadoEm]
   let compTaskSheet = ss.getSheetByName(SHEETS.COMPLETED_TASKS);
   if (!compTaskSheet) {
     compTaskSheet = ss.insertSheet(SHEETS.COMPLETED_TASKS);
     compTaskSheet.appendRow([
+      'ID',
       'Tipo',
       'SKU',
       'AtribuidoPara',
@@ -133,6 +142,8 @@ function setupSheets() {
       'FinalizadoEm'
     ]);
     styleHeader(compTaskSheet);
+  } else {
+    ensureIdColumn(compTaskSheet, 'ID');
   }
 
   // 6. Aba Configurações da Precificadora (Margens e Taxas)
@@ -147,7 +158,34 @@ function setupSheets() {
     styleHeader(pricingSheet);
   }
 
-  Logger.log('Todas as abas do Taresk foram configuradas com sucesso no Google Sheets!');
+  Logger.log('Todas as abas do Taresk foram configuradas com suporte a ID (00001, 00002...)!');
+}
+
+/**
+ * Se a aba já existir sem coluna ID, insere a coluna ID como primeira coluna e gera números sequenciais
+ */
+function ensureIdColumn(sheet, headerName) {
+  const values = sheet.getDataRange().getValues();
+  if (values.length === 0) return;
+
+  const firstHeader = String(values[0][0] || '').toLowerCase().trim();
+  if (firstHeader === 'id') {
+    // Se a coluna ID já existir, preenche eventuais linhas vazias
+    for (let i = 1; i < values.length; i++) {
+      if (!values[i][0]) {
+        sheet.getRange(i + 1, 1).setValue(formatToFiveDigits(i));
+      }
+    }
+    return;
+  }
+
+  // Se não existir, insere a coluna ID no início
+  sheet.insertColumnBefore(1);
+  sheet.getRange(1, 1).setValue(headerName || 'ID');
+  for (let i = 1; i < values.length; i++) {
+    sheet.getRange(i + 1, 1).setValue(formatToFiveDigits(i));
+  }
+  styleHeader(sheet);
 }
 
 function styleHeader(sheet) {
@@ -157,6 +195,49 @@ function styleHeader(sheet) {
   headerRange.setFontColor('#ffffff');
   headerRange.setFontWeight('bold');
   sheet.setFrozenRows(1);
+}
+
+/**
+ * Converte um número ou string numérica para 5 dígitos com zeros à esquerda (ex: 1 -> "00001")
+ */
+function formatToFiveDigits(num) {
+  if (typeof num === 'string' && /^\d{5}$/.test(num)) return num;
+  const parsed = parseInt(num, 10);
+  if (isNaN(parsed) || parsed < 0) return '00001';
+  return String(parsed).padStart(5, '0');
+}
+
+/**
+ * Calcula o próximo ID sequencial em formato "00001" procurando em uma ou mais abas
+ */
+function getNextFormattedId(sheetNames) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const names = Array.isArray(sheetNames) ? sheetNames : [sheetNames];
+  let maxId = 0;
+
+  names.forEach(name => {
+    const sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    const values = sheet.getDataRange().getValues();
+    if (values.length <= 1) return;
+
+    const headers = values[0].map(h => String(h).toLowerCase().trim());
+    const idxId = headers.indexOf('id');
+    const colIndex = idxId !== -1 ? idxId : 0;
+
+    for (let i = 1; i < values.length; i++) {
+      const val = values[i][colIndex];
+      const match = String(val || '').match(/\d+/);
+      if (match) {
+        const n = parseInt(match[0], 10);
+        if (!isNaN(n) && n > maxId) {
+          maxId = n;
+        }
+      }
+    }
+  });
+
+  return formatToFiveDigits(maxId + 1);
 }
 
 /**
@@ -349,7 +430,6 @@ function getSheetDataAsJson(sheetName) {
 
 /**
  * Retorna Usuários da aba "Usuarios"
- * Detecta cabeçalhos dinamicamente (Nome, Email, Senha, Plataformas) independente da ordem ou presença de ID
  */
 function getUsersDataAsJson() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -372,7 +452,7 @@ function getUsersDataAsJson() {
   const idxPlat = headers.findIndex(h => h.includes('plataforma'));
 
   return rows.map((r, index) => {
-    // Busca os campos pelo cabeçalho
+    const rawId = idxId !== -1 && r[idxId] ? String(r[idxId]).trim() : '';
     const email = idxEmail !== -1 ? String(r[idxEmail] || '').trim() : String(r[1] || '').trim();
     const name = idxNome !== -1 ? String(r[idxNome] || '').trim() : String(r[0] || '').trim();
     const password = idxSenha !== -1 ? String(r[idxSenha] || '') : String(r[2] || '');
@@ -386,7 +466,7 @@ function getUsersDataAsJson() {
     const role = isMaster ? 'premium_admin' : (idxCargo !== -1 && r[idxCargo] ? String(r[idxCargo]) : 'operator');
     const avatar = (idxAvatar !== -1 && r[idxAvatar]) ? String(r[idxAvatar]) : (isMaster ? '⚡' : '👤');
     const badge = (idxBadge !== -1 && r[idxBadge]) ? String(r[idxBadge]) : (isMaster ? 'Admin' : 'Operador');
-    const id = idxId !== -1 && r[idxId] ? String(r[idxId]) : (isMaster ? 'user_master' : 'user_' + encodeURIComponent(email).replace(/[^a-zA-Z0-9_]/g, '_'));
+    const id = rawId || (isMaster ? 'user_master' : 'user_' + encodeURIComponent(email).replace(/[^a-zA-Z0-9_]/g, '_'));
 
     return {
       id: id,
@@ -403,7 +483,6 @@ function getUsersDataAsJson() {
 
 /**
  * Retorna Produtos da aba "Produtos"
- * Detecta cabeçalhos dinamicamente (SKU, Titulo, Custo, Largura, Comprimento, Altura, Peso)
  */
 function getProductsDataAsJson() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -416,6 +495,7 @@ function getProductsDataAsJson() {
   const headers = values[0].map(h => String(h).toLowerCase().trim());
   const rows = values.slice(1);
 
+  const idxId = headers.indexOf('id');
   const idxSku = headers.indexOf('sku');
   const idxTitulo = headers.findIndex(h => h.includes('titulo') || h.includes('nome'));
   const idxCusto = headers.indexOf('custo');
@@ -425,12 +505,12 @@ function getProductsDataAsJson() {
   const idxPeso = headers.indexOf('peso');
 
   return rows.map((r, i) => {
-    // Se a coluna SKU existir pelo cabeçalho, usa ela. Senão pega a coluna 0 ou 1.
+    const rawId = idxId !== -1 && r[idxId] ? String(r[idxId]).trim() : '';
     const sku = idxSku !== -1 ? String(r[idxSku] || '').trim() : String(r[0] || '').trim();
     const titulo = idxTitulo !== -1 && r[idxTitulo] ? String(r[idxTitulo]).trim() : '';
 
     return {
-      id: sku || ('prod_' + (i + 1)),
+      id: rawId || sku || ('prod_' + (i + 1)),
       sku: sku,
       title: titulo,
       cost: idxCusto !== -1 ? parseBrazilianNumber(r[idxCusto]) : 0,
@@ -444,7 +524,6 @@ function getProductsDataAsJson() {
 
 /**
  * Retorna Plataformas da aba "Plataformas"
- * Detecta cabeçalhos dinamicamente (Nome, Cor, Descricao)
  */
 function getPlatformsDataAsJson() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -457,17 +536,19 @@ function getPlatformsDataAsJson() {
   const headers = values[0].map(h => String(h).toLowerCase().trim());
   const rows = values.slice(1);
 
+  const idxId = headers.indexOf('id');
   const idxNome = headers.findIndex(h => h === 'nome' || h.includes('plataforma'));
   const idxCor = headers.indexOf('cor');
   const idxDesc = headers.findIndex(h => h.includes('desc'));
 
   return rows.map((r, i) => {
+    const rawId = idxId !== -1 && r[idxId] ? String(r[idxId]).trim() : '';
     const nome = idxNome !== -1 ? String(r[idxNome] || '').trim() : String(r[1] || r[0] || '').trim();
     const cor = idxCor !== -1 && r[idxCor] ? String(r[idxCor]).trim() : '#5925dc';
     const desc = idxDesc !== -1 && r[idxDesc] ? String(r[idxDesc]).trim() : '';
 
     return {
-      id: 'plat_' + encodeURIComponent(nome).toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_'),
+      id: rawId || ('plat_' + encodeURIComponent(nome).toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_')),
       name: nome,
       color: cor,
       description: desc
@@ -476,8 +557,7 @@ function getPlatformsDataAsJson() {
 }
 
 /**
- * Retorna as tarefas
- * Detecta cabeçalhos dinamicamente (Tipo, ProdutoID, Titulo, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm)
+ * Retorna as tarefas com IDs físicos de 5 dígitos (00001...)
  */
 function getTasksDataAsJson(sheetName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -490,6 +570,7 @@ function getTasksDataAsJson(sheetName) {
   const headers = values[0].map(h => String(h).toLowerCase().trim());
   const rows = values.slice(1);
 
+  const idxId = headers.indexOf('id');
   const idxTipo = headers.findIndex(h => h.includes('tipo'));
   const idxProdId = headers.findIndex(h => h.includes('produtoid') || h.includes('produto') || h.includes('sku'));
   const idxTitulo = headers.findIndex(h => h.includes('titulo') || h.includes('nome'));
@@ -507,6 +588,7 @@ function getTasksDataAsJson(sheetName) {
     let marketplaces = {};
     let checklist = [];
 
+    const rawId = idxId !== -1 && r[idxId] ? String(r[idxId]).trim() : '';
     const rawMp = idxMarketplaces !== -1 ? r[idxMarketplaces] : r[8];
     const rawChk = idxChecklist !== -1 ? r[idxChecklist] : r[9];
 
@@ -515,7 +597,6 @@ function getTasksDataAsJson(sheetName) {
 
     const type = (idxTipo !== -1 && r[idxTipo]) ? r[idxTipo] : (r[0] || 'product_catalog');
     const sku = (idxProdId !== -1 && r[idxProdId]) ? String(r[idxProdId]).trim() : String(r[1] || '').trim();
-    // Se a coluna Titulo existir na planilha antiga lê dela, senão usa o próprio SKU ou nota
     const title = (idxTitulo !== -1 && r[idxTitulo]) ? String(r[idxTitulo]).trim() : sku;
     const assignedTo = (idxAtribPara !== -1 && r[idxAtribPara]) ? String(r[idxAtribPara]).trim() : String(r[2] || '').trim();
     const assignedByName = (idxAtribPor !== -1 && r[idxAtribPor]) ? String(r[idxAtribPor]).trim() : String(r[3] || '').trim();
@@ -525,8 +606,8 @@ function getTasksDataAsJson(sheetName) {
     const notes = (idxObs !== -1 && r[idxObs]) ? String(r[idxObs]) : '';
     const timeField = (idxDataHora !== -1 && r[idxDataHora]) ? String(r[idxDataHora]) : '';
 
-    // ID derivado estável para a interface
-    const taskId = 'task_' + (sku ? (sku + '_') : '') + (index + 1);
+    // Usa o ID físico se existir; se não, formata o índice como 00001
+    const taskId = rawId || formatToFiveDigits(index + 1);
 
     return {
       id: taskId,
@@ -549,8 +630,7 @@ function getTasksDataAsJson(sheetName) {
 }
 
 /**
- * Salva ou atualiza uma Tarefa específica
- * Linha: [Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm]
+ * Salva ou atualiza uma Tarefa ativa
  */
 function upsertTask(task) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -561,18 +641,49 @@ function upsertTask(task) {
   }
 
   const values = sheet.getDataRange().getValues();
-  let rowIndex = -1;
-  const targetSku = String(task.sku || task.productId || task.title || '').trim().toLowerCase();
+  const headers = values.length > 0 ? values[0].map(h => String(h).toLowerCase().trim()) : [];
+  const hasIdCol = headers.indexOf('id') !== -1;
+  const idxId = hasIdCol ? headers.indexOf('id') : -1;
+  const idxSku = headers.indexOf('sku') !== -1 ? headers.indexOf('sku') : (hasIdCol ? 2 : 1);
+  const idxAssignee = headers.findIndex(h => h.includes('atrib') && h.includes('para'));
 
-  for (let i = 1; i < values.length; i++) {
-    const rowSku = String(values[i][1] || values[i][0] || '').trim().toLowerCase();
-    if (targetSku && rowSku === targetSku) {
-      rowIndex = i + 1;
-      break;
+  let rowIndex = -1;
+  const targetId = String(task.id || '').trim();
+  const targetSku = String(task.sku || task.productId || task.title || '').trim().toLowerCase();
+  const targetAssignee = String(task.assignedTo || '').trim().toLowerCase();
+
+  // 1. Procura primeiro pelo ID exato
+  if (hasIdCol && targetId && /^\d{5}$/.test(targetId)) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxId]).trim() === targetId) {
+        rowIndex = i + 1;
+        break;
+      }
     }
   }
 
-  const rowData = [
+  // 2. Fallback por SKU + Responsável se não encontrou por ID
+  if (rowIndex === -1 && targetSku) {
+    for (let i = 1; i < values.length; i++) {
+      const rowSku = String(values[i][idxSku] || '').trim().toLowerCase();
+      const rowAssignee = idxAssignee !== -1 ? String(values[i][idxAssignee] || '').trim().toLowerCase() : '';
+      if (rowSku === targetSku && (!targetAssignee || !rowAssignee || rowAssignee === targetAssignee)) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+  }
+
+  // Define ou mantém o ID de 5 dígitos
+  let finalId = targetId && /^\d{5}$/.test(targetId) ? targetId : '';
+  if (!finalId && rowIndex > 0 && hasIdCol) {
+    finalId = String(values[rowIndex - 1][idxId] || '').trim();
+  }
+  if (!finalId) {
+    finalId = getNextFormattedId([SHEETS.TASKS, SHEETS.COMPLETED_TASKS]);
+  }
+
+  const baseData = [
     task.type || 'product_catalog',
     task.sku || task.productId || task.title || '',
     task.assignedTo || '',
@@ -586,13 +697,15 @@ function upsertTask(task) {
     new Date().toISOString()
   ];
 
+  const rowData = hasIdCol ? [finalId, ...baseData] : baseData;
+
   if (rowIndex > 0) {
     sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
   } else {
     sheet.appendRow(rowData);
   }
 
-  return { id: task.id || targetSku, updated: true };
+  return { id: finalId, updated: true };
 }
 
 /**
@@ -607,18 +720,46 @@ function upsertCompletedTask(task) {
   }
 
   const values = compSheet.getDataRange().getValues();
-  let rowIndex = -1;
-  const targetSku = String(task.sku || task.productId || task.title || '').trim().toLowerCase();
+  const headers = values.length > 0 ? values[0].map(h => String(h).toLowerCase().trim()) : [];
+  const hasIdCol = headers.indexOf('id') !== -1;
+  const idxId = hasIdCol ? headers.indexOf('id') : -1;
+  const idxSku = headers.indexOf('sku') !== -1 ? headers.indexOf('sku') : (hasIdCol ? 2 : 1);
+  const idxAssignee = headers.findIndex(h => h.includes('atrib') && h.includes('para'));
 
-  for (let i = 1; i < values.length; i++) {
-    const rowSku = String(values[i][1] || values[i][0] || '').trim().toLowerCase();
-    if (targetSku && rowSku === targetSku) {
-      rowIndex = i + 1;
-      break;
+  let rowIndex = -1;
+  const targetId = String(task.id || '').trim();
+  const targetSku = String(task.sku || task.productId || task.title || '').trim().toLowerCase();
+  const targetAssignee = String(task.assignedTo || '').trim().toLowerCase();
+
+  if (hasIdCol && targetId && /^\d{5}$/.test(targetId)) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxId]).trim() === targetId) {
+        rowIndex = i + 1;
+        break;
+      }
     }
   }
 
-  const rowData = [
+  if (rowIndex === -1 && targetSku) {
+    for (let i = 1; i < values.length; i++) {
+      const rowSku = String(values[i][idxSku] || '').trim().toLowerCase();
+      const rowAssignee = idxAssignee !== -1 ? String(values[i][idxAssignee] || '').trim().toLowerCase() : '';
+      if (rowSku === targetSku && (!targetAssignee || !rowAssignee || rowAssignee === targetAssignee)) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+  }
+
+  let finalId = targetId && /^\d{5}$/.test(targetId) ? targetId : '';
+  if (!finalId && rowIndex > 0 && hasIdCol) {
+    finalId = String(values[rowIndex - 1][idxId] || '').trim();
+  }
+  if (!finalId) {
+    finalId = getNextFormattedId([SHEETS.TASKS, SHEETS.COMPLETED_TASKS]);
+  }
+
+  const baseData = [
     task.type || 'product_catalog',
     task.sku || task.productId || task.title || '',
     task.assignedTo || '',
@@ -632,13 +773,15 @@ function upsertCompletedTask(task) {
     new Date().toISOString()
   ];
 
+  const rowData = hasIdCol ? [finalId, ...baseData] : baseData;
+
   if (rowIndex > 0) {
     compSheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
   } else {
     compSheet.appendRow(rowData);
   }
 
-  return { id: task.id || targetSku, updated: true };
+  return { id: finalId, updated: true };
 }
 
 /**
@@ -654,8 +797,17 @@ function moveTaskToCompleted(task) {
 
   deleteTaskRecord(SHEETS.TASKS, task);
 
+  const values = compSheet.getDataRange().getValues();
+  const headers = values.length > 0 ? values[0].map(h => String(h).toLowerCase().trim()) : [];
+  const hasIdCol = headers.indexOf('id') !== -1;
+
+  let finalId = String(task.id || '').trim();
+  if (!finalId || !/^\d{5}$/.test(finalId)) {
+    finalId = getNextFormattedId([SHEETS.TASKS, SHEETS.COMPLETED_TASKS]);
+  }
+
   const targetSku = task.sku || task.productId || task.title || '';
-  const rowData = [
+  const baseData = [
     task.type || 'product_catalog',
     targetSku,
     task.assignedTo || '',
@@ -669,8 +821,9 @@ function moveTaskToCompleted(task) {
     new Date().toISOString()
   ];
 
+  const rowData = hasIdCol ? [finalId, ...baseData] : baseData;
   compSheet.appendRow(rowData);
-  return { id: task.id || targetSku, movedToCompleted: true };
+  return { id: finalId, movedToCompleted: true };
 }
 
 /**
@@ -687,7 +840,6 @@ function saveTasksBatch(tasksList) {
 
 /**
  * Salva ou atualiza um Produto no catálogo
- * Linha: [SKU, Titulo, Custo, Largura, Comprimento, Altura, Peso]
  */
 function upsertProduct(prod) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -698,17 +850,42 @@ function upsertProduct(prod) {
   }
 
   const values = sheet.getDataRange().getValues();
+  const headers = values.length > 0 ? values[0].map(h => String(h).toLowerCase().trim()) : [];
+  const hasIdCol = headers.indexOf('id') !== -1;
+  const idxId = hasIdCol ? headers.indexOf('id') : -1;
+  const idxSku = headers.indexOf('sku') !== -1 ? headers.indexOf('sku') : (hasIdCol ? 1 : 0);
+
   let rowIndex = -1;
+  const targetId = String(prod.id || '').trim();
   const targetSku = String(prod.sku || prod.id || '').toUpperCase().trim();
 
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]).toUpperCase().trim() === targetSku) {
-      rowIndex = i + 1;
-      break;
+  if (hasIdCol && targetId && /^\d{5}$/.test(targetId)) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxId]).trim() === targetId) {
+        rowIndex = i + 1;
+        break;
+      }
     }
   }
 
-  const rowData = [
+  if (rowIndex === -1 && targetSku) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxSku]).toUpperCase().trim() === targetSku) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+  }
+
+  let finalId = targetId && /^\d{5}$/.test(targetId) ? targetId : '';
+  if (!finalId && rowIndex > 0 && hasIdCol) {
+    finalId = String(values[rowIndex - 1][idxId] || '').trim();
+  }
+  if (!finalId) {
+    finalId = getNextFormattedId(SHEETS.PRODUCTS);
+  }
+
+  const baseData = [
     prod.sku || prod.id || '',
     parseBrazilianNumber(prod.cost),
     parseBrazilianNumber(prod.width),
@@ -717,13 +894,15 @@ function upsertProduct(prod) {
     parseBrazilianNumber(prod.weight)
   ];
 
+  const rowData = hasIdCol ? [finalId, ...baseData] : baseData;
+
   if (rowIndex > 0) {
     sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
   } else {
     sheet.appendRow(rowData);
   }
 
-  return { sku: prod.sku, updated: true };
+  return { id: finalId, sku: prod.sku, updated: true };
 }
 
 function saveProductsBatch(productsList) {
@@ -732,7 +911,6 @@ function saveProductsBatch(productsList) {
 
 /**
  * Salva ou atualiza uma Plataforma
- * Linha: [Nome, Cor]
  */
 function upsertPlatform(plat) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -743,20 +921,48 @@ function upsertPlatform(plat) {
   }
 
   const values = sheet.getDataRange().getValues();
+  const headers = values.length > 0 ? values[0].map(h => String(h).toLowerCase().trim()) : [];
+  const hasIdCol = headers.indexOf('id') !== -1;
+  const idxId = hasIdCol ? headers.indexOf('id') : -1;
+  const idxNome = headers.findIndex(h => h === 'nome' || h.includes('plataforma'));
+
   let rowIndex = -1;
+  const targetId = String(plat.id || '').trim();
   const targetName = String(plat.name || '').toLowerCase().trim();
 
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]).toLowerCase().trim() === targetName) {
-      rowIndex = i + 1;
-      break;
+  if (hasIdCol && targetId && /^\d{5}$/.test(targetId)) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxId]).trim() === targetId) {
+        rowIndex = i + 1;
+        break;
+      }
     }
   }
 
-  const rowData = [
+  if (rowIndex === -1 && targetName) {
+    const colName = idxNome !== -1 ? idxNome : (hasIdCol ? 1 : 0);
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][colName]).toLowerCase().trim() === targetName) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+  }
+
+  let finalId = targetId && /^\d{5}$/.test(targetId) ? targetId : '';
+  if (!finalId && rowIndex > 0 && hasIdCol) {
+    finalId = String(values[rowIndex - 1][idxId] || '').trim();
+  }
+  if (!finalId) {
+    finalId = getNextFormattedId(SHEETS.PLATFORMS);
+  }
+
+  const baseData = [
     plat.name || '',
     plat.color || '#5925dc'
   ];
+
+  const rowData = hasIdCol ? [finalId, ...baseData] : baseData;
 
   if (rowIndex > 0) {
     sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
@@ -764,7 +970,7 @@ function upsertPlatform(plat) {
     sheet.appendRow(rowData);
   }
 
-  return { name: plat.name, updated: true };
+  return { id: finalId, name: plat.name, updated: true };
 }
 
 function savePlatformsBatch(platformsList) {
@@ -773,7 +979,6 @@ function savePlatformsBatch(platformsList) {
 
 /**
  * Salva ou atualiza usuário
- * Linha: [Nome, Email, Senha, Plataformas_JSON]
  */
 function upsertUser(user) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -784,22 +989,50 @@ function upsertUser(user) {
   }
 
   const values = sheet.getDataRange().getValues();
+  const headers = values.length > 0 ? values[0].map(h => String(h).toLowerCase().trim()) : [];
+  const hasIdCol = headers.indexOf('id') !== -1;
+  const idxId = hasIdCol ? headers.indexOf('id') : -1;
+  const idxEmail = headers.findIndex(h => h.includes('email') || h.includes('login'));
+
   let rowIndex = -1;
+  const targetId = String(user.id || '').trim();
   const targetEmail = String(user.email || '').toLowerCase().trim();
 
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][1]).toLowerCase().trim() === targetEmail) {
-      rowIndex = i + 1;
-      break;
+  if (hasIdCol && targetId && /^\d{5}$/.test(targetId)) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxId]).trim() === targetId) {
+        rowIndex = i + 1;
+        break;
+      }
     }
   }
 
-  const rowData = [
+  if (rowIndex === -1 && targetEmail) {
+    const colEmail = idxEmail !== -1 ? idxEmail : (hasIdCol ? 2 : 1);
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][colEmail]).toLowerCase().trim() === targetEmail) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+  }
+
+  let finalId = targetId && /^\d{5}$/.test(targetId) ? targetId : '';
+  if (!finalId && rowIndex > 0 && hasIdCol) {
+    finalId = String(values[rowIndex - 1][idxId] || '').trim();
+  }
+  if (!finalId) {
+    finalId = getNextFormattedId(SHEETS.USERS);
+  }
+
+  const baseData = [
     user.name || '',
     user.email || '',
     user.password || '123',
     JSON.stringify(user.platforms || [])
   ];
+
+  const rowData = hasIdCol ? [finalId, ...baseData] : baseData;
 
   if (rowIndex > 0) {
     sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
@@ -807,7 +1040,7 @@ function upsertUser(user) {
     sheet.appendRow(rowData);
   }
 
-  return { email: user.email, updated: true };
+  return { id: finalId, email: user.email, updated: true };
 }
 
 function saveUsersBatch(usersList) {
@@ -815,97 +1048,172 @@ function saveUsersBatch(usersList) {
 }
 
 /**
- * Remove usuário pelo Email (coluna B)
+ * Remove usuário por ID ou Email
  */
 function deleteUserRecord(userOrData) {
-  const email = String((userOrData && (userOrData.email || userOrData.id)) || '').toLowerCase().trim();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEETS.USERS);
   if (!sheet) return { deleted: false };
 
+  const id = String((userOrData && userOrData.id) || '').trim();
+  const email = String((userOrData && (userOrData.email || userOrData.id)) || '').toLowerCase().trim();
+
   const values = sheet.getDataRange().getValues();
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][1]).toLowerCase().trim() === email) {
-      sheet.deleteRow(i + 1);
-      return { email: email, deleted: true };
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const idxEmail = headers.findIndex(h => h.includes('email') || h.includes('login'));
+
+  // 1. Tenta por ID
+  if (idxId !== -1 && id && /^\d{5}$/.test(id)) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxId]).trim() === id) {
+        sheet.deleteRow(i + 1);
+        return { id: id, deleted: true, matchedBy: 'id' };
+      }
     }
   }
-  return { email: email, deleted: false };
+
+  // 2. Tenta por Email
+  const colEmail = idxEmail !== -1 ? idxEmail : 1;
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][colEmail]).toLowerCase().trim() === email) {
+      sheet.deleteRow(i + 1);
+      return { email: email, deleted: true, matchedBy: 'email' };
+    }
+  }
+
+  return { deleted: false };
 }
 
 /**
- * Remove produto pelo SKU (coluna A)
+ * Remove produto por ID ou SKU
  */
 function deleteProductRecord(prodOrData) {
-  const sku = String((prodOrData && (prodOrData.sku || prodOrData.id)) || '').toUpperCase().trim();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEETS.PRODUCTS);
   if (!sheet) return { deleted: false };
 
+  const id = String((prodOrData && prodOrData.id) || '').trim();
+  const sku = String((prodOrData && (prodOrData.sku || prodOrData.id)) || '').toUpperCase().trim();
+
   const values = sheet.getDataRange().getValues();
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]).toUpperCase().trim() === sku) {
-      sheet.deleteRow(i + 1);
-      return { sku: sku, deleted: true };
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const idxSku = headers.indexOf('sku') !== -1 ? headers.indexOf('sku') : 0;
+
+  // 1. Tenta por ID
+  if (idxId !== -1 && id && /^\d{5}$/.test(id)) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxId]).trim() === id) {
+        sheet.deleteRow(i + 1);
+        return { id: id, deleted: true, matchedBy: 'id' };
+      }
     }
   }
-  return { sku: sku, deleted: false };
+
+  // 2. Tenta por SKU
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][idxSku]).toUpperCase().trim() === sku) {
+      sheet.deleteRow(i + 1);
+      return { sku: sku, deleted: true, matchedBy: 'sku' };
+    }
+  }
+
+  return { deleted: false };
 }
 
 /**
- * Remove plataforma pelo Nome (coluna A)
+ * Remove plataforma por ID ou Nome
  */
 function deletePlatformRecord(platOrData) {
-  const name = String((platOrData && (platOrData.name || platOrData.id)) || '').toLowerCase().trim();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEETS.PLATFORMS);
   if (!sheet) return { deleted: false };
 
+  const id = String((platOrData && platOrData.id) || '').trim();
+  const name = String((platOrData && (platOrData.name || platOrData.id)) || '').toLowerCase().trim();
+
   const values = sheet.getDataRange().getValues();
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]).toLowerCase().trim() === name) {
-      sheet.deleteRow(i + 1);
-      return { name: name, deleted: true };
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const idxNome = headers.findIndex(h => h === 'nome' || h.includes('plataforma'));
+
+  // 1. Tenta por ID
+  if (idxId !== -1 && id && /^\d{5}$/.test(id)) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxId]).trim() === id) {
+        sheet.deleteRow(i + 1);
+        return { id: id, deleted: true, matchedBy: 'id' };
+      }
     }
   }
-  return { name: name, deleted: false };
+
+  // 2. Tenta por Nome
+  const colNome = idxNome !== -1 ? idxNome : 0;
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][colNome]).toLowerCase().trim() === name) {
+      sheet.deleteRow(i + 1);
+      return { name: name, deleted: true, matchedBy: 'name' };
+    }
+  }
+
+  return { deleted: false };
 }
 
 /**
- * Remove tarefa por SKU (coluna B) ou Titulo/ID
+ * Remove tarefa por ID (00001...) ou SKU/Responsável
  */
 function deleteTaskRecord(sheetName, taskOrData) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return { deleted: false };
 
-  // Identificadores possíveis passados pelo frontend
+  const id = String((taskOrData && taskOrData.id) || '').trim();
   const sku = String((taskOrData && (taskOrData.sku || taskOrData.productId)) || '').trim().toLowerCase();
   const title = String((taskOrData && taskOrData.title) || '').trim().toLowerCase();
-  const id = String((taskOrData && taskOrData.id) || '').trim().toLowerCase();
+  const assignedTo = String((taskOrData && (taskOrData.assignedTo || taskOrData.assignedByName)) || '').trim().toLowerCase();
 
   const values = sheet.getDataRange().getValues();
-  for (let i = 1; i < values.length; i++) {
-    const rowCol1 = String(values[i][1] || '').trim().toLowerCase(); // Coluna B (SKU)
-    const rowCol0 = String(values[i][0] || '').trim().toLowerCase(); // Coluna A (Tipo ou SKU)
-    const rowCol2 = String(values[i][2] || '').trim().toLowerCase(); // Coluna C (AtribuidoPara ou Titulo)
+  if (values.length <= 1) return { deleted: false };
 
-    // Se bater por SKU (coluna B ou A)
-    if (sku && (rowCol1 === sku || rowCol0 === sku)) {
-      sheet.deleteRow(i + 1);
-      return { deleted: true, matchedBy: 'sku' };
-    }
-    // Se bater por Title
-    if (title && (rowCol1 === title || rowCol0 === title || rowCol2 === title)) {
-      sheet.deleteRow(i + 1);
-      return { deleted: true, matchedBy: 'title' };
-    }
-    // Se bater por taskId contendo o SKU
-    if (id && rowCol1 && id.includes(rowCol1)) {
-      sheet.deleteRow(i + 1);
-      return { deleted: true, matchedBy: 'id_contains' };
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const idxSku = headers.indexOf('sku') !== -1 ? headers.indexOf('sku') : headers.findIndex(h => h.includes('produto') || h.includes('sku'));
+  const idxAssignee = headers.findIndex(h => h.includes('atrib') && h.includes('para'));
+
+  // 1. Tenta por ID de 5 dígitos (00001, etc.) ou id exato
+  if (idxId !== -1 && id) {
+    for (let i = 1; i < values.length; i++) {
+      const rowId = String(values[i][idxId]).trim();
+      if (rowId && (rowId === id || formatToFiveDigits(rowId) === formatToFiveDigits(id))) {
+        sheet.deleteRow(i + 1);
+        return { deleted: true, matchedBy: 'id', id: id };
+      }
     }
   }
+
+  // 2. Se não encontrou por ID, tenta por SKU + Responsável
+  for (let i = 1; i < values.length; i++) {
+    const rowSku = idxSku !== -1 ? String(values[i][idxSku] || '').trim().toLowerCase() : String(values[i][1] || '').trim().toLowerCase();
+    const rowAssignee = idxAssignee !== -1 ? String(values[i][idxAssignee] || '').trim().toLowerCase() : String(values[i][2] || '').trim().toLowerCase();
+
+    const matchesAssignee = !assignedTo || rowAssignee === assignedTo || !rowAssignee;
+
+    if (sku && rowSku === sku) {
+      if (matchesAssignee) {
+        sheet.deleteRow(i + 1);
+        return { deleted: true, matchedBy: 'sku' };
+      }
+    }
+
+    if (title && rowSku === title) {
+      if (matchesAssignee) {
+        sheet.deleteRow(i + 1);
+        return { deleted: true, matchedBy: 'title' };
+      }
+    }
+  }
+
   return { deleted: false };
 }
 

@@ -45,13 +45,8 @@ export default function NewTaskModal({
     }
   };
 
-  // Subtarefas para tarefa especial
-  const [subtasks, setSubtasks] = useState([
-    'Roteiro e preparação',
-    'Gravação / Produção',
-    'Edição e pós-produção',
-    'Publicação nos canais'
-  ]);
+  // Subtarefas para tarefa especial (inicia vazia, o usuário adiciona se desejar)
+  const [subtasks, setSubtasks] = useState([]);
   const [newSubtaskInput, setNewSubtaskInput] = useState('');
 
   if (!isOpen) return null;
@@ -161,6 +156,9 @@ export default function NewTaskModal({
       });
     }
 
+    setSpecialTitle('');
+    setSubtasks([]);
+    setNewSubtaskInput('');
     onClose();
   };
 
@@ -377,33 +375,35 @@ export default function NewTaskModal({
                   <CheckSquare size={16} /> Subtarefas da Ação
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                  {subtasks.map((st, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        background: '#ffffff',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid #e2e8f0'
-                      }}
-                    >
-                      <span style={{ fontSize: '14px', color: '#1e293b' }}>
-                        {idx + 1}. {st}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSubtask(idx)}
-                        style={{ color: '#ef4444', fontSize: '12px', fontWeight: '600' }}
+                {subtasks.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    {subtasks.map((st, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          background: '#ffffff',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0'
+                        }}
                       >
-                        Remover
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        <span style={{ fontSize: '14px', color: '#1e293b' }}>
+                          {idx + 1}. {st}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSubtask(idx)}
+                          style={{ color: '#ef4444', fontSize: '12px', fontWeight: '600' }}
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input

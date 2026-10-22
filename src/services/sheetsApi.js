@@ -86,7 +86,14 @@ export const SheetsApi = {
     if (!url) return false;
 
     const payloadData = typeof taskOrId === 'object'
-      ? { id: taskOrId.id, sku: taskOrId.sku || taskOrId.productId || taskOrId.title, title: taskOrId.title, productId: taskOrId.productId }
+      ? {
+          id: taskOrId.id,
+          sku: taskOrId.sku || taskOrId.productId || taskOrId.title,
+          title: taskOrId.title,
+          productId: taskOrId.productId,
+          assignedTo: taskOrId.assignedTo,
+          assignedByName: taskOrId.assignedByName
+        }
       : { id: taskOrId, sku: taskOrId, title: taskOrId };
 
     try {
@@ -182,7 +189,14 @@ export const SheetsApi = {
     if (!url) return false;
 
     const payloadData = typeof taskOrId === 'object'
-      ? { id: taskOrId.id, sku: taskOrId.sku || taskOrId.productId || taskOrId.title, title: taskOrId.title, productId: taskOrId.productId }
+      ? {
+          id: taskOrId.id,
+          sku: taskOrId.sku || taskOrId.productId || taskOrId.title,
+          title: taskOrId.title,
+          productId: taskOrId.productId,
+          assignedTo: taskOrId.assignedTo,
+          assignedByName: taskOrId.assignedByName
+        }
       : { id: taskOrId, sku: taskOrId, title: taskOrId };
 
     try {

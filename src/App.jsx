@@ -122,6 +122,9 @@ export default function App() {
     localStorage.setItem('taresk_default_checklist', JSON.stringify(defaultChecklist));
   }, [defaultChecklist]);
 
+  // Rastreia timestamps das tarefas modificadas localmente recentemente para o polling não sobrescrever com dados antigos do Sheets
+  const localTaskUpdatesRef = useRef({});
+
   // Carrega e atualiza dados do Google Sheets
   const refreshFromSheets = useCallback(async (showIndicator = false) => {
     if (!SheetsApi.getUrl()) return;
@@ -149,7 +152,20 @@ export default function App() {
               marketplaces: (mp && typeof mp === 'object') ? mp : {}
             };
           });
-          setTasks(sanitizedTasks);
+
+          // Mescla com tarefas locais que tenham atualizações muito recentes (últimos 15 segundos)
+          setTasks(prevTasks => {
+            const now = Date.now();
+            return sanitizedTasks.map(incomingTask => {
+              const localMatch = prevTasks.find(pt => pt.id === incomingTask.id || (pt.sku && pt.sku === incomingTask.sku && pt.assignedTo === incomingTask.assignedTo));
+              const lastLocalUpdate = localMatch ? (localTaskUpdatesRef.current[localMatch.id] || 0) : 0;
+              // Se foi editado localmente há menos de 15 segundos, preserva o estado local mais recente
+              if (localMatch && (now - lastLocalUpdate < 15000)) {
+                return localMatch;
+              }
+              return incomingTask;
+            });
+          });
         }
         if (Array.isArray(data.completedTasks)) setCompletedTasks(data.completedTasks);
         if (Array.isArray(data.products) && data.products.length > 0) {
@@ -183,13 +199,9 @@ export default function App() {
     }
   }, []);
 
-  // Polling automático a cada 10 segundos para refletir qualquer edição feita na Planilha imediatamente
+  // Carrega os dados da planilha uma única vez ao iniciar o aplicativo (sem ronda contínua)
   useEffect(() => {
     refreshFromSheets(true);
-    const interval = setInterval(() => {
-      refreshFromSheets(false);
-    }, 10000); // 10 segundos
-    return () => clearInterval(interval);
   }, [refreshFromSheets]);
 
   // Handlers de Autenticação
@@ -205,12 +217,58 @@ export default function App() {
 
   // Handlers de Tarefas com Sincronização Imediata
   const handleCreateTask = (newTask) => {
-    setTasks([newTask, ...tasks]);
+    localTaskUpdatesRef.current[newTask.id] = Date.now();
+    setTasks(prev => [newTask, ...prev]);
     SheetsApi.syncTask(newTask);
   };
 
+  const handleDuplicateTask = (taskToDuplicate) => {
+    const newId = 'task_' + Date.now();
+    localTaskUpdatesRef.current[newId] = Date.now();
+
+    // Clona os checklists gerando novos ids para os itens
+    const clonedChecklist = Array.isArray(taskToDuplicate.checklist)
+      ? taskToDuplicate.checklist.map((item, idx) => ({
+          ...item,
+          id: `item_${Date.now()}_${idx}`,
+          completed: false // inicia desmarcado para a nova tarefa duplicada
+        }))
+      : [];
+
+    // Clona os marketplaces resetando o progresso para a nova tarefa
+    const clonedMarketplaces = {};
+    if (taskToDuplicate.marketplaces && typeof taskToDuplicate.marketplaces === 'object') {
+      Object.keys(taskToDuplicate.marketplaces).forEach(key => {
+        const orig = taskToDuplicate.marketplaces[key];
+        clonedMarketplaces[key] = {
+          ...orig,
+          u: false,
+          o: false,
+          active: false,
+          status: 'pending'
+        };
+      });
+    }
+
+    const duplicatedTask = {
+      ...taskToDuplicate,
+      id: newId,
+      title: taskToDuplicate.title ? `${taskToDuplicate.title} (Cópia)` : 'Tarefa Copiada',
+      status: 'in_progress',
+      completedAt: null,
+      finishedTimestamp: null,
+      checklist: clonedChecklist,
+      marketplaces: clonedMarketplaces,
+      createdAt: new Date().toISOString()
+    };
+
+    setTasks(prev => [duplicatedTask, ...prev]);
+    SheetsApi.syncTask(duplicatedTask);
+  };
+
   const handleToggleMarketplace = (taskId, channelKey, btnType) => {
-    setTasks(tasks.map(t => {
+    localTaskUpdatesRef.current[taskId] = Date.now();
+    setTasks(prev => prev.map(t => {
       if (t.id === taskId) {
         const currentChannel = t.marketplaces?.[channelKey] || { u: false, o: false, active: false };
         const updatedChannel = {
@@ -235,7 +293,8 @@ export default function App() {
   };
 
   const handleToggleChecklistItem = (taskId, itemId) => {
-    setTasks(tasks.map(t => {
+    localTaskUpdatesRef.current[taskId] = Date.now();
+    setTasks(prev => prev.map(t => {
       if (t.id === taskId) {
         const updatedChecklist = t.checklist.map(item => {
           if (item.id === itemId) {
@@ -256,7 +315,8 @@ export default function App() {
   };
 
   const handleAddChecklistItem = (taskId, label) => {
-    setTasks(tasks.map(t => {
+    localTaskUpdatesRef.current[taskId] = Date.now();
+    setTasks(prev => prev.map(t => {
       if (t.id === taskId) {
         const newItem = {
           id: `item_${Date.now()}`,
@@ -278,7 +338,8 @@ export default function App() {
   };
 
   const handleReassignTask = (taskId, newAssigneeId) => {
-    setTasks(tasks.map(t => {
+    localTaskUpdatesRef.current[taskId] = Date.now();
+    setTasks(prev => prev.map(t => {
       if (t.id === taskId) {
         const updated = { ...t, assignedTo: newAssigneeId };
         SheetsApi.syncTask(updated);
@@ -290,7 +351,8 @@ export default function App() {
 
   // Handlers para Editar e Excluir Tarefas Ativas
   const handleUpdateTask = (id, updatedFields) => {
-    setTasks(tasks.map(t => {
+    localTaskUpdatesRef.current[id] = Date.now();
+    setTasks(prev => prev.map(t => {
       if (t.id === id) {
         const updated = { ...t, ...updatedFields };
         SheetsApi.syncTask(updated);
@@ -302,7 +364,14 @@ export default function App() {
 
   const handleDeleteTask = (taskOrId) => {
     const id = typeof taskOrId === 'object' ? taskOrId.id : taskOrId;
-    setTasks(tasks.filter(t => t.id !== id));
+    delete localTaskUpdatesRef.current[id];
+    setTasks(prev => prev.filter(t => {
+      if (t.id === id) return false;
+      if (typeof taskOrId === 'object' && taskOrId.sku && t.sku === taskOrId.sku && t.assignedTo === taskOrId.assignedTo) {
+        return false;
+      }
+      return true;
+    }));
     SheetsApi.deleteTask(taskOrId);
   };
 
@@ -318,8 +387,8 @@ export default function App() {
       finishedTimestamp: Date.now()
     };
 
-    setTasks(tasks.filter(t => t.id !== taskToFinish.id));
-    setCompletedTasks([finishedTask, ...completedTasks]);
+    setTasks(prev => prev.filter(t => t.id !== taskToFinish.id));
+    setCompletedTasks(prev => [finishedTask, ...prev]);
     setCelebratingTask(finishedTask);
 
     SheetsApi.finishTask(finishedTask);
@@ -332,20 +401,26 @@ export default function App() {
       completedAt: null
     };
 
-    setCompletedTasks(completedTasks.filter(t => t.id !== taskToReactivate.id));
-    setTasks([reactivated, ...tasks]);
+    setCompletedTasks(prev => prev.filter(t => t.id !== taskToReactivate.id));
+    setTasks(prev => [reactivated, ...prev]);
 
     SheetsApi.unfinishTask(reactivated);
   };
 
   const handleDeleteCompletedTask = (taskOrId) => {
     const id = typeof taskOrId === 'object' ? taskOrId.id : taskOrId;
-    setCompletedTasks(completedTasks.filter(t => t.id !== id));
+    setCompletedTasks(prev => prev.filter(t => {
+      if (t.id === id) return false;
+      if (typeof taskOrId === 'object' && taskOrId.sku && t.sku === taskOrId.sku && t.assignedTo === taskOrId.assignedTo) {
+        return false;
+      }
+      return true;
+    }));
     SheetsApi.deleteCompletedTask(taskOrId);
   };
 
   const handleUpdateCompletedTask = (id, updatedFields) => {
-    setCompletedTasks(completedTasks.map(t => {
+    setCompletedTasks(prev => prev.map(t => {
       if (t.id === id) {
         const updated = { ...t, ...updatedFields };
         SheetsApi.syncCompletedTask(updated);
@@ -484,6 +559,7 @@ export default function App() {
             onToggleChecklistItem={handleToggleChecklistItem}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
+            onDuplicateTask={handleDuplicateTask}
             setActiveTab={setActiveTab}
           />
         )}
