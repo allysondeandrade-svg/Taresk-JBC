@@ -149,6 +149,55 @@ export default function TasksView({
       return Math.round((completed / task.checklist.length) * 100);
     }
 
+    if (task.type === 'recurrent') {
+      const hasChecks = task.checklist && task.checklist.length > 0;
+      const taskPlats = getTaskPlatforms(task);
+      const hasPlats = taskPlats && taskPlats.length > 0;
+
+      if (!hasChecks && !hasPlats) return 0;
+
+      // Se só tem checklist e nenhuma plataforma
+      if (hasChecks && !hasPlats) {
+        const completed = task.checklist.filter(c => c.completed).length;
+        return Math.round((completed / task.checklist.length) * 100);
+      }
+
+      // Se só tem plataformas e nenhum checklist
+      if (!hasChecks && hasPlats) {
+        const totalButtons = Math.max(taskPlats.length * 2, 2);
+        const mp = task.marketplaces || {};
+        let mpButtonsCount = 0;
+        taskPlats.forEach(plat => {
+          const channel = mp[plat.id] || mp[plat.name] || mp[plat.name.toLowerCase()] || mp[plat.name.replace(/\s+/g, '')];
+          if (channel) {
+            if (channel.u) mpButtonsCount++;
+            if (channel.o) mpButtonsCount++;
+            if (channel.active && !channel.u && !channel.o) mpButtonsCount += 2;
+          }
+        });
+        return Math.round((mpButtonsCount / totalButtons) * 100);
+      }
+
+      // Se tem ambos: Checklist = 40%, Plataformas = 60%
+      const totalChecks = task.checklist.length;
+      const doneChecks = task.checklist.filter(c => c.completed).length;
+      const chkProgress = (doneChecks / totalChecks) * 40;
+
+      const totalButtons = Math.max(taskPlats.length * 2, 2);
+      const mp = task.marketplaces || {};
+      let mpButtonsCount = 0;
+      taskPlats.forEach(plat => {
+        const channel = mp[plat.id] || mp[plat.name] || mp[plat.name.toLowerCase()] || mp[plat.name.replace(/\s+/g, '')];
+        if (channel) {
+          if (channel.u) mpButtonsCount++;
+          if (channel.o) mpButtonsCount++;
+          if (channel.active && !channel.u && !channel.o) mpButtonsCount += 2;
+        }
+      });
+      const mpProgress = (mpButtonsCount / totalButtons) * 60;
+      return Math.round(chkProgress + mpProgress);
+    }
+
     // Para produtos:
     // 1. Fotos / Checklist dentro do produto representam 40% da conclusão total.
     const totalChecks = task.checklist?.length || 0;
@@ -330,18 +379,33 @@ export default function TasksView({
           const isDone = progressPercent === 100;
           const assignee = getAssignee(task.assignedTo);
           const isSpecial = task.type === 'special';
+          const isRecurrent = task.type === 'recurrent';
+
+          // Label da frequência de recorrência para exibição
+          let recurrenceBadge = '';
+          if (isRecurrent) {
+            const freq = task.recurrence?.frequency || 'semanal';
+            const freqLabels = {
+              diaria: 'Diária',
+              seg_sex: 'Seg a Sex',
+              semanal: 'Semanal',
+              quinzenal: '15 dias',
+              mensal: 'Mensal'
+            };
+            recurrenceBadge = freqLabels[freq] || 'Recorrente';
+          }
 
           // Contagem do checklist de fotos/conteúdo
           const totalChecks = task.checklist?.length || 0;
           const doneChecks = task.checklist?.filter(c => c.completed).length || 0;
 
-          // Resolve o SKU do Produto para exibição
+          // Resolve o SKU / Título do Produto para exibição
           const matchedProduct = products?.find(p =>
             (task.productId && (p.sku === task.productId || p.id === task.productId)) ||
             (task.title && (p.sku === task.title || p.title === task.title))
           );
-          const productSkuDisplay = isSpecial
-            ? (task.title || 'Tarefa Especial')
+          const productSkuDisplay = (isSpecial || isRecurrent)
+            ? (task.title || (isRecurrent ? 'Tarefa Recorrente' : 'Tarefa Especial'))
             : (
                 (task.title && task.title !== 'Produto' && task.title !== 'Produto Novo')
                   ? task.title
@@ -363,41 +427,80 @@ export default function TasksView({
                 boxShadow: isDone 
                   ? '0 2px 8px rgba(16, 185, 129, 0.08)' 
                   : '0 3px 10px rgba(0, 0, 0, 0.04)',
-                border: isDone ? '1.5px solid #a7f3d0' : '1px solid #e2e8f0',
+                border: isDone ? '1.5px solid #a7f3d0' : (isRecurrent ? '1.5px solid #ddd6fe' : '1.5px solid #e2e8f0'),
                 position: 'relative',
                 transition: 'all 0.2s ease',
                 overflowX: 'auto'
               }}
             >
-              {/* Badge do Responsável posicionado no topo superior esquerdo do card */}
+              {/* Badges superiores: Responsável + Tipo de Tarefa */}
               <div style={{
                 position: 'absolute',
                 top: '6px',
                 left: '20px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                background: '#f1f5f9',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                fontSize: '11px',
-                fontWeight: '700',
-                color: '#475569'
+                gap: '6px'
               }}>
-                <User size={11} color="#475569" />
-                <span>{assignee.name || task.assignedByName || 'Colaborador'}</span>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: '#f1f5f9',
+                  padding: '2px 8px',
+                  borderRadius: '9999px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  color: '#475569'
+                }}>
+                  <User size={11} color="#475569" />
+                  <span>{assignee.name || task.assignedByName || 'Colaborador'}</span>
+                </div>
+
+                {isRecurrent && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: '#ede9fe',
+                    color: '#6d28d9',
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    border: '1px solid #c4b5fd'
+                  }}>
+                    🔄 {recurrenceBadge}
+                  </span>
+                )}
+
+                {isSpecial && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: '#fef3c7',
+                    color: '#b45309',
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    fontSize: '11px',
+                    fontWeight: '800'
+                  }}>
+                    ⭐ Especial
+                  </span>
+                )}
               </div>
 
-              {/* Coluna 1: Bloco Cinza do Produto ou Tarefa Especial */}
+              {/* Coluna 1: Bloco Cinza do Produto, Tarefa Especial ou Tarefa Recorrente */}
               <div style={{
-                background: '#e2e8f0',
+                background: isRecurrent ? '#f3e8ff' : '#e2e8f0',
                 borderRadius: '14px',
                 padding: '10px 14px',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: isSpecial ? 'center' : 'space-between',
-                alignItems: isSpecial ? 'center' : 'stretch',
-                width: isSpecial ? '200px' : '185px',
+                justifyContent: (isSpecial || isRecurrent) ? 'center' : 'space-between',
+                alignItems: (isSpecial || isRecurrent) ? 'center' : 'stretch',
+                width: (isSpecial || isRecurrent) ? '200px' : '185px',
                 height: '74px',
                 boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
                 flexShrink: 0
@@ -405,28 +508,28 @@ export default function TasksView({
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: isSpecial ? 'center' : 'space-between',
+                  justifyContent: (isSpecial || isRecurrent) ? 'center' : 'space-between',
                   gap: '8px',
                   width: '100%',
-                  marginBottom: isSpecial ? '0px' : '4px'
+                  marginBottom: (isSpecial || isRecurrent) ? '0px' : '4px'
                 }}>
-                    <div
+                  <div
                     title={productSkuDisplay}
                     style={{
-                      fontSize: isSpecial ? '15px' : '14px',
+                      fontSize: (isSpecial || isRecurrent) ? '14px' : '14px',
                       fontWeight: '800',
-                      color: '#1e293b',
+                      color: isRecurrent ? '#581c87' : '#1e293b',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      textAlign: isSpecial ? 'center' : 'left',
+                      textAlign: (isSpecial || isRecurrent) ? 'center' : 'left',
                       flex: 1
                     }}
                   >
                     {productSkuDisplay}
                   </div>
 
-                  {!isSpecial && (
+                  {!isSpecial && !isRecurrent && (
                     <button
                       onClick={() => onOpenChecklistModal(task)}
                       title="Abrir checklist de imagens e descrição"
@@ -450,7 +553,7 @@ export default function TasksView({
                   )}
                 </div>
 
-                {!isSpecial && (
+                {!isSpecial && !isRecurrent && (
                   (() => {
                     const percentFotos = totalChecks > 0 ? Math.round((doneChecks / totalChecks) * 100) : 0;
                     return (
@@ -480,9 +583,21 @@ export default function TasksView({
                     );
                   })()
                 )}
+
+                {isRecurrent && totalChecks > 0 && (
+                  <div style={{
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#6b21a8',
+                    marginTop: '2px',
+                    textAlign: 'center'
+                  }}>
+                    {doneChecks}/{totalChecks} subtarefas
+                  </div>
+                )}
               </div>
 
-              {/* Se for Tarefa Especial, mostra o título e checklist */}
+              {/* Seção Central: Para Tarefa Especial OU Recorrente com subtarefas & plataformas */}
               {isSpecial ? (
                 <div style={{ flex: 1, padding: '0 8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{
@@ -571,6 +686,103 @@ export default function TasksView({
                         </span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              ) : isRecurrent ? (
+                /* Para Tarefas Recorrentes: Combinação de Subtarefas e Plataformas Atribuídas */
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                  {totalChecks > 0 && (
+                    <div style={{
+                      maxHeight: '74px',
+                      overflowY: (task.checklist?.length || 0) > 2 ? 'auto' : 'visible',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      minWidth: '180px',
+                      maxWidth: '260px'
+                    }}>
+                      {task.checklist?.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => onToggleChecklistItem(task.id, item.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '12px',
+                            color: item.completed ? '#059669' : '#334155',
+                            cursor: 'pointer',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: '#faf5ff',
+                            border: '1px solid #f3e8ff',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={item.completed}
+                            onChange={() => onToggleChecklistItem(task.id, item.id)}
+                            style={{
+                              cursor: 'pointer',
+                              accentColor: '#8b5cf6',
+                              width: '13px',
+                              height: '13px'
+                            }}
+                          />
+                          <span style={{ fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Plataformas atribuídas à tarefa recorrente */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap' }}>
+                    {taskPlatforms.map((plat) => {
+                      const channelKey = plat.id || plat.name;
+                      const channelState =
+                        task.marketplaces?.[plat.id] ||
+                        task.marketplaces?.[plat.name] ||
+                        task.marketplaces?.[plat.name.toLowerCase()] ||
+                        task.marketplaces?.[plat.name.replace(/\s+/g, '')] ||
+                        (plat.name.toLowerCase().includes('shopee') ? task.marketplaces?.shopee : null) ||
+                        (plat.name.toLowerCase().includes('mercado') ? task.marketplaces?.mercadoLivre : null) ||
+                        (plat.name.toLowerCase().includes('amazon') ? task.marketplaces?.amazon : null) ||
+                        (plat.name.toLowerCase().includes('magalu') ? task.marketplaces?.magalu : null) ||
+                        {};
+
+                      let defaultColor = plat.color;
+                      if (!defaultColor || defaultColor === '#5925dc') {
+                        const lower = plat.name.toLowerCase();
+                        if (lower.includes('shopee')) defaultColor = '#f97316';
+                        else if (lower.includes('mercado') || lower.includes('ml')) defaultColor = '#facc15';
+                        else if (lower.includes('amazon')) defaultColor = '#334155';
+                        else if (lower.includes('magalu')) defaultColor = '#38bdf8';
+                        else if (lower.includes('shein')) defaultColor = '#0f172a';
+                        else defaultColor = '#6366f1';
+                      }
+
+                      const isYellow = defaultColor === '#facc15' || plat.name.toLowerCase().includes('mercado');
+                      const textColor = isYellow ? '#1e293b' : '#ffffff';
+
+                      return (
+                        <div key={plat.id || plat.name} style={{ width: '132px', flexShrink: 0 }}>
+                          <MarketplaceCard
+                            name={plat.name}
+                            defaultColor={defaultColor}
+                            activeColor="#22c55e"
+                            textColor={textColor}
+                            channelState={channelState}
+                            onToggleU={() => onToggleMarketplace(task.id, channelKey, 'u')}
+                            onToggleO={() => onToggleMarketplace(task.id, channelKey, 'o')}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : (

@@ -603,7 +603,17 @@ function getTasksDataAsJson(sheetName) {
     const createdById = (idxCriadoPor !== -1 && r[idxCriadoPor]) ? String(r[idxCriadoPor]).trim() : String(r[4] || '').trim();
     const dueDate = formatDueDateToDdMm(idxPrazo !== -1 ? r[idxPrazo] : r[5]);
     const status = (idxStatus !== -1 && r[idxStatus]) ? String(r[idxStatus]).trim() : (sheetName === SHEETS.COMPLETED_TASKS ? 'completed' : 'in_progress');
-    const notes = (idxObs !== -1 && r[idxObs]) ? String(r[idxObs]) : '';
+    var notes = (idxObs !== -1 && r[idxObs]) ? String(r[idxObs]) : '';
+    var recurrenceData = null;
+    if (notes && notes.indexOf('__RECURRENCE__:') !== -1) {
+      try {
+        var recIndex = notes.indexOf('__RECURRENCE__:');
+        var jsonPart = notes.substring(recIndex + 15).trim();
+        recurrenceData = JSON.parse(jsonPart);
+        notes = notes.substring(0, recIndex).trim();
+      } catch (e) { }
+    }
+
     const timeField = (idxDataHora !== -1 && r[idxDataHora]) ? String(r[idxDataHora]) : '';
 
     // Usa o ID físico se existir; se não, formata o índice como 00001
@@ -620,6 +630,7 @@ function getTasksDataAsJson(sheetName) {
       createdById: createdById,
       dueDate: dueDate,
       status: status,
+      recurrence: recurrenceData,
       marketplaces: marketplaces,
       checklist: checklist,
       notes: notes,
@@ -683,6 +694,11 @@ function upsertTask(task) {
     finalId = getNextFormattedId([SHEETS.TASKS, SHEETS.COMPLETED_TASKS]);
   }
 
+  var finalNotes = task.notes || '';
+  if (task.recurrence && typeof task.recurrence === 'object') {
+    finalNotes = (finalNotes ? (finalNotes + '\n') : '') + '__RECURRENCE__:' + JSON.stringify(task.recurrence);
+  }
+
   const baseData = [
     task.type || 'product_catalog',
     task.sku || task.productId || task.title || '',
@@ -693,7 +709,7 @@ function upsertTask(task) {
     task.status || 'in_progress',
     JSON.stringify(task.marketplaces || {}),
     JSON.stringify(task.checklist || []),
-    task.notes || '',
+    finalNotes,
     new Date().toISOString()
   ];
 

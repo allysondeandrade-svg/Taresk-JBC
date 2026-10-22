@@ -392,6 +392,74 @@ export default function App() {
     setCelebratingTask(finishedTask);
 
     SheetsApi.finishTask(finishedTask);
+
+    // Se for Tarefa Recorrente, agenda automaticamente o próximo ciclo na lista de tarefas ativas
+    if (taskToFinish.type === 'recurrent') {
+      const freq = taskToFinish.recurrence?.frequency || 'semanal';
+      const nextDate = new Date();
+
+      if (freq === 'diaria') {
+        nextDate.setDate(nextDate.getDate() + 1);
+      } else if (freq === 'seg_sex') {
+        nextDate.setDate(nextDate.getDate() + 1);
+        // Se cair no sábado (6), pula para segunda (+2)
+        if (nextDate.getDay() === 6) nextDate.setDate(nextDate.getDate() + 2);
+        // Se cair no domingo (0), pula para segunda (+1)
+        else if (nextDate.getDay() === 0) nextDate.setDate(nextDate.getDate() + 1);
+      } else if (freq === 'quinzenal') {
+        nextDate.setDate(nextDate.getDate() + 15);
+      } else if (freq === 'mensal') {
+        nextDate.setMonth(nextDate.getMonth() + 1);
+      } else {
+        // semanal: adiciona 7 dias por padrão
+        nextDate.setDate(nextDate.getDate() + 7);
+      }
+
+      const formattedNextDue = `${String(nextDate.getDate()).padStart(2, '0')}/${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
+      const nextTaskId = 'task_' + Date.now();
+
+      // Clona subtarefas com status não concluído
+      const resetChecklist = Array.isArray(taskToFinish.checklist)
+        ? taskToFinish.checklist.map((item, idx) => ({
+            ...item,
+            id: `rec_${Date.now()}_${idx}`,
+            completed: false
+          }))
+        : [];
+
+      // Clona marketplaces com status pendente
+      const resetMarketplaces = {};
+      if (taskToFinish.marketplaces && typeof taskToFinish.marketplaces === 'object') {
+        Object.keys(taskToFinish.marketplaces).forEach(k => {
+          const orig = taskToFinish.marketplaces[k];
+          resetMarketplaces[k] = {
+            ...orig,
+            u: false,
+            o: false,
+            active: false,
+            status: 'pending'
+          };
+        });
+      }
+
+      const nextRecurrentTask = {
+        ...taskToFinish,
+        id: nextTaskId,
+        status: 'in_progress',
+        dueDate: formattedNextDue,
+        completedAt: null,
+        finishedTimestamp: null,
+        checklist: resetChecklist,
+        marketplaces: resetMarketplaces,
+        createdAt: new Date().toISOString()
+      };
+
+      localTaskUpdatesRef.current[nextTaskId] = Date.now();
+      setTimeout(() => {
+        setTasks(prev => [nextRecurrentTask, ...prev]);
+        SheetsApi.syncTask(nextRecurrentTask);
+      }, 500);
+    }
   };
 
   const handleUnfinishTask = (taskToReactivate) => {

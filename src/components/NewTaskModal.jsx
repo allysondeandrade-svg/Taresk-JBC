@@ -12,10 +12,14 @@ export default function NewTaskModal({
   onCreateTask,
   defaultChecklistItems
 }) {
-  const [taskType, setTaskType] = useState('product_catalog'); // 'product_catalog' ou 'special'
+  const [taskType, setTaskType] = useState('product_catalog'); // 'product_catalog', 'special' ou 'recurrent'
   const [selectedProductId, setSelectedProductId] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [specialTitle, setSpecialTitle] = useState('');
+  const [recurrentTitle, setRecurrentTitle] = useState('');
+  const [recurrenceFreq, setRecurrenceFreq] = useState('semanal'); // 'diaria', 'seg_sex', 'semanal', 'quinzenal', 'mensal'
+  const [selectedWeekdays, setSelectedWeekdays] = useState(['seg']); // ['seg', 'qua', 'sex'] etc
+  const [selectedPlatformIds, setSelectedPlatformIds] = useState([]); // IDs de plataformas escolhidas para a tarefa recorrente
   const [assignedTo, setAssignedTo] = useState(
     currentUser.role === 'premium_admin' ? (users[1]?.id || currentUser.id) : currentUser.id
   );
@@ -26,6 +30,13 @@ export default function NewTaskModal({
   });
   const [notes, setNotes] = useState('');
   const dateInputRef = useRef(null);
+
+  // Inicializa plataformas selecionadas quando abrir ou quando as plataformas carregarem
+  useEffect(() => {
+    if (platforms && platforms.length > 0 && selectedPlatformIds.length === 0) {
+      setSelectedPlatformIds(platforms.map(p => p.id || p.name));
+    }
+  }, [platforms, isOpen]);
 
   // Inicializa e atualiza selectedProductId quando a lista de produtos carrega ou o modal abre
   useEffect(() => {
@@ -45,7 +56,7 @@ export default function NewTaskModal({
     }
   };
 
-  // Subtarefas para tarefa especial (inicia vazia, o usuário adiciona se desejar)
+  // Subtarefas para tarefa especial ou recorrente
   const [subtasks, setSubtasks] = useState([]);
   const [newSubtaskInput, setNewSubtaskInput] = useState('');
 
@@ -62,6 +73,23 @@ export default function NewTaskModal({
     setSubtasks(subtasks.filter((_, i) => i !== index));
   };
 
+  const toggleWeekday = (dayKey) => {
+    if (selectedWeekdays.includes(dayKey)) {
+      if (selectedWeekdays.length === 1) return; // manter ao menos 1
+      setSelectedWeekdays(selectedWeekdays.filter(d => d !== dayKey));
+    } else {
+      setSelectedWeekdays([...selectedWeekdays, dayKey]);
+    }
+  };
+
+  const togglePlatform = (platKey) => {
+    if (selectedPlatformIds.includes(platKey)) {
+      setSelectedPlatformIds(selectedPlatformIds.filter(id => id !== platKey));
+    } else {
+      setSelectedPlatformIds([...selectedPlatformIds, platKey]);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -71,7 +99,69 @@ export default function NewTaskModal({
 
     const assignedUser = users.find(u => u.id === assignedTo) || currentUser;
 
-    if (taskType === 'special') {
+    if (taskType === 'recurrent') {
+      if (!recurrentTitle.trim()) {
+        alert('Por favor, informe o título ou descrição da Tarefa Recorrente.');
+        return;
+      }
+
+      // Constrói os marketplaces selecionados
+      const initialMarketplaces = {};
+      const allAvailPlats = (platforms && platforms.length > 0) ? platforms : [
+        { id: 'shopee', name: 'Shopee', color: '#f97316' },
+        { id: 'mercadoLivre', name: 'Mercado L', color: '#facc15' },
+        { id: 'amazon', name: 'Amazon', color: '#334155' },
+        { id: 'magalu', name: 'Magalu', color: '#38bdf8' }
+      ];
+
+      allAvailPlats.forEach(p => {
+        const key = p.id || p.name;
+        if (selectedPlatformIds.includes(key) || selectedPlatformIds.includes(p.name)) {
+          initialMarketplaces[key] = {
+            status: 'pending',
+            active: false,
+            u: false,
+            o: false,
+            name: p.name,
+            color: p.color
+          };
+        }
+      });
+
+      // Garante data no formato dd/mm
+      let formattedDue = dueDate.trim() || '25/10';
+      if (!/^\d{1,2}\/\d{1,2}$/.test(formattedDue)) {
+        const d = new Date(formattedDue);
+        if (!isNaN(d.getTime())) {
+          formattedDue = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+      }
+
+      onCreateTask({
+        id: 'task_' + Date.now(),
+        type: 'recurrent',
+        productId: null,
+        sku: recurrentTitle.trim(),
+        title: recurrentTitle.trim(),
+        assignedTo,
+        assignedByName: assignedUser?.name || currentUser.name,
+        createdById: currentUser.id,
+        dueDate: formattedDue,
+        status: 'in_progress',
+        recurrence: {
+          frequency: recurrenceFreq, // 'diaria', 'seg_sex', 'semanal', 'quinzenal', 'mensal'
+          weekdays: selectedWeekdays,
+          platforms: selectedPlatformIds
+        },
+        marketplaces: initialMarketplaces,
+        checklist: subtasks.map((st, i) => ({
+          id: `rec_${Date.now()}_${i}`,
+          label: st,
+          completed: false
+        })),
+        notes
+      });
+    } else if (taskType === 'special') {
       if (!specialTitle.trim()) {
         alert('Por favor, descreva a tarefa especial.');
         return;
@@ -157,6 +247,7 @@ export default function NewTaskModal({
     }
 
     setSpecialTitle('');
+    setRecurrentTitle('');
     setSubtasks([]);
     setNewSubtaskInput('');
     onClose();
@@ -226,49 +317,312 @@ export default function NewTaskModal({
           </button>
         </div>
 
-        {/* Seleção do Tipo de Tarefa: Cadastro de Produto vs Tarefa Especial (Página 5 do PDF) */}
+        {/* Seleção do Tipo de Tarefa: Cadastro de Produto vs Tarefa Especial vs Tarefa Recorrente */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '16px',
-          marginBottom: '28px'
+          gap: '12px',
+          marginBottom: '28px',
+          flexWrap: 'wrap'
         }}>
           <button
             type="button"
             onClick={() => setTaskType('product_catalog')}
             style={{
-              padding: '10px 24px',
+              padding: '10px 20px',
               borderRadius: '9999px',
-              fontSize: '17px',
+              fontSize: '15px',
               fontWeight: '800',
               color: taskType === 'product_catalog' ? '#5925dc' : '#475569',
               background: taskType === 'product_catalog' ? '#ecebfa' : 'transparent',
-              border: taskType === 'product_catalog' ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1'
+              border: taskType === 'product_catalog' ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
+              cursor: 'pointer'
             }}
           >
-            Cadastro de Produto
+            📦 Cadastro de Produto
           </button>
 
           <button
             type="button"
             onClick={() => setTaskType('special')}
             style={{
-              padding: '10px 24px',
+              padding: '10px 20px',
               borderRadius: '9999px',
-              fontSize: '17px',
+              fontSize: '15px',
               fontWeight: '800',
               color: taskType === 'special' ? '#5925dc' : '#475569',
               background: taskType === 'special' ? '#ecebfa' : 'transparent',
-              border: taskType === 'special' ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1'
+              border: taskType === 'special' ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
+              cursor: 'pointer'
             }}
           >
-            Tarefa Especial
+            ⭐ Tarefa Especial
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTaskType('recurrent')}
+            style={{
+              padding: '10px 20px',
+              borderRadius: '9999px',
+              fontSize: '15px',
+              fontWeight: '800',
+              color: taskType === 'recurrent' ? '#5925dc' : '#475569',
+              background: taskType === 'recurrent' ? '#ecebfa' : 'transparent',
+              border: taskType === 'recurrent' ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
+              cursor: 'pointer'
+            }}
+          >
+            🔄 Tarefa Recorrente
           </button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Se for Cadastro de Produto: Campo com ícone de lupa "Digite o Produto" (Página 5) */}
-          {taskType === 'product_catalog' ? (
+          {/* Se for Tarefa Recorrente */}
+          {taskType === 'recurrent' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
+                  Descreva a Tarefa Recorrente *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Atualizar Promoções e Estoque nos Marketplaces"
+                  value={recurrentTitle}
+                  onChange={(e) => setRecurrentTitle(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '14px 20px',
+                    borderRadius: '9999px',
+                    border: '2px solid #5925dc',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    color: '#1e293b'
+                  }}
+                />
+              </div>
+
+              {/* Seletor de Frequência de Recorrência */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '16px',
+                padding: '16px'
+              }}>
+                <label style={{ fontSize: '13px', fontWeight: '800', color: '#5925dc', display: 'block', marginBottom: '10px' }}>
+                  Frequência de Recorrência:
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  {[
+                    { key: 'diaria', label: 'Diária' },
+                    { key: 'seg_sex', label: 'Segunda a Sexta' },
+                    { key: 'semanal', label: 'Semanal' },
+                    { key: 'quinzenal', label: 'A cada 15 dias' },
+                    { key: 'mensal', label: 'Mensal' }
+                  ].map(f => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setRecurrenceFreq(f.key)}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '9999px',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        border: recurrenceFreq === f.key ? '1.5px solid #5925dc' : '1px solid #cbd5e1',
+                        background: recurrenceFreq === f.key ? '#ede9fe' : '#ffffff',
+                        color: recurrenceFreq === f.key ? '#5925dc' : '#475569',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Se a frequência for semanal, permite selecionar os dias da semana */}
+                {recurrenceFreq === 'semanal' && (
+                  <div>
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '8px' }}>
+                      Escolha os dias da semana em que esta tarefa se repete:
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {[
+                        { key: 'seg', label: 'Seg' },
+                        { key: 'ter', label: 'Ter' },
+                        { key: 'qua', label: 'Qua' },
+                        { key: 'qui', label: 'Qui' },
+                        { key: 'sex', label: 'Sex' },
+                        { key: 'sab', label: 'Sáb' },
+                        { key: 'dom', label: 'Dom' }
+                      ].map(d => {
+                        const isSelected = selectedWeekdays.includes(d.key);
+                        return (
+                          <button
+                            key={d.key}
+                            type="button"
+                            onClick={() => toggleWeekday(d.key)}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              border: isSelected ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
+                              background: isSelected ? '#7c3aed' : '#ffffff',
+                              color: isSelected ? '#ffffff' : '#475569',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {d.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Atribuição de Plataformas / Marketplaces */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '16px',
+                padding: '16px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
+                    Plataformas / Marketplaces Participantes:
+                  </label>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    Selecione quais canais fazem parte desta rotina
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {(platforms && platforms.length > 0 ? platforms : [
+                    { id: 'shopee', name: 'Shopee', color: '#f97316' },
+                    { id: 'mercadoLivre', name: 'Mercado L', color: '#facc15' },
+                    { id: 'amazon', name: 'Amazon', color: '#334155' },
+                    { id: 'magalu', name: 'Magalu', color: '#38bdf8' }
+                  ]).map(p => {
+                    const key = p.id || p.name;
+                    const isSelected = selectedPlatformIds.includes(key) || selectedPlatformIds.includes(p.name);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => togglePlatform(key)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '7px 14px',
+                          borderRadius: '9999px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          border: isSelected ? `2px solid ${p.color || '#5925dc'}` : '1px solid #cbd5e1',
+                          background: isSelected ? '#ffffff' : '#f1f5f9',
+                          color: isSelected ? '#0f172a' : '#94a3b8',
+                          cursor: 'pointer',
+                          boxShadow: isSelected ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
+                        }}
+                      >
+                        <span style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: isSelected ? (p.color || '#5925dc') : '#cbd5e1'
+                        }} />
+                        {p.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Subtarefas / Checklist para Tarefa Recorrente */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1.5px dashed #cbd5e1',
+                borderRadius: '16px',
+                padding: '16px'
+              }}>
+                <div style={{
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  color: '#5925dc',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <CheckSquare size={16} /> Subtarefas da Rotina (Opcional)
+                </div>
+
+                {subtasks.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    {subtasks.map((st, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          background: '#ffffff',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0'
+                        }}
+                      >
+                        <span style={{ fontSize: '14px', color: '#1e293b' }}>
+                          {idx + 1}. {st}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSubtask(idx)}
+                          style={{ color: '#ef4444', fontSize: '12px', fontWeight: '600' }}
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Adicionar subtarefa (ex: Conferir preços, Pausar esgotados)..."
+                    value={newSubtaskInput}
+                    onChange={(e) => setNewSubtaskInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSubtask(); } }}
+                    style={{
+                      flex: 1,
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddSubtask}
+                    style={{
+                      background: '#5925dc',
+                      color: '#fff',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '700'
+                    }}
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : taskType === 'product_catalog' ? (
             <div>
               <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
                 Selecione o Produto para Cadastrar nos Marketplaces *
