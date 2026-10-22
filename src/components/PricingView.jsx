@@ -15,7 +15,6 @@ function formatCurrency(val) {
   const num = typeof val === 'number' ? val : parseFloat(val) || 0;
   return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
 export default function PricingView({ products }) {
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || '');
   const [productSearch, setProductSearch] = useState('');
@@ -26,6 +25,22 @@ export default function PricingView({ products }) {
     mercadoLivre: 0,
     amazon: 0,
     magalu: 0
+  });
+
+  // Tarifas % personalizadas (se null, usa a regra automática do canal)
+  const [customRates, setCustomRates] = useState({
+    shopee: null,
+    mercadoLivre: null,
+    amazon: null,
+    magalu: null
+  });
+
+  // Frete ou Tarifa Fixa personalizada (se null, usa a tabela oficial automática)
+  const [customFreights, setCustomFreights] = useState({
+    shopee: null, // Tarifa fixa Shopee
+    mercadoLivre: null, // Frete Mercado Livre
+    amazon: null, // Frete Amazon DBA
+    magalu: null // Frete Magalu Luiza Envios
   });
 
   // Tipo de anúncio no Mercado Livre: 'classico' ou 'premium'
@@ -46,12 +61,12 @@ export default function PricingView({ products }) {
     if (!selectedProduct || !selectedProduct.cost) return;
 
     const cost = parseFloat(selectedProduct.cost) || 0;
-    const mlRate = mlListingType === 'classico' ? 12.0 : 16.5;
+    const mlRate = customRates.mercadoLivre !== null ? customRates.mercadoLivre : (mlListingType === 'classico' ? 12.0 : 16.5);
 
-    const shopee15 = findPriceForTargetMargin((p, c) => calculateShopee(p, c), cost, selectedProduct, null, 15.0);
-    const ml15 = findPriceForTargetMargin((p, c, prod, rate) => calculateMercadoLivre(p, c, prod, rate), cost, selectedProduct, mlRate, 15.0);
-    const amazon15 = findPriceForTargetMargin((p, c, prod) => calculateAmazon(p, c, prod), cost, selectedProduct, null, 15.0);
-    const magalu15 = findPriceForTargetMargin((p, c, prod) => calculateMagalu(p, c, prod), cost, selectedProduct, null, 15.0);
+    const shopee15 = findPriceForTargetMargin((p, c) => calculateShopee(p, c, customRates.shopee, customFreights.shopee), cost, selectedProduct, null, 15.0);
+    const ml15 = findPriceForTargetMargin((p, c, prod, rate) => calculateMercadoLivre(p, c, prod, rate, customFreights.mercadoLivre), cost, selectedProduct, mlRate, 15.0);
+    const amazon15 = findPriceForTargetMargin((p, c, prod, rate) => calculateAmazon(p, c, prod, rate, customFreights.amazon), cost, selectedProduct, customRates.amazon || 15.0, 15.0);
+    const magalu15 = findPriceForTargetMargin((p, c, prod, rate) => calculateMagalu(p, c, prod, rate, customFreights.magalu), cost, selectedProduct, customRates.magalu || 16.0, 15.0);
 
     setChannelPrices({
       shopee: shopee15,
@@ -59,11 +74,10 @@ export default function PricingView({ products }) {
       amazon: amazon15,
       magalu: magalu15
     });
-  }, [selectedProductId, selectedProduct.cost, mlListingType]);
+  }, [selectedProductId, selectedProduct.cost, mlListingType, customRates, customFreights]);
 
   // Ao digitar, trata como centavos: digitar 1000 => 10,00
   const handlePriceRawInput = (channelKey, rawString) => {
-    // Remove tudo que não for dígito
     const cleanDigits = rawString.replace(/\D/g, '');
     const cents = parseInt(cleanDigits, 10);
     const newPrice = isNaN(cents) ? 0 : cents / 100;
@@ -74,6 +88,41 @@ export default function PricingView({ products }) {
     }));
   };
 
+  // Altera a tarifa % do canal
+  const handleRateRawInput = (channelKey, rawString) => {
+    if (rawString === '') {
+      setCustomRates(prev => ({ ...prev, [channelKey]: null }));
+      return;
+    }
+    const clean = rawString.replace(',', '.').replace(/[^0-9.]/g, '');
+    const val = parseFloat(clean);
+    setCustomRates(prev => ({
+      ...prev,
+      [channelKey]: isNaN(val) ? null : val
+    }));
+  };
+
+  // Altera o frete / taxa fixa do canal
+  const handleFreightRawInput = (channelKey, rawString) => {
+    if (rawString === '') {
+      setCustomFreights(prev => ({ ...prev, [channelKey]: null }));
+      return;
+    }
+    const cleanDigits = rawString.replace(/\D/g, '');
+    const cents = parseInt(cleanDigits, 10);
+    const val = isNaN(cents) ? null : cents / 100;
+    setCustomFreights(prev => ({
+      ...prev,
+      [channelKey]: val
+    }));
+  };
+
+  // Reseta um canal para as tarifas/fretes automáticos oficiais
+  const handleResetChannel = (channelKey) => {
+    setCustomRates(prev => ({ ...prev, [channelKey]: null }));
+    setCustomFreights(prev => ({ ...prev, [channelKey]: null }));
+  };
+
   // Cálculos automáticos com base no produto, dimensões e peso
   const realWeight = parseFloat(selectedProduct.weight) || 0;
   const cubicWeight = (selectedProduct.width && selectedProduct.length && selectedProduct.height)
@@ -81,13 +130,13 @@ export default function PricingView({ products }) {
     : 0;
   const consideredWeight = Math.max(realWeight, cubicWeight, 0.1);
 
-  // Alíquota ML: Clássico (11.5% a 12%) ou Premium (16.5%)
-  const mlRate = mlListingType === 'classico' ? 12.0 : 16.5;
+  // Alíquota ML padrão
+  const mlRate = customRates.mercadoLivre !== null ? customRates.mercadoLivre : (mlListingType === 'classico' ? 12.0 : 16.5);
 
-  const shopeeCalc = calculateShopee(channelPrices.shopee, selectedProduct.cost);
-  const mlCalc = calculateMercadoLivre(channelPrices.mercadoLivre, selectedProduct.cost, selectedProduct, mlRate);
-  const amazonCalc = calculateAmazon(channelPrices.amazon, selectedProduct.cost, selectedProduct);
-  const magaluCalc = calculateMagalu(channelPrices.magalu, selectedProduct.cost, selectedProduct);
+  const shopeeCalc = calculateShopee(channelPrices.shopee, selectedProduct.cost, customRates.shopee, customFreights.shopee);
+  const mlCalc = calculateMercadoLivre(channelPrices.mercadoLivre, selectedProduct.cost, selectedProduct, mlRate, customFreights.mercadoLivre);
+  const amazonCalc = calculateAmazon(channelPrices.amazon, selectedProduct.cost, selectedProduct, customRates.amazon || 15.0, customFreights.amazon);
+  const magaluCalc = calculateMagalu(channelPrices.magalu, selectedProduct.cost, selectedProduct, customRates.magalu || 16.0, customFreights.magalu);
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px' }}>
@@ -180,7 +229,7 @@ export default function PricingView({ products }) {
           </div>
           <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
           <div>
-            <span style={{ fontSize: '11px', color: '#000000', opacity: 0.75, display: 'block' }}>Peso Real</span>
+            <span style={{ fontSize: '11px', color: '#000000', opacity: 0.75, display: 'block' }}>Peso Balança</span>
             <span style={{ fontSize: '13px', fontWeight: '700', color: '#000000' }}>
               {realWeight.toFixed(2)} kg
             </span>
@@ -226,6 +275,11 @@ export default function PricingView({ products }) {
           channelKey="shopee"
           isShopeeStyle={true}
           onPriceRawInput={handlePriceRawInput}
+          customRate={customRates.shopee}
+          customFreight={customFreights.shopee}
+          onRateRawInput={handleRateRawInput}
+          onFreightRawInput={handleFreightRawInput}
+          onResetChannel={handleResetChannel}
         />
 
         {/* CARD 2: MERCADO LIVRE (Escreve totalmente Mercado Livre e seletor Clássico/Premium) */}
@@ -240,6 +294,11 @@ export default function PricingView({ products }) {
           hasListingSelector={true}
           mlListingType={mlListingType}
           onToggleListingType={setMlListingType}
+          customRate={customRates.mercadoLivre}
+          customFreight={customFreights.mercadoLivre}
+          onRateRawInput={handleRateRawInput}
+          onFreightRawInput={handleFreightRawInput}
+          onResetChannel={handleResetChannel}
         />
 
         {/* CARD 3: AMAZON */}
@@ -251,6 +310,11 @@ export default function PricingView({ products }) {
           calc={amazonCalc}
           channelKey="amazon"
           onPriceRawInput={handlePriceRawInput}
+          customRate={customRates.amazon}
+          customFreight={customFreights.amazon}
+          onRateRawInput={handleRateRawInput}
+          onFreightRawInput={handleFreightRawInput}
+          onResetChannel={handleResetChannel}
         />
 
         {/* CARD 4: MAGALU */}
@@ -262,6 +326,11 @@ export default function PricingView({ products }) {
           calc={magaluCalc}
           channelKey="magalu"
           onPriceRawInput={handlePriceRawInput}
+          customRate={customRates.magalu}
+          customFreight={customFreights.magalu}
+          onRateRawInput={handleRateRawInput}
+          onFreightRawInput={handleFreightRawInput}
+          onResetChannel={handleResetChannel}
         />
       </div>
     </div>
@@ -279,8 +348,15 @@ function PricingCard({
   onPriceRawInput,
   hasListingSelector = false,
   mlListingType = 'premium',
-  onToggleListingType
+  onToggleListingType,
+  customRate = null,
+  customFreight = null,
+  onRateRawInput,
+  onFreightRawInput,
+  onResetChannel
 }) {
+  const hasCustomValues = customRate !== null || customFreight !== null;
+
   return (
     <div style={{
       background: '#ffffff',
@@ -306,7 +382,8 @@ function PricingCard({
           justifyContent: 'center',
           borderBottom: '1px solid rgba(0,0,0,0.06)',
           background: brandBg,
-          color: brandTextColor
+          color: brandTextColor,
+          position: 'relative'
         }}>
           <h3 style={{
             fontSize: '26px',
@@ -376,6 +453,31 @@ function PricingCard({
               {subtitle}
             </span>
           )}
+
+          {/* Botão de Restaurar Padrão do canal se houver valores editados */}
+          {hasCustomValues && (
+            <button
+              type="button"
+              onClick={() => onResetChannel(channelKey)}
+              title="Restaurar tarifas e fretes automáticos deste canal"
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                background: 'rgba(255,255,255,0.9)',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '4px 8px',
+                fontSize: '10px',
+                fontWeight: '800',
+                color: '#0f172a',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              Restaurar
+            </button>
+          )}
         </div>
 
         {/* Linhas de métricas perfeitamente alinhadas */}
@@ -428,44 +530,99 @@ function PricingCard({
             </div>
           </div>
 
-          {/* Tarifa % */}
+          {/* Tarifa % (Agora editável com indicação visual) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '110px 1fr',
             alignItems: 'center',
-            minHeight: '30px'
+            minHeight: '36px'
           }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#000000' }}>Tarifa %</span>
-            <span style={{
-              fontSize: '15px',
-              fontWeight: '800',
-              textAlign: 'right',
-              color: '#000000',
-              fontVariantNumeric: 'tabular-nums'
-            }}>
-              {calc.feeRate.toFixed(1).replace('.', ',')} %
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#000000' }}>Tarifa %</span>
+              {customRate !== null && (
+                <span style={{ fontSize: '10px', fontWeight: '700', color: '#7c3aed' }}>Personalizada</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={customRate !== null ? String(customRate).replace('.', ',') : calc.feeRate.toFixed(1).replace('.', ',')}
+                onChange={(e) => onRateRawInput(channelKey, e.target.value)}
+                placeholder={calc.feeRate.toFixed(1).replace('.', ',')}
+                title="Clique para alterar a alíquota de comissão % deste canal"
+                style={{
+                  width: '84px',
+                  padding: '5px 8px',
+                  borderRadius: '8px',
+                  border: customRate !== null ? '2px solid #8b5cf6' : '1.5px solid #cbd5e1',
+                  background: customRate !== null ? '#faf5ff' : '#f8fafc',
+                  fontWeight: '800',
+                  fontSize: '14px',
+                  textAlign: 'right',
+                  color: customRate !== null ? '#6b21a8' : '#000000',
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#8b5cf6';
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.select();
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = customRate !== null ? '#8b5cf6' : '#cbd5e1';
+                  e.currentTarget.style.background = customRate !== null ? '#faf5ff' : '#f8fafc';
+                }}
+              />
+              <span style={{ fontSize: '14px', fontWeight: '800', color: '#000000' }}>%</span>
+            </div>
           </div>
 
-          {/* Tarifa Fixa ou Frete */}
+          {/* Tarifa Fixa ou Frete (Agora editável com indicação visual) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '110px 1fr',
             alignItems: 'center',
-            minHeight: '30px'
+            minHeight: '36px'
           }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#000000' }}>
-              {isShopeeStyle ? 'Tarifa Fixa' : 'Frete'}
-            </span>
-            <span style={{
-              fontSize: '15px',
-              fontWeight: '800',
-              textAlign: 'right',
-              color: '#000000',
-              fontVariantNumeric: 'tabular-nums'
-            }}>
-              R$ {(isShopeeStyle ? calc.fixedFee : calc.frete).toFixed(2).replace('.', ',')}
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#000000' }}>
+                {isShopeeStyle ? 'Tarifa Fixa' : 'Frete'}
+              </span>
+              {customFreight !== null && (
+                <span style={{ fontSize: '10px', fontWeight: '700', color: '#7c3aed' }}>Personalizado</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '800', color: '#000000' }}>R$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={formatCurrency(isShopeeStyle ? (customFreight !== null ? customFreight : calc.fixedFee) : (customFreight !== null ? customFreight : calc.frete))}
+                onChange={(e) => onFreightRawInput(channelKey, e.target.value)}
+                title={isShopeeStyle ? "Clique para alterar a Tarifa Fixa (ex: 450 vira 4,50)" : "Clique para alterar o Frete (ex: 2290 vira 22,90)"}
+                style={{
+                  width: '100px',
+                  padding: '5px 8px',
+                  borderRadius: '8px',
+                  border: customFreight !== null ? '2px solid #8b5cf6' : '1.5px solid #cbd5e1',
+                  background: customFreight !== null ? '#faf5ff' : '#f8fafc',
+                  fontWeight: '800',
+                  fontSize: '14px',
+                  textAlign: 'right',
+                  color: customFreight !== null ? '#6b21a8' : '#000000',
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#8b5cf6';
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.select();
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = customFreight !== null ? '#8b5cf6' : '#cbd5e1';
+                  e.currentTarget.style.background = customFreight !== null ? '#faf5ff' : '#f8fafc';
+                }}
+              />
+            </div>
           </div>
 
           {/* Divisor sutil */}

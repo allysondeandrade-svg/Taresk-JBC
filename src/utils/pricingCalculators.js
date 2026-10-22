@@ -26,15 +26,15 @@ export function getConsideredWeight(product) {
 // Acima de R$ 100 até R$ 199,99: 14% + R$ 20,00
 // Acima de R$ 200 até R$ 499,99: 14% + R$ 26,00
 // Acima de R$ 500: 14% + R$ 26,00
-export function calculateShopee(price, productCost) {
+export function calculateShopee(price, productCost, customRate = null, customFixedFee = null) {
   const p = parseFloat(price) || 0;
   if (p <= 0) {
     const custo = parseFloat(productCost) || 0;
     return {
       price: 0,
-      feeRate: 20.0,
+      feeRate: customRate !== null && !isNaN(customRate) ? parseFloat(customRate) : 20.0,
       tarifaValor: 0,
-      fixedFee: 0,
+      fixedFee: customFixedFee !== null && !isNaN(customFixedFee) ? parseFloat(customFixedFee) : 0,
       frete: 0,
       recebido: 0,
       custo,
@@ -61,6 +61,14 @@ export function calculateShopee(price, productCost) {
     // Acima de 200 (incluindo acima de 500)
     feeRate = 14.0;
     fixedFee = 26.00;
+  }
+
+  // Sobrescreve com valores personalizados se informados
+  if (customRate !== null && !isNaN(customRate)) {
+    feeRate = parseFloat(customRate);
+  }
+  if (customFixedFee !== null && !isNaN(customFixedFee)) {
+    fixedFee = parseFloat(customFixedFee);
   }
 
   const tarifaValor = p * (feeRate / 100);
@@ -156,7 +164,7 @@ export function getMLFreight(price, weight) {
   return frete;
 }
 
-export function calculateMercadoLivre(price, productCost, product, customRate = 16.5) {
+export function calculateMercadoLivre(price, productCost, product, customRate = 16.5, customFreight = null) {
   const p = parseFloat(price) || 0;
   const weight = getConsideredWeight(product);
   const feeRate = parseFloat(customRate) || 16.5;
@@ -168,7 +176,7 @@ export function calculateMercadoLivre(price, productCost, product, customRate = 
       feeRate,
       tarifaValor: 0,
       fixedFee: 0,
-      frete: 0,
+      frete: customFreight !== null && !isNaN(customFreight) ? parseFloat(customFreight) : 0,
       recebido: 0,
       custo,
       lucroBruto: 0,
@@ -179,7 +187,9 @@ export function calculateMercadoLivre(price, productCost, product, customRate = 
     };
   }
 
-  const frete = getMLFreight(p, weight);
+  const frete = (customFreight !== null && !isNaN(customFreight))
+    ? parseFloat(customFreight)
+    : getMLFreight(p, weight);
   const tarifaValor = p * (feeRate / 100);
   const deducaoCanal = tarifaValor + frete;
   const recebido = Math.max(0, p - deducaoCanal);
@@ -275,7 +285,7 @@ export function getAmazonFreight(price, weight) {
   }
 }
 
-export function calculateAmazon(price, productCost, product, customRate = 15.0) {
+export function calculateAmazon(price, productCost, product, customRate = 15.0, customFreight = null) {
   const p = parseFloat(price) || 0;
   const weight = getConsideredWeight(product);
   const feeRate = parseFloat(customRate) || 15.0;
@@ -287,7 +297,7 @@ export function calculateAmazon(price, productCost, product, customRate = 15.0) 
       feeRate,
       tarifaValor: 0,
       fixedFee: 0,
-      frete: 0,
+      frete: customFreight !== null && !isNaN(customFreight) ? parseFloat(customFreight) : 0,
       recebido: 0,
       custo,
       lucroBruto: 0,
@@ -298,7 +308,9 @@ export function calculateAmazon(price, productCost, product, customRate = 15.0) 
     };
   }
 
-  const frete = getAmazonFreight(p, weight);
+  const frete = (customFreight !== null && !isNaN(customFreight))
+    ? parseFloat(customFreight)
+    : getAmazonFreight(p, weight);
   const tarifaValor = p * (feeRate / 100);
   const deducaoCanal = tarifaValor + frete;
   const recebido = Math.max(0, p - deducaoCanal);
@@ -379,7 +391,7 @@ export function getMagaluFreight(price, weight) {
   }
 }
 
-export function calculateMagalu(price, productCost, product, customRate = 16.0) {
+export function calculateMagalu(price, productCost, product, customRate = 16.0, customFreight = null) {
   const p = parseFloat(price) || 0;
   const weight = getConsideredWeight(product);
   const feeRate = parseFloat(customRate) || 16.0;
@@ -391,7 +403,7 @@ export function calculateMagalu(price, productCost, product, customRate = 16.0) 
       feeRate,
       tarifaValor: 0,
       fixedFee: 0,
-      frete: 0,
+      frete: customFreight !== null && !isNaN(customFreight) ? parseFloat(customFreight) : 0,
       recebido: 0,
       custo,
       lucroBruto: 0,
@@ -402,7 +414,9 @@ export function calculateMagalu(price, productCost, product, customRate = 16.0) 
     };
   }
 
-  const frete = getMagaluFreight(p, weight);
+  const frete = (customFreight !== null && !isNaN(customFreight))
+    ? parseFloat(customFreight)
+    : getMagaluFreight(p, weight);
   const tarifaValor = p * (feeRate / 100);
   const deducaoCanal = tarifaValor + frete;
   const recebido = Math.max(0, p - deducaoCanal);
