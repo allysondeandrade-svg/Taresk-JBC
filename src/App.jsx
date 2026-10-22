@@ -88,6 +88,16 @@ export default function App() {
     return saved ? JSON.parse(saved) : DEFAULT_CHECKLIST_ITEMS;
   });
 
+  // Modelos de Checklist sincronizados com a planilha
+  const [checklistTemplates, setChecklistTemplates] = useState(() => {
+    try {
+      const saved = localStorage.getItem('taresk_checklist_templates');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
   // Aba ativa: 'tarefas', 'cadastro', 'precificadora', 'relatorio', 'tarefas_concluidas'
   const [activeTab, setActiveTab] = useState('tarefas');
 
@@ -121,6 +131,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('taresk_default_checklist', JSON.stringify(defaultChecklist));
   }, [defaultChecklist]);
+
+  useEffect(() => {
+    localStorage.setItem('taresk_checklist_templates', JSON.stringify(checklistTemplates));
+  }, [checklistTemplates]);
 
   // Rastreia timestamps das tarefas modificadas localmente recentemente para o polling não sobrescrever com dados antigos do Sheets
   const localTaskUpdatesRef = useRef({});
@@ -190,6 +204,9 @@ export default function App() {
         }
         if (Array.isArray(data.users) && data.users.length > 0) setUsers(data.users);
         if (Array.isArray(data.platforms) && data.platforms.length > 0) setPlatforms(data.platforms);
+        if (Array.isArray(data.checklistTemplates) && data.checklistTemplates.length > 0) {
+          setChecklistTemplates(data.checklistTemplates);
+        }
         setLastSyncTime(new Date());
       }
     } catch (e) {
@@ -353,6 +370,19 @@ export default function App() {
       }
       return t;
     }));
+  };
+
+  const handleSaveChecklistTemplate = (newTemplate) => {
+    setChecklistTemplates(prev => {
+      const filtered = prev.filter(tmpl => tmpl.name.toLowerCase() !== newTemplate.name.toLowerCase());
+      return [...filtered, newTemplate];
+    });
+    SheetsApi.saveChecklistTemplate(newTemplate);
+  };
+
+  const handleDeleteChecklistTemplate = (templateId) => {
+    setChecklistTemplates(prev => prev.filter(t => t.id !== templateId));
+    SheetsApi.deleteChecklistTemplate(templateId);
   };
 
   const handleReassignTask = (taskId, newAssigneeId) => {
@@ -718,6 +748,9 @@ export default function App() {
         onToggleChecklistItem={handleToggleChecklistItem}
         onAddChecklistItem={handleAddChecklistItem}
         onUpdateTaskChecklist={handleUpdateTaskChecklist}
+        templates={checklistTemplates}
+        onSaveTemplate={handleSaveChecklistTemplate}
+        onDeleteTemplate={handleDeleteChecklistTemplate}
       />
 
       <DopamineCelebrationModal

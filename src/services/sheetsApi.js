@@ -351,5 +351,55 @@ export const SheetsApi = {
       console.error('Erro na sincronização em lote com Sheets:', err);
       return false;
     }
+  },
+
+  /**
+   * Salva um Modelo de Checklist na planilha Google
+   */
+  async saveChecklistTemplate(template) {
+    const url = this.getUrl();
+    if (!url) return false;
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'saveChecklistTemplate',
+          data: template
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error('Erro ao salvar modelo de checklist no Sheets:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Exclui um Modelo de Checklist da planilha Google
+   */
+  async deleteChecklistTemplate(templateOrId) {
+    const url = this.getUrl();
+    if (!url) return false;
+
+    const payload = typeof templateOrId === 'object'
+      ? templateOrId
+      : { id: templateOrId };
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'deleteChecklistTemplate',
+          data: payload
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error('Erro ao excluir modelo de checklist no Sheets:', err);
+      return false;
+    }
   }
 };

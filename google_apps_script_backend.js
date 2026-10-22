@@ -32,7 +32,8 @@ const SHEETS = {
   PLATFORMS: 'Plataformas',
   TASKS: 'Tarefas',
   COMPLETED_TASKS: 'Tarefas_Finalizadas',
-  PRICING: 'Precificadora'
+  PRICING: 'Precificadora',
+  CHECKLIST_TEMPLATES: 'Modelos_Checklist'
 };
 
 /**
@@ -158,6 +159,29 @@ function setupSheets() {
     styleHeader(pricingSheet);
   }
 
+  // 7. Aba Modelos de Checklist: [ID, Nome, Itens_JSON, AtualizadoEm]
+  let tmplSheet = ss.getSheetByName(SHEETS.CHECKLIST_TEMPLATES);
+  if (!tmplSheet) {
+    tmplSheet = ss.insertSheet(SHEETS.CHECKLIST_TEMPLATES);
+    tmplSheet.appendRow(['ID', 'Nome', 'Itens_JSON', 'AtualizadoEm']);
+    tmplSheet.appendRow([
+      '00001',
+      'Padrão Anúncio Completo',
+      JSON.stringify([
+        'Foto de Capa Ambientada 1 IA Pura',
+        'Foto de Capa Ambientada 2 IA Realista',
+        'Descrição 1',
+        'Foto Ambientada outro Contexto',
+        'Sem Fundo Crua',
+        'Medidas'
+      ]),
+      new Date().toISOString()
+    ]);
+    styleHeader(tmplSheet);
+  } else {
+    ensureIdColumn(tmplSheet, 'ID');
+  }
+
   Logger.log('Todas as abas do Taresk foram configuradas com suporte a ID (00001, 00002...)!');
 }
 
@@ -255,7 +279,8 @@ function doGet(e) {
         platforms: getPlatformsDataAsJson(),
         tasks: getTasksDataAsJson(SHEETS.TASKS),
         completedTasks: getTasksDataAsJson(SHEETS.COMPLETED_TASKS),
-        pricing: getSheetDataAsJson(SHEETS.PRICING)
+        pricing: getSheetDataAsJson(SHEETS.PRICING),
+        checklistTemplates: getChecklistTemplatesDataAsJson()
       };
     } else if (action === 'getTasks') {
       responseData = getTasksDataAsJson(SHEETS.TASKS);
@@ -267,6 +292,8 @@ function doGet(e) {
       responseData = getPlatformsDataAsJson();
     } else if (action === 'getUsers') {
       responseData = getUsersDataAsJson();
+    } else if (action === 'getChecklistTemplates') {
+      responseData = getChecklistTemplatesDataAsJson();
     } else {
       responseData = { error: 'Ação não reconhecida: ' + action };
     }
@@ -345,6 +372,14 @@ function doPost(e) {
 
       case 'deleteCompletedTask':
         result = deleteTaskRecord(SHEETS.COMPLETED_TASKS, data);
+        break;
+
+      case 'saveChecklistTemplate':
+        result = upsertChecklistTemplate(data);
+        break;
+
+      case 'deleteChecklistTemplate':
+        result = deleteChecklistTemplateRecord(data);
         break;
 
       default:
@@ -1227,6 +1262,153 @@ function deleteTaskRecord(sheetName, taskOrData) {
         sheet.deleteRow(i + 1);
         return { deleted: true, matchedBy: 'title' };
       }
+    }
+  }
+
+  return { deleted: false };
+}
+
+/**
+ * Lê os Modelos de Checklist da aba Modelos_Checklist
+ */
+function getChecklistTemplatesDataAsJson() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.CHECKLIST_TEMPLATES);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.CHECKLIST_TEMPLATES);
+    sheet.appendRow(['ID', 'Nome', 'Itens_JSON', 'AtualizadoEm']);
+    styleHeader(sheet);
+    return [];
+  }
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const idxName = headers.findIndex(h => h.includes('nome') || h.includes('modelo'));
+  const idxItems = headers.findIndex(h => h.includes('itens') || h.includes('checklist'));
+
+  const templates = [];
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const name = String(row[idxName !== -1 ? idxName : 1] || '').trim();
+    if (!name) continue;
+
+    const id = idxId !== -1 && row[idxId] ? String(row[idxId]).trim() : formatToFiveDigits(i);
+    let items = [];
+    const rawItems = row[idxItems !== -1 ? idxItems : 2];
+    if (typeof rawItems === 'string' && rawItems.trim().startsWith('[')) {
+      try {
+        items = JSON.parse(rawItems);
+      } catch (e) {
+        items = [];
+      }
+    } else if (Array.isArray(rawItems)) {
+      items = rawItems;
+    }
+
+    templates.push({
+      id: id,
+      name: name,
+      items: Array.isArray(items) ? items : []
+    });
+  }
+
+  return templates;
+}
+
+/**
+ * Salva ou Atualiza um Modelo de Checklist na planilha (sem coluna CriadoPor)
+ */
+function upsertChecklistTemplate(templateData) {
+  if (!templateData || !templateData.name) {
+    return { error: 'Nome do modelo é obrigatório.' };
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.CHECKLIST_TEMPLATES);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.CHECKLIST_TEMPLATES);
+    sheet.appendRow(['ID', 'Nome', 'Itens_JSON', 'AtualizadoEm']);
+    styleHeader(sheet);
+  }
+
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const idxName = headers.findIndex(h => h.includes('nome') || h.includes('modelo'));
+  const idxItems = headers.findIndex(h => h.includes('itens') || h.includes('checklist'));
+  const idxUpdated = headers.findIndex(h => h.includes('atualizado') || h.includes('data'));
+
+  const nameToMatch = String(templateData.name || '').trim().toLowerCase();
+  const idToMatch = templateData.id ? String(templateData.id).trim() : '';
+  const itemsJson = JSON.stringify(Array.isArray(templateData.items) ? templateData.items : []);
+  const nowStr = new Date().toISOString();
+
+  // Verifica se o modelo já existe (por ID ou por Nome)
+  for (let i = 1; i < values.length; i++) {
+    const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';
+    const rowName = idxName !== -1 ? String(values[i][idxName] || '').trim().toLowerCase() : '';
+
+    const isMatch = (idToMatch && (rowId === idToMatch || formatToFiveDigits(rowId) === formatToFiveDigits(idToMatch))) ||
+                    (rowName && rowName === nameToMatch);
+
+    if (isMatch) {
+      // Atualiza a linha existente
+      const rowNum = i + 1;
+      if (idxName !== -1) sheet.getRange(rowNum, idxName + 1).setValue(templateData.name.trim());
+      if (idxItems !== -1) sheet.getRange(rowNum, idxItems + 1).setValue(itemsJson);
+      if (idxUpdated !== -1) sheet.getRange(rowNum, idxUpdated + 1).setValue(nowStr);
+      return { status: 'updated', id: rowId || templateData.id, name: templateData.name.trim() };
+    }
+  }
+
+  // Se não existe, cria novo ID de 5 dígitos e insere
+  const newId = getNextFormattedId([SHEETS.CHECKLIST_TEMPLATES]);
+  const newRow = [];
+  const colCount = Math.max(headers.length, 4);
+
+  for (let c = 0; c < colCount; c++) {
+    if (c === idxId) newRow.push(newId);
+    else if (c === (idxName !== -1 ? idxName : 1)) newRow.push(templateData.name.trim());
+    else if (c === (idxItems !== -1 ? idxItems : 2)) newRow.push(itemsJson);
+    else if (c === (idxUpdated !== -1 ? idxUpdated : 3)) newRow.push(nowStr);
+    else newRow.push('');
+  }
+
+  sheet.appendRow(newRow);
+  return { status: 'created', id: newId, name: templateData.name.trim() };
+}
+
+/**
+ * Exclui um Modelo de Checklist da planilha
+ */
+function deleteChecklistTemplateRecord(templateData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.CHECKLIST_TEMPLATES);
+  if (!sheet) return { deleted: false };
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return { deleted: false };
+
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const idxName = headers.findIndex(h => h.includes('nome') || h.includes('modelo'));
+
+  const id = templateData && templateData.id ? String(templateData.id).trim() : '';
+  const name = templateData && templateData.name ? String(templateData.name).trim().toLowerCase() : '';
+
+  for (let i = 1; i < values.length; i++) {
+    const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';
+    const rowName = idxName !== -1 ? String(values[i][idxName] || '').trim().toLowerCase() : '';
+
+    const isMatch = (id && (rowId === id || formatToFiveDigits(rowId) === formatToFiveDigits(id))) ||
+                    (name && rowName === name);
+
+    if (isMatch) {
+      sheet.deleteRow(i + 1);
+      return { deleted: true, id: rowId, name: rowName };
     }
   }
 

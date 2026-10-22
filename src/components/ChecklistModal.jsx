@@ -12,30 +12,38 @@ export default function ChecklistModal({
   task,
   onToggleChecklistItem,
   onAddChecklistItem,
-  onUpdateTaskChecklist
+  onUpdateTaskChecklist,
+  templates: propTemplates = [],
+  onSaveTemplate,
+  onDeleteTemplate
 }) {
   const [newItemText, setNewItemText] = useState('');
   const [editingItemId, setEditingItemId] = useState(null);
   const [editingText, setEditingText] = useState('');
   
   // Modelos / Templates
-  const [templates, setTemplates] = useState([]);
+  const [localTemplates, setLocalTemplates] = useState([]);
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [showLoadTemplateModal, setShowLoadTemplateModal] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
 
-  // Carrega modelos do localStorage
+  // Carrega modelos locais ou mescla com os da planilha
   useEffect(() => {
     try {
       const saved = localStorage.getItem(TEMPLATES_STORAGE_KEY);
       if (saved) {
-        setTemplates(JSON.parse(saved));
+        setLocalTemplates(JSON.parse(saved));
       }
     } catch (e) {
       console.warn('Erro ao carregar modelos de checklist:', e);
     }
   }, [isOpen]);
+
+  // Se vierem templates da planilha (propTemplates), damos preferência a eles ou mesclamos
+  const templates = propTemplates && propTemplates.length > 0 
+    ? propTemplates 
+    : localTemplates;
 
   if (!isOpen || !task) return null;
 
@@ -145,19 +153,30 @@ export default function ChecklistModal({
       items: checklist.map(c => c.label) // guarda apenas o texto das etapas
     };
 
-    const updatedTemplates = [...templates.filter(t => t.name.toLowerCase() !== newTemplate.name.toLowerCase()), newTemplate];
-    setTemplates(updatedTemplates);
+    const updatedTemplates = [...localTemplates.filter(t => t.name.toLowerCase() !== newTemplate.name.toLowerCase()), newTemplate];
+    setLocalTemplates(updatedTemplates);
     localStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(updatedTemplates));
+
+    // Salva na planilha via callback
+    if (onSaveTemplate) {
+      onSaveTemplate(newTemplate);
+    }
+
     setShowSaveTemplateModal(false);
     setTemplateName('');
-    showFeedback(`Modelo "${newTemplate.name}" salvo com sucesso!`);
+    showFeedback(`Modelo "${newTemplate.name}" salvo e sincronizado na planilha!`);
   };
 
   // Excluir um modelo salvo
   const handleDeleteTemplate = (templateId) => {
-    const updated = templates.filter(t => t.id !== templateId);
-    setTemplates(updated);
+    const updated = localTemplates.filter(t => t.id !== templateId);
+    setLocalTemplates(updated);
     localStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(updated));
+
+    // Exclui da planilha via callback
+    if (onDeleteTemplate) {
+      onDeleteTemplate(templateId);
+    }
   };
 
   // Requisitar / Aplicar Modelo à Tarefa Atual (APENAS a ela!)
