@@ -10,6 +10,7 @@ import ChecklistModal from './components/ChecklistModal';
 import DopamineCelebrationModal from './components/DopamineCelebrationModal';
 import CompletedTasksView from './components/CompletedTasksView';
 import SettingsModal, { APP_THEMES } from './components/SettingsModal';
+import MobileAppView from './components/MobileAppView';
 import { SheetsApi } from './services/sheetsApi';
 import {
   INITIAL_USERS,
@@ -22,6 +23,48 @@ import {
 export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(null);
+
+  // Controle de exibição Mobile vs Desktop
+  const checkIfMobile = () => {
+    if (typeof window === 'undefined') return false;
+    const isMobileHash = window.location.hash.toLowerCase().includes('mobile');
+    if (isMobileHash) return true;
+    const savedPref = localStorage.getItem('taresk_view_mode');
+    if (savedPref === 'mobile') return true;
+    if (savedPref === 'desktop') return false;
+    
+    // Detecção por largura de tela e userAgent (dispositivos móveis Android/iPhone)
+    const isSmallScreen = window.innerWidth <= 900;
+    const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return isSmallScreen || isMobileUserAgent;
+  };
+
+  const [isMobileMode, setIsMobileMode] = useState(checkIfMobile);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const savedPref = localStorage.getItem('taresk_view_mode');
+      if (!savedPref) {
+        setIsMobileMode(checkIfMobile());
+      }
+    };
+
+    const handleHashChange = () => {
+      const isHashMobile = window.location.hash.toLowerCase().includes('mobile');
+      if (isHashMobile) {
+        setIsMobileMode(true);
+        localStorage.setItem('taresk_view_mode', 'mobile');
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
 
   // Carrega estado persistente do localStorage para não perder edições
   const [users, setUsers] = useState(() => {
@@ -644,6 +687,71 @@ export default function App() {
     );
   }
 
+  if (isMobileMode) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
+        <MobileAppView
+          tasks={tasks}
+          completedTasks={completedTasks}
+          users={users}
+          platforms={platforms}
+          currentUser={currentUser}
+          products={products}
+          onOpenChecklistModal={(task) => setActiveChecklistTask(task)}
+          onToggleMarketplace={handleToggleMarketplace}
+          onOpenNewTaskModal={() => setIsNewTaskModalOpen(true)}
+          onFinishTask={handleFinishTask}
+          onToggleChecklistItem={handleToggleChecklistItem}
+          onUpdateTask={handleUpdateTask}
+          onDeleteTask={handleDeleteTask}
+          onDuplicateTask={handleDuplicateTask}
+          onLogout={handleLogout}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
+          onSync={refreshFromSheets}
+          isSyncing={isSyncing}
+          onSwitchToDesktop={() => {
+            setIsMobileMode(false);
+            localStorage.setItem('taresk_view_mode', 'desktop');
+            if (window.location.hash.toLowerCase().includes('mobile')) {
+              window.location.hash = '';
+            }
+          }}
+        />
+
+        {/* Modais compartilhados para uso no mobile */}
+        <NewTaskModal
+          isOpen={isNewTaskModalOpen}
+          onClose={() => setIsNewTaskModalOpen(false)}
+          products={products}
+          users={users}
+          platforms={platforms}
+          currentUser={currentUser}
+          onCreateTask={handleCreateTask}
+          defaultChecklistItems={defaultChecklist}
+        />
+
+        <ChecklistModal
+          isOpen={!!activeChecklistTask}
+          onClose={() => setActiveChecklistTask(null)}
+          task={activeChecklistTask}
+          onToggleChecklistItem={handleToggleChecklistItem}
+          onAddChecklistItem={handleAddChecklistItem}
+          onUpdateTaskChecklist={handleUpdateTaskChecklist}
+          templates={checklistTemplates}
+          onSaveTemplate={handleSaveChecklistTemplate}
+          onDeleteTemplate={handleDeleteChecklistTemplate}
+        />
+
+        <DopamineCelebrationModal
+          isOpen={!!celebratingTask}
+          onClose={() => setCelebratingTask(null)}
+          taskTitle={celebratingTask?.title}
+          assigneeName={users.find(u => u.id === celebratingTask?.assignedTo)?.name}
+        />
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
       {/* Header com Abas e Perfil */}
@@ -658,6 +766,7 @@ export default function App() {
         isSyncing={isSyncing}
         lastSyncTime={lastSyncTime}
       />
+
 
       {/* Conteúdo Principal de acordo com a Aba Ativa */}
       <main style={{ flex: 1 }}>

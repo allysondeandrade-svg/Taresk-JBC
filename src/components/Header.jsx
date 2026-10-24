@@ -97,8 +97,32 @@ export default function Header({
           </nav>
         </div>
 
-        {/* Direita: Sincronização, Configurações e Logout */}
+        {/* Direita: Sincronização, Modo Mobile, Configurações e Logout */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Botão de Alternar para Versão Mobile */}
+          <button
+            onClick={() => window.location.hash = '#mobile'}
+            title="Alternar para o modo Aplicativo Mobile"
+            style={{
+              padding: '7px 12px',
+              borderRadius: '9999px',
+              border: '1.5px solid #d8b4fe',
+              background: '#f3e8ff',
+              color: '#6b21a8',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '700',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 4px rgba(108, 92, 231, 0.1)'
+            }}
+          >
+            <span>📱</span>
+            <span>Versão Mobile</span>
+          </button>
+
           {/* Botão de Sincronizar com Planilha */}
           <button
             onClick={() => onSync && onSync(true)}
