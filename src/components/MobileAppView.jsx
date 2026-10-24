@@ -99,13 +99,14 @@ export default function MobileAppView({
 
   // Progresso da tarefa
   function calculateTaskProgress(task) {
-    if (task.type === 'special') {
+    if (task.type === 'special' || task.type === 'simple') {
       if (!task.checklist || task.checklist.length === 0) return 0;
       const completed = task.checklist.filter(c => c.completed).length;
       return Math.round((completed / task.checklist.length) * 100);
     }
 
     const taskPlats = getTaskPlatforms(task);
+
     const totalChecks = task.checklist?.length || 0;
     const doneChecks = task.checklist?.filter(c => c.completed).length || 0;
     const photoProgress = totalChecks > 0 ? (doneChecks / totalChecks) * 40 : 0;
@@ -505,19 +506,21 @@ export default function MobileAppView({
               const progressPercent = calculateTaskProgress(task);
               const isSpecial = task.type === 'special';
               const isRecurrent = task.type === 'recurrent';
+              const isSimple = task.type === 'simple';
               const taskPlats = getTaskPlatforms(task);
 
               const matchedProduct = products?.find(p =>
                 (task.productId && (p.sku === task.productId || p.id === task.productId)) ||
                 (task.title && (p.sku === task.title || p.title === task.title))
               );
-              const displayTitle = (isSpecial || isRecurrent)
-                ? (task.title || (isRecurrent ? 'Tarefa Recorrente' : 'Tarefa Especial'))
+              const displayTitle = (isSpecial || isRecurrent || isSimple)
+                ? (task.title || (isRecurrent ? 'Tarefa Recorrente' : (isSimple ? 'Tarefa Simples' : 'Tarefa Especial')))
                 : (task.title && task.title !== 'Produto' ? task.title : (matchedProduct?.sku || task.productId || 'Produto'));
 
               const totalChecks = task.checklist?.length || 0;
               const doneChecks = task.checklist?.filter(c => c.completed).length || 0;
               const percentChecks = totalChecks > 0 ? Math.round((doneChecks / totalChecks) * 100) : 0;
+
 
               return (
                 <div
@@ -552,9 +555,11 @@ export default function MobileAppView({
                       <span>{assignee.name || task.assignedByName || 'Colaborador'}</span>
                       {isRecurrent && <span style={{ color: '#7c3aed', marginLeft: '4px' }}>🔄</span>}
                       {isSpecial && <span style={{ color: '#d97706', marginLeft: '4px' }}>⭐</span>}
+                      {isSimple && <span style={{ color: '#5925dc', marginLeft: '4px' }}>⚡ Simples</span>}
                     </div>
 
-                    {(progressPercent === 100 || (isSpecial && totalChecks === 0)) && taskSubTab === 'atuais' && (
+                    {(progressPercent === 100 || ((isSpecial || isSimple) && totalChecks === 0)) && taskSubTab === 'atuais' && (
+
                       <button
                         onClick={() => onFinishTask(task)}
                         style={{
@@ -760,140 +765,143 @@ export default function MobileAppView({
                     </div>
                   </div>
 
-                  {/* GRADE DE CANAIS DE MARKETPLACES (100% responsiva sem estourar a tela) */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(76px, 1fr))',
-                    gap: '6px',
-                    marginTop: '2px',
-                    width: '100%',
-                    boxSizing: 'border-box'
-                  }}>
-                    {taskPlats.map(plat => {
-                      const channelKey = plat.id || plat.name;
-                      const channelState =
-                        task.marketplaces?.[plat.id] ||
-                        task.marketplaces?.[plat.name] ||
-                        task.marketplaces?.[plat.name.toLowerCase()] ||
-                        task.marketplaces?.[plat.name.replace(/\s+/g, '')] ||
-                        (plat.name.toLowerCase().includes('shopee') ? task.marketplaces?.shopee : null) ||
-                        (plat.name.toLowerCase().includes('mercado') ? task.marketplaces?.mercadoLivre : null) ||
-                        (plat.name.toLowerCase().includes('amazon') ? task.marketplaces?.amazon : null) ||
-                        (plat.name.toLowerCase().includes('magalu') ? task.marketplaces?.magalu : null) ||
-                        {};
+                  {/* GRADE DE CANAIS DE MARKETPLACES (Apenas para tarefas que não sejam simples) */}
+                  {!isSimple && (
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(76px, 1fr))',
+                      gap: '6px',
+                      marginTop: '2px',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}>
+                      {taskPlats.map(plat => {
+                        const channelKey = plat.id || plat.name;
+                        const channelState =
+                          task.marketplaces?.[plat.id] ||
+                          task.marketplaces?.[plat.name] ||
+                          task.marketplaces?.[plat.name.toLowerCase()] ||
+                          task.marketplaces?.[plat.name.replace(/\s+/g, '')] ||
+                          (plat.name.toLowerCase().includes('shopee') ? task.marketplaces?.shopee : null) ||
+                          (plat.name.toLowerCase().includes('mercado') ? task.marketplaces?.mercadoLivre : null) ||
+                          (plat.name.toLowerCase().includes('amazon') ? task.marketplaces?.amazon : null) ||
+                          (plat.name.toLowerCase().includes('magalu') ? task.marketplaces?.magalu : null) ||
+                          {};
 
-                      let defaultColor = plat.color;
-                      if (!defaultColor || defaultColor === '#5925dc') {
-                        const lower = plat.name.toLowerCase();
-                        if (lower.includes('shopee')) defaultColor = '#f97316';
-                        else if (lower.includes('mercado') || lower.includes('ml')) defaultColor = '#eab308';
-                        else if (lower.includes('amazon')) defaultColor = '#334155';
-                        else if (lower.includes('magalu')) defaultColor = '#38bdf8';
-                        else if (lower.includes('shein')) defaultColor = '#0f172a';
-                        else defaultColor = '#6366f1';
-                      }
+                        let defaultColor = plat.color;
+                        if (!defaultColor || defaultColor === '#5925dc') {
+                          const lower = plat.name.toLowerCase();
+                          if (lower.includes('shopee')) defaultColor = '#f97316';
+                          else if (lower.includes('mercado') || lower.includes('ml')) defaultColor = '#eab308';
+                          else if (lower.includes('amazon')) defaultColor = '#334155';
+                          else if (lower.includes('magalu')) defaultColor = '#38bdf8';
+                          else if (lower.includes('shein')) defaultColor = '#0f172a';
+                          else defaultColor = '#6366f1';
+                        }
 
-                      const isUActive = Boolean(channelState.u);
-                      const isOActive = Boolean(channelState.o);
-                      const isBothActive = isUActive && isOActive;
+                        const isUActive = Boolean(channelState.u);
+                        const isOActive = Boolean(channelState.o);
+                        const isBothActive = isUActive && isOActive;
 
-                      const cardBg = isBothActive ? '#22c55e' : defaultColor;
-                      const isYellow = defaultColor === '#eab308' || plat.name.toLowerCase().includes('mercado');
-                      const textColor = (!isBothActive && isYellow) ? '#1e293b' : '#ffffff';
+                        const cardBg = isBothActive ? '#22c55e' : defaultColor;
+                        const isYellow = defaultColor === '#eab308' || plat.name.toLowerCase().includes('mercado');
+                        const textColor = (!isBothActive && isYellow) ? '#1e293b' : '#ffffff';
 
-                      return (
-                        <div
-                          key={plat.id || plat.name}
-                          style={{
-                            background: cardBg,
-                            borderRadius: '8px',
-                            padding: '5px 3px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            minHeight: '56px',
-                            boxShadow: isBothActive ? '0 2px 6px rgba(34, 197, 94, 0.3)' : '0 1px 3px rgba(0,0,0,0.06)',
-                            userSelect: 'none',
-                            boxSizing: 'border-box'
-                          }}
-                        >
-                          <div style={{
-                            fontSize: '10px',
-                            fontWeight: '800',
-                            color: textColor,
-                            textAlign: 'center',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            maxWidth: '72px',
-                            marginBottom: '3px'
-                          }}>
-                            {plat.name}
+                        return (
+                          <div
+                            key={plat.id || plat.name}
+                            style={{
+                              background: cardBg,
+                              borderRadius: '8px',
+                              padding: '5px 3px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              minHeight: '56px',
+                              boxShadow: isBothActive ? '0 2px 6px rgba(34, 197, 94, 0.3)' : '0 1px 3px rgba(0,0,0,0.06)',
+                              userSelect: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          >
+                            <div style={{
+                              fontSize: '10px',
+                              fontWeight: '800',
+                              color: textColor,
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '72px',
+                              marginBottom: '3px'
+                            }}>
+                              {plat.name}
+                            </div>
+
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px'
+                            }}>
+                              {/* Botão U */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleMarketplace(task.id, channelKey, 'u');
+                                }}
+                                style={{
+                                  width: '20px',
+                                  height: '20px',
+                                  borderRadius: '50%',
+                                  background: isUActive ? '#22c55e' : 'transparent',
+                                  color: isUActive ? '#ffffff' : 'rgba(255,255,255,0.85)',
+                                  fontSize: '10px',
+                                  fontWeight: '900',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: isUActive ? 'none' : '1.5px solid rgba(255,255,255,0.6)',
+                                  cursor: 'pointer',
+                                  padding: 0
+                                }}
+                              >
+                                U
+                              </button>
+
+                              {/* Botão O */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleMarketplace(task.id, channelKey, 'o');
+                                }}
+                                style={{
+                                  width: '20px',
+                                  height: '20px',
+                                  borderRadius: '50%',
+                                  background: isOActive ? '#22c55e' : 'transparent',
+                                  color: isOActive ? '#ffffff' : 'rgba(255,255,255,0.85)',
+                                  fontSize: '10px',
+                                  fontWeight: '900',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: isOActive ? 'none' : '1.5px solid rgba(255,255,255,0.6)',
+                                  cursor: 'pointer',
+                                  padding: 0
+                                }}
+                              >
+                                O
+                              </button>
+                            </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px'
-                          }}>
-                            {/* Botão U */}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onToggleMarketplace(task.id, channelKey, 'u');
-                              }}
-                              style={{
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
-                                background: isUActive ? '#22c55e' : 'transparent',
-                                color: isUActive ? '#ffffff' : 'rgba(255,255,255,0.85)',
-                                fontSize: '10px',
-                                fontWeight: '900',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                border: isUActive ? 'none' : '1.5px solid rgba(255,255,255,0.6)',
-                                cursor: 'pointer',
-                                padding: 0
-                              }}
-                            >
-                              U
-                            </button>
-
-                            {/* Botão O */}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onToggleMarketplace(task.id, channelKey, 'o');
-                              }}
-                              style={{
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
-                                background: isOActive ? '#22c55e' : 'transparent',
-                                color: isOActive ? '#ffffff' : 'rgba(255,255,255,0.85)',
-                                fontSize: '10px',
-                                fontWeight: '900',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                border: isOActive ? 'none' : '1.5px solid rgba(255,255,255,0.6)',
-                                cursor: 'pointer',
-                                padding: 0
-                              }}
-                            >
-                              O
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
 
                   {/* CHECKLIST DE TAREFAS / SUBTAREFAS LOGO ABAIXO */}
                   {task.checklist && task.checklist.length > 0 && (

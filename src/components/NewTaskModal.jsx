@@ -12,7 +12,8 @@ export default function NewTaskModal({
   onCreateTask,
   defaultChecklistItems
 }) {
-  const [taskType, setTaskType] = useState('product_catalog'); // 'product_catalog', 'special' ou 'recurrent'
+  const [taskType, setTaskType] = useState('simple'); // 'simple', 'product_catalog', 'special' ou 'recurrent'
+  const [simpleTitle, setSimpleTitle] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [specialTitle, setSpecialTitle] = useState('');
@@ -20,9 +21,25 @@ export default function NewTaskModal({
   const [recurrenceFreq, setRecurrenceFreq] = useState('semanal'); // 'diaria', 'seg_sex', 'semanal', 'quinzenal', 'mensal'
   const [selectedWeekdays, setSelectedWeekdays] = useState(['seg']); // ['seg', 'qua', 'sex'] etc
   const [selectedPlatformIds, setSelectedPlatformIds] = useState([]); // IDs de plataformas escolhidas para a tarefa recorrente
-  const [assignedTo, setAssignedTo] = useState(
-    currentUser.role === 'premium_admin' ? (users[1]?.id || currentUser.id) : currentUser.id
-  );
+
+  // Encontra o usuário Allyson ou admin
+  const allysonUser = users.find(u => {
+    const n = (u.name || '').toLowerCase();
+    const e = (u.email || '').toLowerCase();
+    return n.includes('allyson') || e.includes('allyson') || e.includes('eletrojbc');
+  }) || users[0] || currentUser;
+
+  const [assignedTo, setAssignedTo] = useState(() => {
+    return allysonUser?.id || currentUser.id;
+  });
+
+  // Atualiza assignedTo quando mudar para simple
+  useEffect(() => {
+    if (taskType === 'simple' && allysonUser) {
+      setAssignedTo(allysonUser.id);
+    }
+  }, [taskType, allysonUser]);
+
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 5);
@@ -44,6 +61,7 @@ export default function NewTaskModal({
       setSelectedProductId(products[0]?.sku || products[0]?.id || '');
     }
   }, [products, selectedProductId, isOpen]);
+
 
   const handleOpenDatePicker = () => {
     if (dateInputRef.current) {
@@ -99,11 +117,48 @@ export default function NewTaskModal({
 
     const assignedUser = users.find(u => u.id === assignedTo) || currentUser;
 
-    if (taskType === 'recurrent') {
+    if (taskType === 'simple') {
+      if (!simpleTitle.trim()) {
+        alert('Por favor, informe o nome da Tarefa Simples.');
+        return;
+      }
+
+      // Garante data no formato dd/mm
+      let formattedDue = dueDate.trim() || '25/10';
+      if (!/^\d{1,2}\/\d{1,2}$/.test(formattedDue)) {
+        const d = new Date(formattedDue);
+        if (!isNaN(d.getTime())) {
+          formattedDue = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+      }
+
+      const assignedTargetUser = allysonUser || assignedUser || currentUser;
+
+      onCreateTask({
+        id: 'task_' + Date.now(),
+        type: 'simple',
+        productId: null,
+        title: simpleTitle.trim(),
+        assignedTo: assignedTargetUser.id,
+        assignedByName: assignedTargetUser.name,
+        createdById: currentUser.id,
+        dueDate: formattedDue,
+        status: 'in_progress',
+        checklist: [
+          {
+            id: `chk_${Date.now()}_0`,
+            label: simpleTitle.trim(),
+            completed: false
+          }
+        ],
+        notes
+      });
+    } else if (taskType === 'recurrent') {
       if (!recurrentTitle.trim()) {
         alert('Por favor, informe o título ou descrição da Tarefa Recorrente.');
         return;
       }
+
 
       // Constrói os marketplaces selecionados
       const initialMarketplaces = {};
@@ -272,19 +327,22 @@ export default function NewTaskModal({
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 100,
-      padding: '20px'
+      padding: '12px',
+      boxSizing: 'border-box'
     }}>
       <div style={{
         background: '#ffffff',
-        borderRadius: '24px',
+        borderRadius: '20px',
         width: '100%',
-        maxWidth: '680px',
-        maxHeight: '90vh',
+        maxWidth: '640px',
+        maxHeight: '94vh',
         overflowY: 'auto',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         border: '1px solid #e2e8f0',
-        padding: '32px'
+        padding: '20px 16px',
+        boxSizing: 'border-box'
       }}>
+
         {/* Cabeçalho do Modal estilo Página 5 do PDF */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -317,26 +375,46 @@ export default function NewTaskModal({
           </button>
         </div>
 
-        {/* Seleção do Tipo de Tarefa: Cadastro de Produto vs Tarefa Especial vs Tarefa Recorrente */}
+        {/* Seleção do Tipo de Tarefa: Tarefa Simples vs Cadastro de Produto vs Tarefa Especial vs Tarefa Recorrente */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          marginBottom: '28px',
+          gap: '8px',
+          marginBottom: '20px',
           flexWrap: 'wrap'
         }}>
           <button
             type="button"
+            onClick={() => setTaskType('simple')}
+            style={{
+              padding: '9px 16px',
+              borderRadius: '9999px',
+              fontSize: '14px',
+              fontWeight: '800',
+              color: taskType === 'simple' ? '#5925dc' : '#475569',
+              background: taskType === 'simple' ? '#ecebfa' : '#ffffff',
+              border: taskType === 'simple' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
+              cursor: 'pointer',
+              boxShadow: taskType === 'simple' ? '0 2px 8px rgba(89, 37, 220, 0.2)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            ⚡ Tarefa Simples
+          </button>
+
+          <button
+            type="button"
             onClick={() => setTaskType('product_catalog')}
             style={{
-              padding: '10px 20px',
+              padding: '9px 16px',
               borderRadius: '9999px',
-              fontSize: '15px',
+              fontSize: '14px',
               fontWeight: '800',
               color: taskType === 'product_catalog' ? '#5925dc' : '#475569',
-              background: taskType === 'product_catalog' ? '#ecebfa' : 'transparent',
-              border: taskType === 'product_catalog' ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
-              cursor: 'pointer'
+              background: taskType === 'product_catalog' ? '#ecebfa' : '#ffffff',
+              border: taskType === 'product_catalog' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
             }}
           >
             📦 Cadastro de Produto
@@ -346,14 +424,15 @@ export default function NewTaskModal({
             type="button"
             onClick={() => setTaskType('special')}
             style={{
-              padding: '10px 20px',
+              padding: '9px 16px',
               borderRadius: '9999px',
-              fontSize: '15px',
+              fontSize: '14px',
               fontWeight: '800',
               color: taskType === 'special' ? '#5925dc' : '#475569',
-              background: taskType === 'special' ? '#ecebfa' : 'transparent',
-              border: taskType === 'special' ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
-              cursor: 'pointer'
+              background: taskType === 'special' ? '#ecebfa' : '#ffffff',
+              border: taskType === 'special' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
             }}
           >
             ⭐ Tarefa Especial
@@ -363,23 +442,71 @@ export default function NewTaskModal({
             type="button"
             onClick={() => setTaskType('recurrent')}
             style={{
-              padding: '10px 20px',
+              padding: '9px 16px',
               borderRadius: '9999px',
-              fontSize: '15px',
+              fontSize: '14px',
               fontWeight: '800',
               color: taskType === 'recurrent' ? '#5925dc' : '#475569',
-              background: taskType === 'recurrent' ? '#ecebfa' : 'transparent',
-              border: taskType === 'recurrent' ? '1.5px solid #a78bfa' : '1.5px solid #cbd5e1',
-              cursor: 'pointer'
+              background: taskType === 'recurrent' ? '#ecebfa' : '#ffffff',
+              border: taskType === 'recurrent' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
             }}
           >
             🔄 Tarefa Recorrente
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Se for Tarefa Recorrente */}
-          {taskType === 'recurrent' ? (
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Se for Tarefa Simples: Apenas Nome da Tarefa e Calendário */}
+          {taskType === 'simple' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
+                  Nome da Tarefa *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Criar aplicativo Taresk para celular"
+                  value={simpleTitle}
+                  onChange={(e) => setSimpleTitle(e.target.value)}
+                  required
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '12px 18px',
+                    borderRadius: '9999px',
+                    border: '2px solid #5925dc',
+                    fontSize: '15px',
+                    fontWeight: '700',
+                    color: '#1e293b',
+                    boxSizing: 'border-box',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Informação de atribuição automática ao Allyson */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '12px',
+                color: '#475569'
+              }}>
+                <span style={{ fontSize: '16px' }}>👤</span>
+                <div>
+                  <span style={{ fontWeight: '700', color: '#0f172a' }}>Atribuído automaticamente para: </span>
+                  <span style={{ color: '#5925dc', fontWeight: '800' }}>{allysonUser?.name || 'Allyson'}</span>
+                </div>
+              </div>
+            </div>
+          ) : taskType === 'recurrent' ? (
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
@@ -794,38 +921,46 @@ export default function NewTaskModal({
           )}
 
           {/* Atribuição de Usuário & Prazo (Data de Conclusão dd/mm) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>
-                Atribuir para o Usuário
-              </label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                disabled={currentUser.role !== 'premium_admin'}
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: '10px',
-                  border: '1.5px solid #cbd5e1',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  background: currentUser.role !== 'premium_admin' ? '#f1f5f9' : '#fff',
-                  color: '#1e293b'
-                }}
-              >
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.avatar} {u.name} {u.role === 'premium_admin' ? '(Admin)' : ''}
-                  </option>
-                ))}
-              </select>
-              {currentUser.role !== 'premium_admin' && (
-                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  Usuários criam tarefas diretamente para si.
-                </span>
-              )}
-            </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: taskType === 'simple' ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '14px'
+          }}>
+            {taskType !== 'simple' && (
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  Atribuir para o Usuário
+                </label>
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  disabled={currentUser.role !== 'premium_admin'}
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    background: currentUser.role !== 'premium_admin' ? '#f1f5f9' : '#fff',
+                    color: '#1e293b',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.avatar} {u.name} {u.role === 'premium_admin' ? '(Admin)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {currentUser.role !== 'premium_admin' && (
+                  <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                    Usuários criam tarefas diretamente para si.
+                  </span>
+                )}
+              </div>
+            )}
+
 
             <div>
               <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>
