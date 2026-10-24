@@ -522,6 +522,157 @@ export default function MobileAppView({
               const percentChecks = totalChecks > 0 ? Math.round((doneChecks / totalChecks) * 100) : 0;
 
 
+              // Se for Tarefa Simples: Formato exatamente igual ao print da direita
+              if (isSimple) {
+                const firstCheckItem = task.checklist?.[0] || { id: `chk_${task.id}`, label: displayTitle, completed: false };
+
+                const isItemDone = Boolean(firstCheckItem.completed);
+
+                return (
+                  <div
+                    key={task.id}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '16px',
+                      padding: '16px 14px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                      border: isItemDone ? '1.5px solid #a7f3d0' : '1.5px solid #e2e8f0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    {/* Linha Superior: Data (25/10) à esquerda + Ações (Duplicar, Editar, Excluir) à direita */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%'
+                    }}>
+                      <div style={{
+                        fontSize: '17px',
+                        fontWeight: '900',
+                        color: '#0f172a',
+                        lineHeight: '1.2'
+                      }}>
+                        {formatDueDateDisplay(task.dueDate)}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {onDuplicateTask && (
+                          <button
+                            onClick={() => onDuplicateTask(task)}
+                            title="Duplicar Tarefa"
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '6px',
+                              border: '1px solid #bbf7d0',
+                              background: '#f0fdf4',
+                              color: '#16a34a',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Copy size={13} />
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            setEditingTask(task);
+                            setEditTitle(task.title || '');
+                            setEditDueDate(formatDueDateDisplay(task.dueDate));
+                          }}
+                          title="Editar Tarefa"
+                          style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '6px',
+                            border: '1px solid #e2e8f0',
+                            background: '#f8fafc',
+                            color: '#64748b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Edit2 size={13} />
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Excluir a tarefa "${displayTitle}"?`)) {
+                              onDeleteTask(task);
+                            }
+                          }}
+                          title="Excluir Tarefa"
+                          style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '6px',
+                            border: '1px solid #fecaca',
+                            background: '#fef2f2',
+                            color: '#ef4444',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Linha do Checklist: Caixa de seleção quadrada com bordas arredondadas e o Nome da Tarefa */}
+                    <div
+                      onClick={() => onToggleChecklistItem(task.id, firstCheckItem.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        width: '100%',
+                        paddingTop: '2px'
+                      }}
+                    >
+                      <div style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '6px',
+                        border: isItemDone ? '2px solid #10b981' : '2px solid #94a3b8',
+                        background: isItemDone ? '#10b981' : '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        transition: 'all 0.15s ease'
+                      }}>
+                        {isItemDone && <CheckCircle2 size={16} color="#ffffff" />}
+                      </div>
+
+                      <span style={{
+                        fontSize: '15px',
+                        fontWeight: '700',
+                        color: isItemDone ? '#64748b' : '#0f172a',
+                        textDecoration: isItemDone ? 'line-through' : 'none',
+                        wordBreak: 'break-word',
+                        flex: 1
+                      }}>
+                        {firstCheckItem.label || displayTitle}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={task.id}
@@ -555,11 +706,9 @@ export default function MobileAppView({
                       <span>{assignee.name || task.assignedByName || 'Colaborador'}</span>
                       {isRecurrent && <span style={{ color: '#7c3aed', marginLeft: '4px' }}>🔄</span>}
                       {isSpecial && <span style={{ color: '#d97706', marginLeft: '4px' }}>⭐</span>}
-                      {isSimple && <span style={{ color: '#5925dc', marginLeft: '4px' }}>⚡ Simples</span>}
                     </div>
 
-                    {(progressPercent === 100 || ((isSpecial || isSimple) && totalChecks === 0)) && taskSubTab === 'atuais' && (
-
+                    {(progressPercent === 100 || (isSpecial && totalChecks === 0)) && taskSubTab === 'atuais' && (
                       <button
                         onClick={() => onFinishTask(task)}
                         style={{
@@ -764,6 +913,7 @@ export default function MobileAppView({
                       </div>
                     </div>
                   </div>
+
 
                   {/* GRADE DE CANAIS DE MARKETPLACES (Apenas para tarefas que não sejam simples) */}
                   {!isSimple && (
