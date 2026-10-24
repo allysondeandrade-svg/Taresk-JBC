@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Search, Calendar, User, FileText, CheckSquare, Plus, AlertCircle } from 'lucide-react';
+import { X, Search, Calendar, User, FileText, CheckSquare, Plus, AlertCircle, GripVertical, Edit2, Copy, Trash2, ArrowUp, ArrowDown, Check } from 'lucide-react';
 import { DEFAULT_CHECKLIST_ITEMS } from '../data/initialData';
+
 
 export default function NewTaskModal({
   isOpen,
@@ -74,22 +75,56 @@ export default function NewTaskModal({
     }
   };
 
-  // Subtarefas para tarefa especial ou recorrente
+  // Subtarefas para Tarefa Simples, Especial ou Recorrente
   const [subtasks, setSubtasks] = useState([]);
-  const [newSubtaskInput, setNewSubtaskInput] = useState('');
+  const [editingSubtaskIndex, setEditingSubtaskIndex] = useState(null);
+  const [editingSubtaskText, setEditingSubtaskText] = useState('');
+  const [draggedSubtaskIndex, setDraggedSubtaskIndex] = useState(null);
 
   if (!isOpen) return null;
 
-  const handleAddSubtask = () => {
-    if (newSubtaskInput.trim()) {
-      setSubtasks([...subtasks, newSubtaskInput.trim()]);
-      setNewSubtaskInput('');
+  // Adicionar subtarefa e liberar automaticamente nova linha
+  const handleAddSubtaskFromText = (text) => {
+    if (text && text.trim()) {
+      setSubtasks(prev => [...prev, text.trim()]);
     }
   };
 
   const handleRemoveSubtask = (index) => {
-    setSubtasks(subtasks.filter((_, i) => i !== index));
+    setSubtasks(prev => prev.filter((_, i) => i !== index));
   };
+
+  const handleDuplicateSubtask = (index) => {
+    setSubtasks(prev => {
+      const copy = [...prev];
+      copy.splice(index + 1, 0, prev[index]);
+      return copy;
+    });
+  };
+
+  const handleStartEditSubtask = (index) => {
+    setEditingSubtaskIndex(index);
+    setEditingSubtaskText(subtasks[index]);
+  };
+
+  const handleSaveEditSubtask = (index) => {
+    if (editingSubtaskText.trim()) {
+      setSubtasks(prev => prev.map((s, i) => i === index ? editingSubtaskText.trim() : s));
+    }
+    setEditingSubtaskIndex(null);
+    setEditingSubtaskText('');
+  };
+
+  const handleMoveSubtask = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= subtasks.length) return;
+    setSubtasks(prev => {
+      const copy = [...prev];
+      const item = copy.splice(fromIndex, 1)[0];
+      copy.splice(toIndex, 0, item);
+      return copy;
+    });
+  };
+
 
   const toggleWeekday = (dayKey) => {
     if (selectedWeekdays.includes(dayKey)) {
@@ -134,6 +169,22 @@ export default function NewTaskModal({
 
       const assignedTargetUser = allysonUser || assignedUser || currentUser;
 
+      // Se houver subtarefas, monta o checklist com as subtarefas
+      // Caso contrário, usa o próprio título da tarefa simples como único item
+      const taskChecklist = subtasks && subtasks.length > 0
+        ? subtasks.map((st, i) => ({
+            id: `chk_${Date.now()}_${i}`,
+            label: st,
+            completed: false
+          }))
+        : [
+            {
+              id: `chk_${Date.now()}_0`,
+              label: simpleTitle.trim(),
+              completed: false
+            }
+          ];
+
       onCreateTask({
         id: 'task_' + Date.now(),
         type: 'simple',
@@ -144,16 +195,11 @@ export default function NewTaskModal({
         createdById: currentUser.id,
         dueDate: formattedDue,
         status: 'in_progress',
-        checklist: [
-          {
-            id: `chk_${Date.now()}_0`,
-            label: simpleTitle.trim(),
-            completed: false
-          }
-        ],
+        checklist: taskChecklist,
         notes
       });
     } else if (taskType === 'recurrent') {
+
       if (!recurrentTitle.trim()) {
         alert('Por favor, informe o título ou descrição da Tarefa Recorrente.');
         return;
@@ -486,6 +532,309 @@ export default function NewTaskModal({
                 />
               </div>
 
+              {/* Bloco de Subtarefas com criação dinâmica, arrastar, editar, duplicar e excluir */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1.5px dashed #cbd5e1',
+                borderRadius: '16px',
+                padding: '14px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{
+                    fontSize: '13px',
+                    fontWeight: '800',
+                    color: '#5925dc',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <CheckSquare size={16} />
+                    <span>Subtarefas (Opcional)</span>
+                  </div>
+                  {subtasks.length > 0 && (
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>
+                      {subtasks.length} {subtasks.length === 1 ? 'item' : 'itens'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Lista de subtarefas existentes com ações */}
+                {subtasks.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {subtasks.map((st, idx) => {
+                      const isEditing = editingSubtaskIndex === idx;
+
+                      return (
+                        <div
+                          key={idx}
+                          draggable={!isEditing}
+                          onDragStart={(e) => {
+                            setDraggedSubtaskIndex(idx);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (draggedSubtaskIndex !== null && draggedSubtaskIndex !== idx) {
+                              handleMoveSubtask(draggedSubtaskIndex, idx);
+                              setDraggedSubtaskIndex(null);
+                            }
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            background: '#ffffff',
+                            padding: '8px 10px',
+                            borderRadius: '10px',
+                            border: '1px solid #e2e8f0',
+                            gap: '8px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                            opacity: draggedSubtaskIndex === idx ? 0.4 : 1,
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {/* Ícone de arrastar para reordenar */}
+                          <div
+                            title="Segure e arraste para mudar a ordem"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              color: '#94a3b8',
+                              cursor: 'grab',
+                              touchAction: 'none'
+                            }}
+                          >
+                            <GripVertical size={16} />
+                          </div>
+
+                          {/* Conteúdo ou Input de edição inline */}
+                          {isEditing ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                              <input
+                                type="text"
+                                value={editingSubtaskText}
+                                onChange={(e) => setEditingSubtaskText(e.target.value)}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleSaveEditSubtask(idx);
+                                  }
+                                }}
+                                style={{
+                                  flex: 1,
+                                  padding: '5px 8px',
+                                  borderRadius: '6px',
+                                  border: '1.5px solid #5925dc',
+                                  fontSize: '13px',
+                                  outline: 'none'
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSaveEditSubtask(idx)}
+                                style={{
+                                  background: '#10b981',
+                                  color: '#fff',
+                                  border: 'none',
+                                  padding: '5px 8px',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  fontSize: '11px',
+                                  fontWeight: '700'
+                                }}
+                              >
+                                <Check size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span style={{
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              color: '#1e293b',
+                              flex: 1,
+                              wordBreak: 'break-word'
+                            }}>
+                              {st}
+                            </span>
+                          )}
+
+                          {/* Botões de Ação: Subir, Descer, Editar, Duplicar, Excluir */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {/* Mover para cima */}
+                            {idx > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleMoveSubtask(idx, idx - 1)}
+                                title="Mover para cima"
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #e2e8f0',
+                                  background: '#f8fafc',
+                                  color: '#64748b',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <ArrowUp size={12} />
+                              </button>
+                            )}
+
+                            {/* Mover para baixo */}
+                            {idx < subtasks.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleMoveSubtask(idx, idx + 1)}
+                                title="Mover para baixo"
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #e2e8f0',
+                                  background: '#f8fafc',
+                                  color: '#64748b',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <ArrowDown size={12} />
+                              </button>
+                            )}
+
+                            {/* Duplicar Subtarefa */}
+                            <button
+                              type="button"
+                              onClick={() => handleDuplicateSubtask(idx)}
+                              title="Duplicar subtarefa"
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '6px',
+                                border: '1px solid #bbf7d0',
+                                background: '#f0fdf4',
+                                color: '#16a34a',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Copy size={12} />
+                            </button>
+
+                            {/* Editar Subtarefa */}
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditSubtask(idx)}
+                              title="Editar subtarefa"
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '6px',
+                                border: '1px solid #e2e8f0',
+                                background: '#f8fafc',
+                                color: '#64748b',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Edit2 size={12} />
+                            </button>
+
+                            {/* Excluir Subtarefa */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSubtask(idx)}
+                              title="Excluir subtarefa"
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '6px',
+                                border: '1px solid #fecaca',
+                                background: '#fef2f2',
+                                color: '#ef4444',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Campo de Input com auto-adição de nova linha: ao digitar e pressionar Enter ou perder o foco com texto */}
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type="text"
+                    placeholder="Digitar subtarefa (cria nova linha abaixo)..."
+                    value={newSubtaskInput}
+                    onChange={(e) => setNewSubtaskInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newSubtaskInput.trim()) {
+                          handleAddSubtaskFromText(newSubtaskInput);
+                          setNewSubtaskInput('');
+                        }
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '13px',
+                      outline: 'none',
+                      background: '#ffffff'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newSubtaskInput.trim()) {
+                        handleAddSubtaskFromText(newSubtaskInput);
+                        setNewSubtaskInput('');
+                      }
+                    }}
+                    style={{
+                      background: '#5925dc',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+              </div>
+
               {/* Informação de atribuição automática ao Allyson */}
               <div style={{
                 background: '#f8fafc',
@@ -506,6 +855,7 @@ export default function NewTaskModal({
               </div>
             </div>
           ) : taskType === 'recurrent' ? (
+
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>

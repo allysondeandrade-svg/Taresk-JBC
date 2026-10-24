@@ -630,48 +630,158 @@ export default function MobileAppView({
                       </div>
                     </div>
 
-                    {/* Linha do Checklist: Caixa de seleção quadrada com bordas arredondadas e o Nome da Tarefa */}
-                    <div
-                      onClick={() => onToggleChecklistItem(task.id, firstCheckItem.id)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                        width: '100%',
-                        paddingTop: '2px'
-                      }}
-                    >
-                      <div style={{
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '6px',
-                        border: isItemDone ? '2px solid #10b981' : '2px solid #94a3b8',
-                        background: isItemDone ? '#10b981' : '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        transition: 'all 0.15s ease'
-                      }}>
-                        {isItemDone && <CheckCircle2 size={16} color="#ffffff" />}
-                      </div>
+                    {/* Lista de Itens de Checklist (Foto 2: Item Principal + Subtarefas com recuo/indentação) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+                      {/* Se houver subtarefas no checklist, renderiza o título da tarefa no topo e as subtarefas indentadas */}
+                      {task.checklist && task.checklist.length > 1 ? (
+                        <>
+                          {/* Item Principal (Título da Tarefa) */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              width: '100%'
+                            }}
+                          >
+                            <div
+                              onClick={() => {
+                                // Se clicar no checkbox do principal, pode alternar todas ou marcar/desmarcar
+                                const allDone = task.checklist.every(c => c.completed);
+                                task.checklist.forEach(c => {
+                                  if (allDone && c.completed) onToggleChecklistItem(task.id, c.id);
+                                  else if (!allDone && !c.completed) onToggleChecklistItem(task.id, c.id);
+                                });
+                              }}
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '6px',
+                                border: task.checklist.every(c => c.completed) ? '2px solid #10b981' : '2px solid #94a3b8',
+                                background: task.checklist.every(c => c.completed) ? '#10b981' : '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {task.checklist.every(c => c.completed) && <CheckCircle2 size={16} color="#ffffff" />}
+                            </div>
 
-                      <span style={{
-                        fontSize: '15px',
-                        fontWeight: '700',
-                        color: isItemDone ? '#64748b' : '#0f172a',
-                        textDecoration: isItemDone ? 'line-through' : 'none',
-                        wordBreak: 'break-word',
-                        flex: 1
-                      }}>
-                        {firstCheckItem.label || displayTitle}
-                      </span>
+                            <span style={{
+                              fontSize: '15px',
+                              fontWeight: '800',
+                              color: task.checklist.every(c => c.completed) ? '#64748b' : '#0f172a',
+                              textDecoration: task.checklist.every(c => c.completed) ? 'line-through' : 'none',
+                              wordBreak: 'break-word',
+                              flex: 1
+                            }}>
+                              {displayTitle}
+                            </span>
+                          </div>
+
+                          {/* Subtarefas indentadas logo abaixo (exatamente como na Foto 2) */}
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            paddingLeft: '24px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}>
+                            {task.checklist.map((item) => {
+                              const isDone = Boolean(item.completed);
+                              return (
+                                <div
+                                  key={item.id}
+                                  onClick={() => onToggleChecklistItem(task.id, item.id)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    cursor: 'pointer',
+                                    userSelect: 'none',
+                                    width: '100%'
+                                  }}
+                                >
+                                  <div style={{
+                                    width: '22px',
+                                    height: '22px',
+                                    borderRadius: '6px',
+                                    border: isDone ? '2px solid #10b981' : '2px solid #94a3b8',
+                                    background: isDone ? '#10b981' : '#ffffff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                    transition: 'all 0.15s ease'
+                                  }}>
+                                    {isDone && <CheckCircle2 size={15} color="#ffffff" />}
+                                  </div>
+
+                                  <span style={{
+                                    fontSize: '14px',
+                                    fontWeight: '700',
+                                    color: isDone ? '#64748b' : '#0f172a',
+                                    textDecoration: isDone ? 'line-through' : 'none',
+                                    wordBreak: 'break-word',
+                                    flex: 1
+                                  }}>
+                                    {item.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        /* Tarefa Simples com item único (como no print 1 da direita) */
+                        <div
+                          onClick={() => onToggleChecklistItem(task.id, firstCheckItem.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            width: '100%',
+                            paddingTop: '2px'
+                          }}
+                        >
+                          <div style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '6px',
+                            border: isItemDone ? '2px solid #10b981' : '2px solid #94a3b8',
+                            background: isItemDone ? '#10b981' : '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            transition: 'all 0.15s ease'
+                          }}>
+                            {isItemDone && <CheckCircle2 size={16} color="#ffffff" />}
+                          </div>
+
+                          <span style={{
+                            fontSize: '15px',
+                            fontWeight: '700',
+                            color: isItemDone ? '#64748b' : '#0f172a',
+                            textDecoration: isItemDone ? 'line-through' : 'none',
+                            wordBreak: 'break-word',
+                            flex: 1
+                          }}>
+                            {firstCheckItem.label || displayTitle}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               }
+
 
               return (
                 <div
