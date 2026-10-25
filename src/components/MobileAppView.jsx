@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check, Search, Package, DollarSign } from 'lucide-react';
+import { Eye, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check, Search, Package, DollarSign, Settings } from 'lucide-react';
 
 // Helper para formatar dd/mm
 function formatDueDateDisplay(val) {
@@ -258,21 +258,23 @@ export default function MobileAppView({
             </button>
           )}
 
-          {onSwitchToDesktop && (
+          {onOpenSettings && (
             <button
-              onClick={onSwitchToDesktop}
+              onClick={onOpenSettings}
+              title="Configurações"
               style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                background: isDark ? '#1e293b' : '#f8fafc',
+                border: isDark ? '1px solid #334155' : '1px solid #cbd5e1',
                 borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '11px',
-                color: '#475569',
-                fontWeight: '600',
+                padding: '5px 7px',
+                color: isDark ? '#cbd5e1' : '#475569',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 cursor: 'pointer'
               }}
             >
-              💻 Desktop
+              <Settings size={15} />
             </button>
           )}
 
