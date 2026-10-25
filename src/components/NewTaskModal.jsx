@@ -903,11 +903,17 @@ export default function NewTaskModal({
                   </div>
                 )}
 
-                {/* Campo de Input com auto-adição de nova linha: ao digitar e pressionar Enter ou perder o foco com texto */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                {/* Campo de Input com auto-adição de nova linha: ao digitar e pressionar Enter ou clicar em + Adicionar */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
                   <input
                     type="text"
-                    placeholder="Digitar subtarefa (cria nova linha abaixo)..."
+                    placeholder="Digitar subtarefa..."
                     value={newSubtaskInput}
                     onChange={(e) => setNewSubtaskInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -921,10 +927,12 @@ export default function NewTaskModal({
                     }}
                     style={{
                       flex: 1,
-                      padding: '10px 14px',
+                      minWidth: 0,
+                      width: '100%',
+                      padding: '9px 12px',
                       borderRadius: '10px',
                       border: '1.5px solid #cbd5e1',
-                      fontSize: '14px',
+                      fontSize: '13px',
                       color: '#1e293b',
                       outline: 'none',
                       background: '#ffffff',
@@ -943,14 +951,14 @@ export default function NewTaskModal({
                       background: '#5925dc',
                       color: '#ffffff',
                       border: 'none',
-                      padding: '10px 18px',
+                      padding: '9px 14px',
                       borderRadius: '10px',
-                      fontSize: '14px',
+                      fontSize: '13px',
                       fontWeight: '800',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       boxShadow: '0 2px 6px rgba(89, 37, 220, 0.25)',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0

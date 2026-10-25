@@ -73,6 +73,8 @@ export default function MobileAppView({
   const [editingTask, setEditingTask] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDueDate, setEditDueDate] = useState('');
+  const [editSubtasks, setEditSubtasks] = useState([]);
+  const [newEditSubtaskInput, setNewEditSubtaskInput] = useState('');
 
   // Helper de responsável com resolução inteligente de nomes humanos
   function getAssignee(userId) {
@@ -1226,6 +1228,9 @@ export default function MobileAppView({
                             setEditingTask(task);
                             setEditTitle(task.title || '');
                             setEditDueDate(formatDueDateDisplay(task.dueDate));
+                            const subs = task.checklist ? task.checklist.map(c => ({ ...c })) : [];
+                            setEditSubtasks(subs);
+                            setNewEditSubtaskInput('');
                           }}
                           title="Editar Tarefa"
                           style={{
@@ -1619,6 +1624,9 @@ export default function MobileAppView({
                             setEditingTask(task);
                             setEditTitle(task.title || '');
                             setEditDueDate(formatDueDateDisplay(task.dueDate));
+                            const subs = task.checklist ? task.checklist.map(c => ({ ...c })) : [];
+                            setEditSubtasks(subs);
+                            setNewEditSubtaskInput('');
                           }}
                           title="Editar Tarefa"
                           style={{
@@ -1946,6 +1954,137 @@ export default function MobileAppView({
                 />
               </div>
 
+              {/* Se a tarefa tiver subtarefas cadastradas, exibe editor de subtarefas */}
+              {editSubtasks && editSubtasks.length > 0 && (
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <label style={{ fontSize: '11px', fontWeight: '800', color: '#5925dc', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <CheckCircle2 size={13} /> Subtarefas ({editSubtasks.length})
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto' }}>
+                    {editSubtasks.map((st, sIdx) => (
+                      <div
+                        key={st.id || sIdx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: '#ffffff',
+                          padding: '6px 8px',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0'
+                        }}
+                      >
+                        <input
+                          type="text"
+                          value={st.label}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditSubtasks(prev => prev.map((item, idx) => idx === sIdx ? { ...item, label: val } : item));
+                          }}
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            border: 'none',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#1e293b',
+                            outline: 'none',
+                            background: 'transparent'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditSubtasks(prev => prev.filter((_, idx) => idx !== sIdx));
+                          }}
+                          title="Remover subtarefa"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '2px'
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Campo para adicionar nova subtarefa durante a edição */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                    <input
+                      type="text"
+                      placeholder="Nova subtarefa..."
+                      value={newEditSubtaskInput}
+                      onChange={(e) => setNewEditSubtaskInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (newEditSubtaskInput.trim()) {
+                            setEditSubtasks(prev => [
+                              ...prev,
+                              { id: `chk_${Date.now()}_${prev.length}`, label: newEditSubtaskInput.trim(), completed: false }
+                            ]);
+                            setNewEditSubtaskInput('');
+                          }
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        padding: '7px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '12px',
+                        background: '#ffffff',
+                        outline: 'none'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (newEditSubtaskInput.trim()) {
+                          setEditSubtasks(prev => [
+                            ...prev,
+                            { id: `chk_${Date.now()}_${prev.length}`, label: newEditSubtaskInput.trim(), completed: false }
+                          ]);
+                          setNewEditSubtaskInput('');
+                        }
+                      }}
+                      style={{
+                        background: '#5925dc',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '7px 12px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
                 <button
                   type="button"
@@ -1966,10 +2105,14 @@ export default function MobileAppView({
                 <button
                   type="button"
                   onClick={() => {
-                    onUpdateTask(editingTask.id, {
+                    const updatePayload = {
                       title: editTitle,
                       dueDate: editDueDate
-                    });
+                    };
+                    if (editSubtasks && editSubtasks.length > 0) {
+                      updatePayload.checklist = editSubtasks;
+                    }
+                    onUpdateTask(editingTask.id, updatePayload);
                     setEditingTask(null);
                   }}
                   style={{
