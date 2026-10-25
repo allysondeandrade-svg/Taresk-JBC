@@ -877,17 +877,15 @@ export default function TasksView({
                         {};
 
                       let defaultColor = plat.color;
-                      if (!defaultColor || defaultColor === '#5925dc') {
-                        const lower = plat.name.toLowerCase();
-                        if (lower.includes('shopee')) defaultColor = '#f97316';
-                        else if (lower.includes('mercado') || lower.includes('ml')) defaultColor = '#facc15';
-                        else if (lower.includes('amazon')) defaultColor = '#334155';
-                        else if (lower.includes('magalu')) defaultColor = '#38bdf8';
-                        else if (lower.includes('shein')) defaultColor = '#0f172a';
-                        else defaultColor = '#6366f1';
-                      }
+                      const lower = (plat.name || '').toLowerCase();
+                      if (lower.includes('shopee')) defaultColor = '#ff5722';
+                      else if (lower.includes('mercado') || lower.includes('ml')) defaultColor = '#ffbe0b';
+                      else if (lower.includes('amazon')) defaultColor = '#2c3e50';
+                      else if (lower.includes('magalu')) defaultColor = '#0ea5e9';
+                      else if (lower.includes('shein')) defaultColor = '#0f172a';
+                      else if (!defaultColor || defaultColor === '#5925dc') defaultColor = '#6366f1';
 
-                      const isYellow = defaultColor === '#facc15' || plat.name.toLowerCase().includes('mercado');
+                      const isYellow = defaultColor === '#ffbe0b' || defaultColor === '#facc15' || lower.includes('mercado');
                       const textColor = isYellow ? '#1e293b' : '#ffffff';
 
                       return (
@@ -923,19 +921,17 @@ export default function TasksView({
                       (plat.name.toLowerCase().includes('magalu') ? task.marketplaces?.magalu : null) ||
                       {};
 
-                    // Determina a cor padrão baseada no nome ou cor cadastrada
+                    // Determina a cor padrão baseada no nome ou cor cadastrada exatamente como na foto de referência
                     let defaultColor = plat.color;
-                    if (!defaultColor || defaultColor === '#5925dc') {
-                      const lower = plat.name.toLowerCase();
-                      if (lower.includes('shopee')) defaultColor = '#f97316';
-                      else if (lower.includes('mercado') || lower.includes('ml')) defaultColor = '#facc15';
-                      else if (lower.includes('amazon')) defaultColor = '#334155';
-                      else if (lower.includes('magalu')) defaultColor = '#38bdf8';
-                      else if (lower.includes('shein')) defaultColor = '#0f172a';
-                      else defaultColor = '#6366f1';
-                    }
+                    const lower = (plat.name || '').toLowerCase();
+                    if (lower.includes('shopee')) defaultColor = '#ff5722';
+                    else if (lower.includes('mercado') || lower.includes('ml')) defaultColor = '#ffbe0b';
+                    else if (lower.includes('amazon')) defaultColor = '#2c3e50';
+                    else if (lower.includes('magalu')) defaultColor = '#0ea5e9';
+                    else if (lower.includes('shein')) defaultColor = '#0f172a';
+                    else if (!defaultColor || defaultColor === '#5925dc') defaultColor = '#6366f1';
 
-                    const isYellow = defaultColor === '#facc15' || plat.name.toLowerCase().includes('mercado');
+                    const isYellow = defaultColor === '#ffbe0b' || defaultColor === '#facc15' || lower.includes('mercado');
                     const textColor = isYellow ? '#1e293b' : '#ffffff';
 
                     return (
@@ -1490,14 +1486,14 @@ function MarketplaceCard({
     <div
       style={{
         background: currentCardBg,
-        borderRadius: '14px',
-        padding: '8px 8px',
+        borderRadius: '16px',
+        padding: '10px 10px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'space-between',
-        minHeight: '80px',
-        boxShadow: isFullyActive ? '0 4px 12px rgba(34, 197, 94, 0.35)' : '0 2px 4px rgba(0,0,0,0.06)',
+        minHeight: '74px',
+        boxShadow: isFullyActive ? '0 4px 14px rgba(34, 197, 94, 0.4)' : '0 2px 6px rgba(0,0,0,0.08)',
         transition: 'background 0.2s ease, transform 0.15s ease',
         userSelect: 'none',
         boxSizing: 'border-box'
@@ -1512,7 +1508,8 @@ function MarketplaceCard({
         whiteSpace: 'nowrap',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
-        maxWidth: '120px'
+        maxWidth: '120px',
+        letterSpacing: '-0.2px'
       }}>
         {name}
       </div>
@@ -1534,12 +1531,12 @@ function MarketplaceCard({
           }}
           title={`Checklist 1: Caixa (${name})`}
           style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '5px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '7px',
             background: isBoxDone ? '#dcfce7' : '#ffffff',
-            border: isBoxDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+            border: isBoxDone ? '2px solid #16a34a' : 'none',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1548,7 +1545,7 @@ function MarketplaceCard({
             transition: 'all 0.15s ease'
           }}
         >
-          <Package size={17} color={isBoxDone ? '#16a34a' : '#1e293b'} strokeWidth={1.8} />
+          <Package size={19} color={isBoxDone ? '#16a34a' : '#1e293b'} strokeWidth={1.75} />
         </button>
 
         {/* 2º Quadrado: Foguete (Foto 2) */}
@@ -1560,12 +1557,12 @@ function MarketplaceCard({
           }}
           title={`Checklist 2: Foguete (${name})`}
           style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '5px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '7px',
             background: isRocketDone ? '#dcfce7' : '#ffffff',
-            border: isRocketDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+            border: isRocketDone ? '2px solid #16a34a' : 'none',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1578,8 +1575,8 @@ function MarketplaceCard({
             src="./marketplace_rocket.png"
             alt="Rocket"
             style={{
-              width: '19px',
-              height: '19px',
+              width: '21px',
+              height: '21px',
               objectFit: 'contain',
               filter: isRocketDone ? 'drop-shadow(0 0 1px #16a34a)' : 'none'
             }}
@@ -1595,12 +1592,12 @@ function MarketplaceCard({
           }}
           title={`Checklist 3: Pizza (${name})`}
           style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '5px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '7px',
             background: isPieDone ? '#dcfce7' : '#ffffff',
-            border: isPieDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+            border: isPieDone ? '2px solid #16a34a' : 'none',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1613,8 +1610,8 @@ function MarketplaceCard({
             src="./marketplace_pie.png"
             alt="Pie"
             style={{
-              width: '19px',
-              height: '19px',
+              width: '21px',
+              height: '21px',
               objectFit: 'contain',
               filter: isPieDone ? 'drop-shadow(0 0 1px #16a34a)' : 'none'
             }}

@@ -1797,12 +1797,12 @@ export default function MobileAppView({
                                 }}
                                 title="Checklist 1: Caixa"
                                 style={{
-                                  width: '26px',
-                                  height: '26px',
-                                  borderRadius: '4px',
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '6px',
                                   background: isBoxDone ? '#dcfce7' : '#ffffff',
-                                  border: isBoxDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
-                                  boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                                  border: isBoxDone ? '2px solid #16a34a' : 'none',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1811,7 +1811,7 @@ export default function MobileAppView({
                                   position: 'relative'
                                 }}
                               >
-                                <Package size={16} color={isBoxDone ? '#16a34a' : '#1e293b'} strokeWidth={1.8} />
+                                <Package size={17} color={isBoxDone ? '#16a34a' : '#1e293b'} strokeWidth={1.75} />
                               </button>
 
                               {/* 2º Quadrado: Ícone Foguete azul (Foto 2) */}
@@ -1823,12 +1823,12 @@ export default function MobileAppView({
                                 }}
                                 title="Checklist 2: Foguete"
                                 style={{
-                                  width: '26px',
-                                  height: '26px',
-                                  borderRadius: '4px',
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '6px',
                                   background: isRocketDone ? '#dcfce7' : '#ffffff',
-                                  border: isRocketDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
-                                  boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                                  border: isRocketDone ? '2px solid #16a34a' : 'none',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1840,8 +1840,8 @@ export default function MobileAppView({
                                   src="./marketplace_rocket.png"
                                   alt="Rocket"
                                   style={{
-                                    width: '18px',
-                                    height: '18px',
+                                    width: '19px',
+                                    height: '19px',
                                     objectFit: 'contain',
                                     filter: isRocketDone ? 'drop-shadow(0 0 1px #16a34a)' : 'none'
                                   }}
@@ -1857,12 +1857,12 @@ export default function MobileAppView({
                                 }}
                                 title="Checklist 3: Pizza"
                                 style={{
-                                  width: '26px',
-                                  height: '26px',
-                                  borderRadius: '4px',
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '6px',
                                   background: isPieDone ? '#dcfce7' : '#ffffff',
-                                  border: isPieDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
-                                  boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                                  border: isPieDone ? '2px solid #16a34a' : 'none',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1874,8 +1874,8 @@ export default function MobileAppView({
                                   src="./marketplace_pie.png"
                                   alt="Pie"
                                   style={{
-                                    width: '18px',
-                                    height: '18px',
+                                    width: '19px',
+                                    height: '19px',
                                     objectFit: 'contain',
                                     filter: isPieDone ? 'drop-shadow(0 0 1px #16a34a)' : 'none'
                                   }}
