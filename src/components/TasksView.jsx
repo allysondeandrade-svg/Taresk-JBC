@@ -158,7 +158,7 @@ export default function TasksView({
   }
 
   function calculateTaskProgress(task) {
-    if (task.type === 'special') {
+    if (task.type === 'special' || task.type === 'simple') {
       if (!task.checklist || task.checklist.length === 0) return 0;
       const completed = task.checklist.filter(c => c.completed).length;
       return Math.round((completed / task.checklist.length) * 100);
@@ -449,6 +449,7 @@ export default function TasksView({
           const assignee = getAssignee(task.assignedTo);
           const isSpecial = task.type === 'special';
           const isRecurrent = task.type === 'recurrent';
+          const isSimple = task.type === 'simple';
 
           // Label da frequência de recorrência para exibição
           let recurrenceBadge = '';
@@ -473,8 +474,8 @@ export default function TasksView({
             (task.productId && (p.sku === task.productId || p.id === task.productId)) ||
             (task.title && (p.sku === task.title || p.title === task.title))
           );
-          const productSkuDisplay = (isSpecial || isRecurrent)
-            ? (task.title || (isRecurrent ? 'Tarefa Recorrente' : 'Tarefa Especial'))
+          const productSkuDisplay = (isSpecial || isRecurrent || isSimple)
+            ? (task.title || (isRecurrent ? 'Tarefa Recorrente' : (isSimple ? 'Tarefa Simples' : 'Tarefa Especial')))
             : (
                 (task.title && task.title !== 'Produto' && task.title !== 'Produto Novo')
                   ? task.title
@@ -558,6 +559,23 @@ export default function TasksView({
                     ⭐ Especial
                   </span>
                 )}
+
+                {isSimple && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: '#f1f5f9',
+                    color: '#334155',
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    border: '1px solid #cbd5e1'
+                  }}>
+                    📝 Simples
+                  </span>
+                )}
               </div>
 
               {/* Coluna 1: Bloco do Produto (Modelo com Foto, Nome/SKU, Barra e Olho), Tarefa Especial ou Tarefa Recorrente */}
@@ -576,7 +594,7 @@ export default function TasksView({
                 flexShrink: 0,
                 boxSizing: 'border-box'
               }}>
-                {(isSpecial || isRecurrent) ? (
+                {(isSpecial || isRecurrent || isSimple) ? (
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -589,7 +607,7 @@ export default function TasksView({
                       style={{
                         fontSize: '14px',
                         fontWeight: '800',
-                        color: isRecurrent ? '#581c87' : '#1e293b',
+                        color: isRecurrent ? '#581c87' : (isSimple ? '#0f172a' : '#1e293b'),
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -718,8 +736,161 @@ export default function TasksView({
                 )}
               </div>
 
-              {/* Seção Central: Para Tarefa Especial OU Recorrente com subtarefas & plataformas */}
-              {isSpecial ? (
+              {/* Seção Central: Para Tarefa Simples, Tarefa Especial OU Recorrente com subtarefas & plataformas */}
+              {isSimple ? (
+                /* Tarefa Simples: Sem plataformas, apenas o checklist em formato limpo */
+                <div style={{ flex: 1, padding: '0 8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {task.checklist && task.checklist.length > 1 ? (
+                    <>
+                      {/* Item Principal (Título da Tarefa) */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          width: '100%'
+                        }}
+                      >
+                        <div
+                          onClick={() => {
+                            const allDone = task.checklist.every(c => c.completed);
+                            task.checklist.forEach(c => {
+                              if (allDone && c.completed) onToggleChecklistItem(task.id, c.id);
+                              else if (!allDone && !c.completed) onToggleChecklistItem(task.id, c.id);
+                            });
+                          }}
+                          style={{
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '7px',
+                            border: task.checklist.every(c => c.completed) ? '2px solid #10b981' : '2px solid #94a3b8',
+                            background: task.checklist.every(c => c.completed) ? '#10b981' : '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {task.checklist.every(c => c.completed) && <CheckCircle2 size={16} color="#ffffff" />}
+                        </div>
+
+                        <span style={{
+                          fontSize: '15px',
+                          fontWeight: '800',
+                          color: task.checklist.every(c => c.completed) ? '#64748b' : '#0f172a',
+                          textDecoration: task.checklist.every(c => c.completed) ? 'line-through' : 'none',
+                          wordBreak: 'break-word',
+                          flex: 1
+                        }}>
+                          {productSkuDisplay}
+                        </span>
+                      </div>
+
+                      {/* Subtarefas indentadas logo abaixo */}
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        paddingLeft: '34px',
+                        width: '100%',
+                        boxSizing: 'border-box'
+                      }}>
+                        {task.checklist.map((item) => {
+                          const isItemDone = Boolean(item.completed);
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => onToggleChecklistItem(task.id, item.id)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                cursor: 'pointer',
+                                userSelect: 'none',
+                                width: '100%'
+                              }}
+                            >
+                              <div style={{
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '6px',
+                                border: isItemDone ? '2px solid #10b981' : '2px solid #94a3b8',
+                                background: isItemDone ? '#10b981' : '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                transition: 'all 0.15s ease'
+                              }}
+                              >
+                                {isItemDone && <CheckCircle2 size={14} color="#ffffff" />}
+                              </div>
+
+                              <span style={{
+                                fontSize: '14px',
+                                fontWeight: '700',
+                                color: isItemDone ? '#64748b' : '#0f172a',
+                                textDecoration: isItemDone ? 'line-through' : 'none',
+                                wordBreak: 'break-word',
+                                flex: 1
+                              }}>
+                                {item.label}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    /* Tarefa Simples com item único */
+                    (() => {
+                      const firstCheckItem = task.checklist?.[0] || { id: `chk_${task.id}`, label: productSkuDisplay, completed: false };
+                      const isItemDone = Boolean(firstCheckItem.completed);
+                      return (
+                        <div
+                          onClick={() => onToggleChecklistItem(task.id, firstCheckItem.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            width: '100%'
+                          }}
+                        >
+                          <div style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '7px',
+                            border: isItemDone ? '2px solid #10b981' : '2px solid #94a3b8',
+                            background: isItemDone ? '#10b981' : '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            transition: 'all 0.15s ease'
+                          }}>
+                            {isItemDone && <CheckCircle2 size={16} color="#ffffff" />}
+                          </div>
+
+                          <span style={{
+                            fontSize: '16px',
+                            fontWeight: '800',
+                            color: isItemDone ? '#64748b' : '#0f172a',
+                            textDecoration: isItemDone ? 'line-through' : 'none',
+                            wordBreak: 'break-word',
+                            flex: 1
+                          }}>
+                            {firstCheckItem.label || productSkuDisplay}
+                          </span>
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              ) : isSpecial ? (
                 <div style={{ flex: 1, padding: '0 8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{
                     display: 'flex',
