@@ -423,115 +423,225 @@ export default function NewTaskModal({
           </button>
         </div>
 
-        {/* Seleção do Tipo de Tarefa: Tarefa Simples vs Cadastro de Produto vs Tarefa Especial vs Tarefa Recorrente */}
+        {/* Seleção do Tipo de Tarefa: Grid 2x2 com nomes curtos idênticos ao mockup da direita */}
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
           gap: '8px',
-          marginBottom: '20px',
-          flexWrap: 'wrap'
+          marginBottom: '20px'
         }}>
           <button
             type="button"
             onClick={() => setTaskType('simple')}
             style={{
-              padding: '9px 16px',
+              padding: '9px 14px',
               borderRadius: '9999px',
               fontSize: '14px',
-              fontWeight: '800',
+              fontWeight: '700',
               color: taskType === 'simple' ? '#5925dc' : '#475569',
               background: taskType === 'simple' ? '#ecebfa' : '#ffffff',
               border: taskType === 'simple' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
               boxShadow: taskType === 'simple' ? '0 2px 8px rgba(89, 37, 220, 0.2)' : 'none',
               transition: 'all 0.15s ease'
             }}
           >
-            ⚡ Tarefa Simples
+            <span>⚡</span>
+            <span>Simples</span>
           </button>
 
           <button
             type="button"
             onClick={() => setTaskType('product_catalog')}
             style={{
-              padding: '9px 16px',
+              padding: '9px 14px',
               borderRadius: '9999px',
               fontSize: '14px',
-              fontWeight: '800',
+              fontWeight: '700',
               color: taskType === 'product_catalog' ? '#5925dc' : '#475569',
               background: taskType === 'product_catalog' ? '#ecebfa' : '#ffffff',
               border: taskType === 'product_catalog' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: taskType === 'product_catalog' ? '0 2px 8px rgba(89, 37, 220, 0.2)' : 'none',
               transition: 'all 0.15s ease'
             }}
           >
-            📦 Cadastro de Produto
+            <span>📦</span>
+            <span>Produto</span>
           </button>
 
           <button
             type="button"
             onClick={() => setTaskType('special')}
             style={{
-              padding: '9px 16px',
+              padding: '9px 14px',
               borderRadius: '9999px',
               fontSize: '14px',
-              fontWeight: '800',
+              fontWeight: '700',
               color: taskType === 'special' ? '#5925dc' : '#475569',
               background: taskType === 'special' ? '#ecebfa' : '#ffffff',
               border: taskType === 'special' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: taskType === 'special' ? '0 2px 8px rgba(89, 37, 220, 0.2)' : 'none',
               transition: 'all 0.15s ease'
             }}
           >
-            ⭐ Tarefa Especial
+            <span>⭐</span>
+            <span>Especial</span>
           </button>
 
           <button
             type="button"
             onClick={() => setTaskType('recurrent')}
             style={{
-              padding: '9px 16px',
+              padding: '9px 14px',
               borderRadius: '9999px',
               fontSize: '14px',
-              fontWeight: '800',
+              fontWeight: '700',
               color: taskType === 'recurrent' ? '#5925dc' : '#475569',
               background: taskType === 'recurrent' ? '#ecebfa' : '#ffffff',
               border: taskType === 'recurrent' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              boxShadow: taskType === 'recurrent' ? '0 2px 8px rgba(89, 37, 220, 0.2)' : 'none',
               transition: 'all 0.15s ease'
             }}
           >
-            🔄 Tarefa Recorrente
+            <span>🔄</span>
+            <span>Recorrente</span>
           </button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Se for Tarefa Simples: Apenas Nome da Tarefa e Calendário */}
+          {/* Se for Tarefa Simples: Formato limpo e compacto exatamente igual à imagem da direita */}
           {taskType === 'simple' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
-                  Nome da Tarefa *
+                <label style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
+                  Nome *
                 </label>
                 <input
                   type="text"
-                  placeholder="Ex: Criar aplicativo Taresk para celular"
+                  placeholder="Nome da tarefa..."
                   value={simpleTitle}
                   onChange={(e) => setSimpleTitle(e.target.value)}
                   required
                   autoFocus
                   style={{
                     width: '100%',
-                    padding: '12px 18px',
-                    borderRadius: '9999px',
-                    border: '2px solid #5925dc',
-                    fontSize: '15px',
-                    fontWeight: '700',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '14px',
+                    fontWeight: '600',
                     color: '#1e293b',
                     boxSizing: 'border-box',
-                    outline: 'none'
+                    outline: 'none',
+                    background: '#ffffff'
                   }}
                 />
+              </div>
+
+              {/* Data de Conclusão com o botão de calendário ao lado no estilo da imagem da direita */}
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
+                  Data de Conclusão
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="25/10"
+                    maxLength={5}
+                    value={dueDate}
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/\D/g, '');
+                      if (v.length > 2) {
+                        v = v.slice(0, 2) + '/' + v.slice(2, 4);
+                      }
+                      setDueDate(v);
+                    }}
+                    style={{
+                      width: '90px',
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      color: '#0f172a',
+                      textAlign: 'center',
+                      background: '#ffffff'
+                    }}
+                  />
+
+                  {/* Botão de Calendário Roxo Claro igual ao print da direita */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      ref={dateInputRef}
+                      type="date"
+                      value={(() => {
+                        if (dueDate && dueDate.includes('/')) {
+                          const parts = dueDate.split('/');
+                          if (parts[0] && parts[1]) {
+                            const y = new Date().getFullYear();
+                            return `${y}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                          }
+                        }
+                        return '';
+                      })()}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const [year, month, day] = e.target.value.split('-');
+                          setDueDate(`${day}/${month}`);
+                        }
+                      }}
+                      style={{
+                        position: 'absolute',
+                        opacity: 0,
+                        width: '1px',
+                        height: '1px',
+                        pointerEvents: 'none',
+                        bottom: 0,
+                        right: 0
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleOpenDatePicker}
+                      title="Escolher data no calendário"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 12px',
+                        borderRadius: '10px',
+                        background: '#ede9fe',
+                        border: '1.5px solid #c4b5fd',
+                        fontSize: '16px',
+                        height: '40px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      📅
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Bloco de Subtarefas com criação dinâmica, arrastar, editar, duplicar e excluir */}
@@ -837,24 +947,6 @@ export default function NewTaskModal({
                 </div>
               </div>
 
-              {/* Informação de atribuição automática ao Allyson */}
-              <div style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '10px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '12px',
-                color: '#475569'
-              }}>
-                <span style={{ fontSize: '16px' }}>👤</span>
-                <div>
-                  <span style={{ fontWeight: '700', color: '#0f172a' }}>Atribuído automaticamente para: </span>
-                  <span style={{ color: '#5925dc', fontWeight: '800' }}>{allysonUser?.name || 'Allyson'}</span>
-                </div>
-              </div>
             </div>
           ) : taskType === 'recurrent' ? (
 
@@ -1314,10 +1406,11 @@ export default function NewTaskModal({
             )}
 
 
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>
-                Data de Conclusão (dd/mm)
-              </label>
+            {taskType !== 'simple' && (
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  Data de Conclusão (dd/mm)
+                </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="text"
@@ -1400,7 +1493,8 @@ export default function NewTaskModal({
                 </div>
               </div>
             </div>
-          </div>
+          )}
+        </div>
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>
