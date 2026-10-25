@@ -1,4 +1,5 @@
 {
+  "id": "/Taresk-JBC/",
   "name": "Taresk - Gestão JBC",
   "short_name": "Taresk",
   "description": "Sistema de Gestão de Marketplaces e Tarefas da JBC Eletro",
@@ -10,10 +11,22 @@
   "theme_color": "#6c5ce7",
   "icons": [
     {
-      "src": "icon.svg",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml",
+      "src": "/Taresk-JBC/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/Taresk-JBC/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Taresk-JBC/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }

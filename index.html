@@ -23,5 +23,14 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/Taresk-JBC/sw.js', { scope: '/Taresk-JBC/' }).catch(err => {
+            console.log('SW registration error:', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
