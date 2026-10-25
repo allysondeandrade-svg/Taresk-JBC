@@ -119,6 +119,15 @@ export default function MobileAppView({
     return { id: null, name: String(userId), avatar: '👤' };
   }
 
+  // Helper de logos de marketplaces
+  function getPlatformLogo(platName = '') {
+    const lower = String(platName || '').toLowerCase();
+    if (lower.includes('shopee')) return './icon_shopee.png';
+    if (lower.includes('mercado') || lower.includes('ml')) return './icon_mercadolivre.png';
+    if (lower.includes('amazon')) return './icon_amazon.png';
+    return null;
+  }
+
   // Helper de plataformas atribuídas
   function getTaskPlatforms(task) {
     const assignee = getAssignee(task.assignedTo);
@@ -1484,46 +1493,46 @@ export default function MobileAppView({
                     )}
                   </div>
 
-                  {/* LINHA SUPERIOR: [ Bloco Cinza Produto ] e [ % Concluída, Prazo, Ações ] */}
+                  {/* CORPO DO CARD (Foto 2): [ Bloco Quadrado Produto ] + [ Coluna Direita com Ícones e Stats ] */}
                   <div style={{
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '8px',
+                    alignItems: 'stretch',
+                    gap: '12px',
                     width: '100%',
                     boxSizing: 'border-box'
                   }}>
-                    {/* Bloco do Produto: Modelo à esquerda (Foto, SKU/Nome, Barra verde e Olho) */}
+                    {/* Bloco Quadrado do Produto (Foto, SKU/Nome, Barra Verde e Olho Roxo) */}
                     <div style={{
                       background: '#ffffff',
                       border: '1.5px solid #e2e8f0',
-                      borderRadius: '12px',
-                      padding: '8px 10px',
+                      borderRadius: '14px',
+                      padding: '8px 8px 6px 8px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      flex: '1 1 auto',
-                      minWidth: 0,
-                      maxWidth: '62%',
+                      width: '126px',
+                      minWidth: '126px',
+                      maxWidth: '126px',
+                      height: '126px',
                       boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      flexShrink: 0
                     }}>
                       {/* Foto do Produto */}
                       <div style={{
                         width: '100%',
-                        height: '74px',
+                        flex: 1,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         overflow: 'hidden',
-                        marginBottom: '4px'
+                        minHeight: 0
                       }}>
                         <img
                           src={task.productImage || matchedProduct?.imageUrl || './fogao_thumb.png'}
                           alt={displayTitle}
                           onError={(e) => {
-                            // Fallback caso a imagem personalizada falhe
                             e.currentTarget.onerror = null;
                             e.currentTarget.src = './fogao_thumb.png';
                           }}
@@ -1539,7 +1548,7 @@ export default function MobileAppView({
                       <div
                         title={displayTitle}
                         style={{
-                          fontSize: '14px',
+                          fontSize: '11px',
                           fontWeight: '800',
                           color: '#0f172a',
                           textAlign: 'center',
@@ -1547,7 +1556,8 @@ export default function MobileAppView({
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           width: '100%',
-                          marginBottom: '6px'
+                          marginTop: '2px',
+                          marginBottom: '4px'
                         }}
                       >
                         {displayTitle}
@@ -1557,15 +1567,16 @@ export default function MobileAppView({
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        width: '100%'
+                        gap: '6px',
+                        width: '100%',
+                        flexShrink: 0
                       }}>
                         {/* Barra de progresso verde */}
                         <div style={{
                           flex: 1,
-                          height: '11px',
+                          height: '9px',
                           backgroundColor: '#e2e8f0',
-                          borderRadius: '6px',
+                          borderRadius: '5px',
                           overflow: 'hidden',
                           display: 'flex',
                           alignItems: 'center'
@@ -1575,13 +1586,13 @@ export default function MobileAppView({
                               width: `${totalChecks > 0 ? percentChecks : (progressPercent > 0 ? 100 : 0)}%`,
                               height: '100%',
                               backgroundColor: '#10b981',
-                              borderRadius: '6px',
+                              borderRadius: '5px',
                               transition: 'width 0.3s ease'
                             }}
                           />
                         </div>
 
-                        {/* Botão Olho Roxo */}
+                        {/* Botão Olho Roxo (Abre checklist/fotos de cadastro) */}
                         <button
                           type="button"
                           onClick={() => onOpenChecklistModal(task)}
@@ -1598,378 +1609,237 @@ export default function MobileAppView({
                             flexShrink: 0
                           }}
                         >
-                          <Eye size={20} strokeWidth={2.2} />
+                          <Eye size={18} strokeWidth={2.2} />
                         </button>
                       </div>
                     </div>
 
-                    {/* LADO DIREITO: % Concluída, Prazo e Ícones (Duplicar, Editar, Excluir) */}
+                    {/* LADO DIREITO: Ícones Quadrados de Marketplaces no topo + Stats e Ações no rodapé direito */}
                     <div style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      textAlign: 'right'
+                      justifyContent: 'space-between',
+                      alignItems: 'stretch',
+                      flex: 1,
+                      minWidth: 0
                     }}>
+                      {/* Topo / Meio: Grade de ícones quadrados com cantos arredondados (Shopee, Mercado Livre, Amazon...) */}
                       <div style={{
-                        fontSize: '15px',
-                        fontWeight: '800',
-                        color: progressPercent === 100 ? '#059669' : (progressPercent > 0 ? '#10b981' : '#64748b'),
-                        lineHeight: '1.2'
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                        paddingTop: '2px'
                       }}>
-                        {progressPercent}% Concluída
+                        {taskPlats.map(plat => {
+                          const channelKey = plat.id || plat.name;
+                          const channelState =
+                            task.marketplaces?.[plat.id] ||
+                            task.marketplaces?.[plat.name] ||
+                            task.marketplaces?.[plat.name.toLowerCase()] ||
+                            task.marketplaces?.[plat.name.replace(/\s+/g, '')] ||
+                            (plat.name.toLowerCase().includes('shopee') ? task.marketplaces?.shopee : null) ||
+                            (plat.name.toLowerCase().includes('mercado') ? task.marketplaces?.mercadoLivre : null) ||
+                            (plat.name.toLowerCase().includes('amazon') ? task.marketplaces?.amazon : null) ||
+                            (plat.name.toLowerCase().includes('magalu') ? task.marketplaces?.magalu : null) ||
+                            {};
+
+                          const isBoxDone = Boolean(channelState.box || channelState.u);
+                          const isRocketDone = Boolean(channelState.rocket || channelState.o);
+                          const isPieDone = Boolean(channelState.pie || channelState.p);
+                          const isAllDone = (isBoxDone && isRocketDone && isPieDone) || Boolean(channelState.active);
+
+                          const logoSrc = getPlatformLogo(plat.name);
+
+                          return (
+                            <button
+                              key={plat.id || plat.name}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newActive = !isAllDone;
+                                if (onUpdateTask) {
+                                  onUpdateTask(task.id, {
+                                    marketplaces: {
+                                      ...(task.marketplaces || {}),
+                                      [channelKey]: {
+                                        ...channelState,
+                                        box: newActive,
+                                        rocket: newActive,
+                                        pie: newActive,
+                                        u: newActive,
+                                        o: newActive,
+                                        p: newActive,
+                                        active: newActive,
+                                        status: newActive ? 'published' : 'pending'
+                                      }
+                                    }
+                                  });
+                                } else {
+                                  onToggleMarketplace(task.id, channelKey, 'box');
+                                  onToggleMarketplace(task.id, channelKey, 'rocket');
+                                  onToggleMarketplace(task.id, channelKey, 'pie');
+                                }
+                              }}
+                              title={`${plat.name}: ${isAllDone ? 'Concluído (Clique para alternar)' : 'Pendente (Clique para marcar verde)'}`}
+                              style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '8px',
+                                border: isAllDone ? '2.5px solid #16a34a' : '1.5px solid #e2e8f0',
+                                background: isAllDone ? '#22c55e' : '#ffffff',
+                                boxShadow: isAllDone ? '0 2px 6px rgba(34, 197, 94, 0.35)' : '0 1px 3px rgba(0,0,0,0.06)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                padding: 0,
+                                overflow: 'hidden',
+                                position: 'relative',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {logoSrc ? (
+                                <img
+                                  src={logoSrc}
+                                  alt={plat.name}
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover'
+                                  }}
+                                />
+                              ) : (
+                                <span style={{
+                                  fontSize: '11px',
+                                  fontWeight: '800',
+                                  color: isAllDone ? '#ffffff' : '#334155'
+                                }}>
+                                  {plat.name.slice(0, 2).toUpperCase()}
+                                </span>
+                              )}
+
+                              {/* Indicador de check se concluído e com logo colorido original */}
+                              {isAllDone && (
+                                <div style={{
+                                  position: 'absolute',
+                                  inset: 0,
+                                  background: 'rgba(34, 197, 94, 0.45)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  borderRadius: '6px'
+                                }}>
+                                  <CheckCircle2 size={20} color="#ffffff" strokeWidth={3} />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
 
+                      {/* Canto Inferior Direito: Porcentagem, Data de Entrega e Botões de Ações */}
                       <div style={{
-                        fontSize: '15px',
-                        fontWeight: '900',
-                        color: '#0f172a',
-                        lineHeight: '1.2',
-                        marginTop: '2px'
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        justifyContent: 'flex-end',
+                        textAlign: 'right',
+                        marginTop: '6px'
                       }}>
-                        {formatDueDateDisplay(task.dueDate)}
-                      </div>
+                        <div style={{
+                          fontSize: '15px',
+                          fontWeight: '800',
+                          color: progressPercent === 100 ? '#059669' : (progressPercent > 0 ? '#10b981' : '#64748b'),
+                          lineHeight: '1.2'
+                        }}>
+                          {progressPercent}% Concluída
+                        </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '6px' }}>
-                        {onDuplicateTask && (
+                        <div style={{
+                          fontSize: '15px',
+                          fontWeight: '900',
+                          color: '#0f172a',
+                          lineHeight: '1.2',
+                          marginTop: '2px'
+                        }}>
+                          {formatDueDateDisplay(task.dueDate)}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '6px' }}>
+                          {onDuplicateTask && (
+                            <button
+                              onClick={() => onDuplicateTask(task)}
+                              title="Duplicar Tarefa"
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '6px',
+                                border: '1px solid #bbf7d0',
+                                background: '#f0fdf4',
+                                color: '#16a34a',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Copy size={12} />
+                            </button>
+                          )}
+
                           <button
-                            onClick={() => onDuplicateTask(task)}
-                            title="Duplicar Tarefa"
+                            onClick={() => {
+                              setEditingTask(task);
+                              setEditTitle(task.title || '');
+                              setEditDueDate(formatDueDateDisplay(task.dueDate));
+                              const subs = task.checklist ? task.checklist.map(c => ({ ...c })) : [];
+                              setEditSubtasks(subs);
+                              setNewEditSubtaskInput('');
+                            }}
+                            title="Editar Tarefa"
                             style={{
                               width: '24px',
                               height: '24px',
                               borderRadius: '6px',
-                              border: '1px solid #bbf7d0',
-                              background: '#f0fdf4',
-                              color: '#16a34a',
+                              border: '1px solid #e2e8f0',
+                              background: '#f8fafc',
+                              color: '#64748b',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               cursor: 'pointer'
                             }}
                           >
-                            <Copy size={12} />
+                            <Edit2 size={12} />
                           </button>
-                        )}
 
-                        <button
-                          onClick={() => {
-                            setEditingTask(task);
-                            setEditTitle(task.title || '');
-                            setEditDueDate(formatDueDateDisplay(task.dueDate));
-                            const subs = task.checklist ? task.checklist.map(c => ({ ...c })) : [];
-                            setEditSubtasks(subs);
-                            setNewEditSubtaskInput('');
-                          }}
-                          title="Editar Tarefa"
-                          style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '6px',
-                            border: '1px solid #e2e8f0',
-                            background: '#f8fafc',
-                            color: '#64748b',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Edit2 size={12} />
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Excluir a tarefa "${displayTitle}"?`)) {
-                              onDeleteTask(task);
-                            }
-                          }}
-                          title="Excluir Tarefa"
-                          style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '6px',
-                            border: '1px solid #fecaca',
-                            background: '#fef2f2',
-                            color: '#ef4444',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-
-                  {/* GRADE DE CANAIS DE MARKETPLACES (Com 3 quadrados brancos de checklist: Caixa, Foguete, Pizza) */}
-                  {!isSimple && (
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))',
-                      gap: '8px',
-                      marginTop: '4px',
-                      width: '100%',
-                      boxSizing: 'border-box'
-                    }}>
-                      {taskPlats.map(plat => {
-                        const channelKey = plat.id || plat.name;
-                        const channelState =
-                          task.marketplaces?.[plat.id] ||
-                          task.marketplaces?.[plat.name] ||
-                          task.marketplaces?.[plat.name.toLowerCase()] ||
-                          task.marketplaces?.[plat.name.replace(/\s+/g, '')] ||
-                          (plat.name.toLowerCase().includes('shopee') ? task.marketplaces?.shopee : null) ||
-                          (plat.name.toLowerCase().includes('mercado') ? task.marketplaces?.mercadoLivre : null) ||
-                          (plat.name.toLowerCase().includes('amazon') ? task.marketplaces?.amazon : null) ||
-                          (plat.name.toLowerCase().includes('magalu') ? task.marketplaces?.magalu : null) ||
-                          {};
-
-                        let defaultColor = plat.color;
-                        if (!defaultColor || defaultColor === '#5925dc') {
-                          const lower = plat.name.toLowerCase();
-                          if (lower.includes('shopee')) defaultColor = '#ff5722';
-                          else if (lower.includes('mercado') || lower.includes('ml')) defaultColor = '#eab308';
-                          else if (lower.includes('amazon')) defaultColor = '#334155';
-                          else if (lower.includes('magalu')) defaultColor = '#38bdf8';
-                          else if (lower.includes('shein')) defaultColor = '#0f172a';
-                          else defaultColor = '#6366f1';
-                        }
-
-                        const isBoxDone = Boolean(channelState.box || channelState.u);
-                        const isRocketDone = Boolean(channelState.rocket || channelState.o);
-                        const isPieDone = Boolean(channelState.pie || channelState.p);
-                        const isAllDone = isBoxDone && isRocketDone && isPieDone;
-
-                        const cardBg = isAllDone ? '#22c55e' : defaultColor;
-                        const isYellow = defaultColor === '#eab308' || plat.name.toLowerCase().includes('mercado');
-                        const textColor = (!isAllDone && isYellow) ? '#1e293b' : '#ffffff';
-
-                        return (
-                          <div
-                            key={plat.id || plat.name}
-                            style={{
-                              background: cardBg,
-                              borderRadius: '12px',
-                              padding: '8px 6px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              minHeight: '64px',
-                              boxShadow: isAllDone ? '0 2px 6px rgba(34, 197, 94, 0.35)' : '0 2px 5px rgba(0,0,0,0.08)',
-                              userSelect: 'none',
-                              boxSizing: 'border-box'
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Excluir a tarefa "${displayTitle}"?`)) {
+                                onDeleteTask(task);
+                              }
                             }}
-                          >
-                            {/* Nome da plataforma */}
-                            <div style={{
-                              fontSize: '12px',
-                              fontWeight: '800',
-                              color: textColor,
-                              textAlign: 'center',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              maxWidth: '88px',
-                              marginBottom: '6px'
-                            }}>
-                              {plat.name}
-                            </div>
-
-                            {/* 3 Quadrados brancos de checklist */}
-                            <div style={{
+                            title="Excluir Tarefa"
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '6px',
+                              border: '1px solid #fecaca',
+                              background: '#fef2f2',
+                              color: '#ef4444',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '5px'
-                            }}>
-                              {/* 1º Quadrado: Ícone de Caixa */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onToggleMarketplace(task.id, channelKey, 'box');
-                                }}
-                                title="Checklist 1: Caixa"
-                                style={{
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '7px',
-                                  background: isBoxDone ? '#d0eedc' : '#ffffff',
-                                  border: isBoxDone ? '2.5px solid #1b6e36' : '1px solid rgba(0,0,0,0.08)',
-                                  boxShadow: isBoxDone
-                                    ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 1px 3px rgba(0,0,0,0.12)'
-                                    : '0 1px 3px rgba(0,0,0,0.12)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  padding: 0,
-                                  position: 'relative',
-                                  boxSizing: 'border-box'
-                                }}
-                              >
-                                <Package
-                                  size={16}
-                                  color={isBoxDone ? '#1b6e36' : '#1e293b'}
-                                  strokeWidth={isBoxDone ? 2.3 : 1.75}
-                                />
-                              </button>
-
-                              {/* 2º Quadrado: Foguete (Foto 2) */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onToggleMarketplace(task.id, channelKey, 'rocket');
-                                }}
-                                title="Checklist 2: Foguete"
-                                style={{
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '7px',
-                                  background: isRocketDone ? '#d0eedc' : '#ffffff',
-                                  border: isRocketDone ? '2.5px solid #1b6e36' : '1px solid rgba(0,0,0,0.08)',
-                                  boxShadow: isRocketDone
-                                    ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 1px 3px rgba(0,0,0,0.12)'
-                                    : '0 1px 3px rgba(0,0,0,0.12)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  padding: 0,
-                                  boxSizing: 'border-box'
-                                }}
-                              >
-                                <img
-                                  src={isRocketDone ? './icon_rocket_inner_green.png' : './marketplace_rocket.png'}
-                                  alt="Rocket"
-                                  style={{
-                                    width: '16px',
-                                    height: '16px',
-                                    objectFit: 'contain'
-                                  }}
-                                />
-                              </button>
-
-                              {/* 3º Quadrado: Pizza (Foto 3) */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onToggleMarketplace(task.id, channelKey, 'pie');
-                                }}
-                                title="Checklist 3: Pizza"
-                                style={{
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '7px',
-                                  background: isPieDone ? '#d0eedc' : '#ffffff',
-                                  border: isPieDone ? '2.5px solid #1b6e36' : '1px solid rgba(0,0,0,0.08)',
-                                  boxShadow: isPieDone
-                                    ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 1px 3px rgba(0,0,0,0.12)'
-                                    : '0 1px 3px rgba(0,0,0,0.12)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  padding: 0,
-                                  boxSizing: 'border-box'
-                                }}
-                              >
-                                <img
-                                  src={isPieDone ? './icon_pie_inner_green.png' : './marketplace_pie.png'}
-                                  alt="Pie"
-                                  style={{
-                                    width: '16px',
-                                    height: '16px',
-                                    objectFit: 'contain'
-                                  }}
-                                />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-
-                  {/* CHECKLIST DE TAREFAS / SUBTAREFAS LOGO ABAIXO */}
-                  {task.checklist && task.checklist.length > 0 && (
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                      marginTop: '4px',
-                      paddingTop: '6px',
-                      borderTop: '1px dashed #e2e8f0',
-                      width: '100%',
-                      boxSizing: 'border-box'
-                    }}>
-                      {task.checklist.slice(0, 5).map((item) => (
-                        <div
-                          key={item.id}
-                          onClick={() => onToggleChecklistItem(task.id, item.id)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            cursor: 'pointer',
-                            userSelect: 'none',
-                            width: '100%'
-                          }}
-                        >
-                          <div style={{
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '5px',
-                            border: item.completed ? '2px solid #10b981' : '2px solid #94a3b8',
-                            background: item.completed ? '#10b981' : '#ffffff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                          }}>
-                            {item.completed && <CheckCircle2 size={14} color="#ffffff" />}
-                          </div>
-                          <span style={{
-                            fontSize: '13px',
-                            fontWeight: '700',
-                            color: item.completed ? '#64748b' : '#0f172a',
-                            textDecoration: item.completed ? 'line-through' : 'none',
-                            wordBreak: 'break-word',
-                            flex: 1
-                          }}>
-                            {item.label}
-                          </span>
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </div>
-                      ))}
-
-                      {task.checklist.length > 5 && (
-                        <button
-                          onClick={() => onOpenChecklistModal(task)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#5925dc',
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            padding: '2px 0'
-                          }}
-                        >
-                          + ver mais {task.checklist.length - 5} subtarefas...
-                        </button>
-                      )}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })

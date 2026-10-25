@@ -71,18 +71,19 @@ function setupSheets() {
     ensureIdColumn(userSheet, 'ID');
   }
 
-  // 2. Aba Produtos: [ID, SKU, Custo, Largura, Comprimento, Altura, Peso]
+  // 2. Aba Produtos: [ID, SKU, Foto, Custo, Largura, Comprimento, Altura, Peso]
   let prodSheet = ss.getSheetByName(SHEETS.PRODUCTS);
   if (!prodSheet) {
     prodSheet = ss.insertSheet(SHEETS.PRODUCTS);
-    prodSheet.appendRow(['ID', 'SKU', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
-    prodSheet.appendRow(['00001', 'FOG-02-BOC', 145.00, 32, 54, 18, 4.80]);
-    prodSheet.appendRow(['00002', 'PAN-ELE-05L', 120.00, 30, 30, 35, 3.50]);
-    prodSheet.appendRow(['00003', 'VENT-COL-40', 89.90, 45, 45, 130, 5.20]);
-    prodSheet.appendRow(['00004', 'FRIT-AIR-4L', 185.00, 33, 33, 38, 4.60]);
+    prodSheet.appendRow(['ID', 'SKU', 'Foto', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
+    prodSheet.appendRow(['00001', 'FOG-02-BOC', '', 145.00, 32, 54, 18, 4.80]);
+    prodSheet.appendRow(['00002', 'PAN-ELE-05L', '', 120.00, 30, 30, 35, 3.50]);
+    prodSheet.appendRow(['00003', 'VENT-COL-40', '', 89.90, 45, 45, 130, 5.20]);
+    prodSheet.appendRow(['00004', 'FRIT-AIR-4L', '', 185.00, 33, 33, 38, 4.60]);
     styleHeader(prodSheet);
   } else {
     ensureIdColumn(prodSheet, 'ID');
+    ensureProductHeaders(prodSheet);
   }
 
   // 3. Aba Plataformas: [ID, Nome, Cor]
@@ -122,6 +123,7 @@ function setupSheets() {
     styleHeader(taskSheet);
   } else {
     ensureIdColumn(taskSheet, 'ID');
+    fixTaskSheetHeaders(taskSheet, 'AtualizadoEm');
   }
 
   // 5. Aba Tarefas Finalizadas: [ID, Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, FinalizadoEm]
@@ -145,6 +147,7 @@ function setupSheets() {
     styleHeader(compTaskSheet);
   } else {
     ensureIdColumn(compTaskSheet, 'ID');
+    fixTaskSheetHeaders(compTaskSheet, 'FinalizadoEm');
   }
 
   // 6. Aba Configurações da Precificadora (Margens e Taxas)
@@ -182,7 +185,58 @@ function setupSheets() {
     ensureIdColumn(tmplSheet, 'ID');
   }
 
-  Logger.log('Todas as abas do Taresk foram configuradas com suporte a ID (00001, 00002...)!');
+  Logger.log('Todas as abas do Taresk foram configuradas e corrigidas com sucesso!');
+}
+
+/**
+ * Corrige cabeçalhos da aba Tarefas / Tarefas_Finalizadas
+ * Se o cabeçalho da coluna 2 for 'x' ou estiver desalinhado, renomeia para 'Tipo'
+ */
+function fixTaskSheetHeaders(sheet, dateHeaderName) {
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').trim());
+  
+  // Se a coluna 2 estiver com 'x', vazia ou minúscula, renomeia explicitamente para 'Tipo'
+  if (headers.length >= 2) {
+    const col2 = headers[1].toLowerCase();
+    if (col2 === 'x' || col2 === '' || col2 === 'tipo' || col2 === 'type') {
+      sheet.getRange(1, 2).setValue('Tipo');
+    }
+  }
+
+  // Garante os nomes corretos nos primeiros cabeçalhos
+  const expected = [
+    'ID', 'Tipo', 'SKU', 'AtribuidoPara', 'AtribuidoPor', 'CriadoPor', 
+    'Prazo', 'Status', 'Marketplaces_JSON', 'Checklist_JSON', 'Observacoes', dateHeaderName || 'AtualizadoEm'
+  ];
+
+  for (let c = 0; c < expected.length; c++) {
+    const currentVal = headers[c] ? headers[c].toLowerCase() : '';
+    // Se a coluna estiver com cabeçalho genérico ou 'x', aplica o esperado
+    if (!headers[c] || currentVal === 'x') {
+      sheet.getRange(1, c + 1).setValue(expected[c]);
+    }
+  }
+
+  styleHeader(sheet);
+}
+
+/**
+ * Garante que a aba Produtos tenha coluna 'Foto'
+ */
+function ensureProductHeaders(sheet) {
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').toLowerCase().trim());
+  
+  const hasFoto = headers.some(h => h.includes('foto') || h.includes('imagem') || h.includes('img') || h.includes('url'));
+  if (!hasFoto) {
+    // Insere coluna 'Foto' após SKU (Coluna 3)
+    const idxSku = headers.indexOf('sku');
+    const insertIndex = idxSku !== -1 ? (idxSku + 2) : 3;
+    sheet.insertColumnAfter(insertIndex - 1);
+    sheet.getRange(1, insertIndex).setValue('Foto');
+    styleHeader(sheet);
+  }
 }
 
 /**
@@ -532,6 +586,7 @@ function getProductsDataAsJson() {
 
   const idxId = headers.indexOf('id');
   const idxSku = headers.indexOf('sku');
+  const idxFoto = headers.findIndex(h => h.includes('foto') || h.includes('imagem') || h.includes('img') || h.includes('url'));
   const idxTitulo = headers.findIndex(h => h.includes('titulo') || h.includes('nome'));
   const idxCusto = headers.indexOf('custo');
   const idxLargura = headers.indexOf('largura');
@@ -543,11 +598,13 @@ function getProductsDataAsJson() {
     const rawId = idxId !== -1 && r[idxId] ? String(r[idxId]).trim() : '';
     const sku = idxSku !== -1 ? String(r[idxSku] || '').trim() : String(r[0] || '').trim();
     const titulo = idxTitulo !== -1 && r[idxTitulo] ? String(r[idxTitulo]).trim() : '';
+    const rawFoto = idxFoto !== -1 && r[idxFoto] ? String(r[idxFoto]).trim() : '';
 
     return {
       id: rawId || sku || ('prod_' + (i + 1)),
       sku: sku,
       title: titulo,
+      imageUrl: rawFoto,
       cost: idxCusto !== -1 ? parseBrazilianNumber(r[idxCusto]) : 0,
       width: idxLargura !== -1 ? parseBrazilianNumber(r[idxLargura]) : 0,
       length: idxComp !== -1 ? parseBrazilianNumber(r[idxComp]) : 0,
@@ -606,7 +663,12 @@ function getTasksDataAsJson(sheetName) {
   const rows = values.slice(1);
 
   const idxId = headers.indexOf('id');
-  const idxTipo = headers.findIndex(h => h.includes('tipo'));
+  // Se a coluna se chamar 'tipo', 'type', 'x' ou se a coluna 1 estiver após a coluna ID
+  let idxTipo = headers.findIndex(h => h.includes('tipo') || h === 'type' || h === 'x');
+  if (idxTipo === -1 && headers.indexOf('id') === 0 && headers.length > 1) {
+    idxTipo = 1;
+  }
+
   const idxProdId = headers.findIndex(h => h.includes('produtoid') || h.includes('produto') || h.includes('sku'));
   const idxTitulo = headers.findIndex(h => h.includes('titulo') || h.includes('nome'));
   const idxAtribPara = headers.findIndex(h => h.includes('atrib') && h.includes('para'));
@@ -630,13 +692,31 @@ function getTasksDataAsJson(sheetName) {
     try { marketplaces = rawMp ? JSON.parse(rawMp) : {}; } catch (e) { }
     try { checklist = rawChk ? JSON.parse(rawChk) : []; } catch (e) { }
 
-    const type = (idxTipo !== -1 && r[idxTipo]) ? r[idxTipo] : (r[0] || 'product_catalog');
-    const sku = (idxProdId !== -1 && r[idxProdId]) ? String(r[idxProdId]).trim() : String(r[1] || '').trim();
+    // Resolução inteligente do Tipo de Tarefa:
+    // Nunca deixa uma tarefa 'simple' ser confundida com cadastro de produto!
+    const rawTypeVal = idxTipo !== -1 ? String(r[idxTipo] || '').trim().toLowerCase() : '';
+    let type = 'product_catalog';
+    if (rawTypeVal === 'simple' || rawTypeVal === 'simples') {
+      type = 'simple';
+    } else if (rawTypeVal === 'special' || rawTypeVal === 'especial') {
+      type = 'special';
+    } else if (rawTypeVal === 'recurrent' || rawTypeVal === 'recorrente') {
+      type = 'recurrent';
+    } else if (rawTypeVal === 'product_catalog' || rawTypeVal === 'cadastro' || rawTypeVal === 'produto') {
+      type = 'product_catalog';
+    } else if (rawTypeVal) {
+      type = rawTypeVal;
+    } else {
+      // Se estiver em branco na coluna Tipo: se tiver marketplaces ou checklist preenchido, tende a ser product_catalog
+      type = (rawMp || rawChk) ? 'product_catalog' : 'simple';
+    }
+
+    const sku = (idxProdId !== -1 && r[idxProdId]) ? String(r[idxProdId]).trim() : String(r[2] || r[1] || '').trim();
     const title = (idxTitulo !== -1 && r[idxTitulo]) ? String(r[idxTitulo]).trim() : sku;
-    const assignedTo = (idxAtribPara !== -1 && r[idxAtribPara]) ? String(r[idxAtribPara]).trim() : String(r[2] || '').trim();
-    const assignedByName = (idxAtribPor !== -1 && r[idxAtribPor]) ? String(r[idxAtribPor]).trim() : String(r[3] || '').trim();
-    const createdById = (idxCriadoPor !== -1 && r[idxCriadoPor]) ? String(r[idxCriadoPor]).trim() : String(r[4] || '').trim();
-    const dueDate = formatDueDateToDdMm(idxPrazo !== -1 ? r[idxPrazo] : r[5]);
+    const assignedTo = (idxAtribPara !== -1 && r[idxAtribPara]) ? String(r[idxAtribPara]).trim() : String(r[3] || '').trim();
+    const assignedByName = (idxAtribPor !== -1 && r[idxAtribPor]) ? String(r[idxAtribPor]).trim() : String(r[4] || '').trim();
+    const createdById = (idxCriadoPor !== -1 && r[idxCriadoPor]) ? String(r[idxCriadoPor]).trim() : String(r[5] || '').trim();
+    const dueDate = formatDueDateToDdMm(idxPrazo !== -1 ? r[idxPrazo] : r[6]);
     const status = (idxStatus !== -1 && r[idxStatus]) ? String(r[idxStatus]).trim() : (sheetName === SHEETS.COMPLETED_TASKS ? 'completed' : 'in_progress');
     var notes = (idxObs !== -1 && r[idxObs]) ? String(r[idxObs]) : '';
     var recurrenceData = null;
@@ -936,7 +1016,18 @@ function upsertProduct(prod) {
     finalId = getNextFormattedId(SHEETS.PRODUCTS);
   }
 
-  const baseData = [
+  const hasFotoCol = headers.some(h => h.includes('foto') || h.includes('imagem') || h.includes('img') || h.includes('url'));
+  const fotoVal = prod.imageUrl || prod.foto || prod.image || '';
+
+  const baseData = hasFotoCol ? [
+    prod.sku || prod.id || '',
+    fotoVal,
+    parseBrazilianNumber(prod.cost),
+    parseBrazilianNumber(prod.width),
+    parseBrazilianNumber(prod.length),
+    parseBrazilianNumber(prod.height),
+    parseBrazilianNumber(prod.weight)
+  ] : [
     prod.sku || prod.id || '',
     parseBrazilianNumber(prod.cost),
     parseBrazilianNumber(prod.width),
