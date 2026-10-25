@@ -74,17 +74,47 @@ export default function MobileAppView({
   const [editTitle, setEditTitle] = useState('');
   const [editDueDate, setEditDueDate] = useState('');
 
-  // Helper de responsável
+  // Helper de responsável com resolução inteligente de nomes humanos
   function getAssignee(userId) {
     if (!userId) return { id: null, name: 'Colaborador', avatar: '👤' };
     const norm = (s) => String(s || '').toLowerCase().trim();
     const target = norm(userId);
+    const parsedTargetNum = parseInt(target, 10);
+
     const found = users.find(u => {
       const uId = norm(u.id);
       const uName = norm(u.name);
-      return uId === target || uName === target || uName.includes(target);
+      const uEmail = norm(u.email);
+      if (uId === target || uName === target || uEmail === target) return true;
+      if (!isNaN(parsedTargetNum) && parseInt(uId, 10) === parsedTargetNum) return true;
+      if (uName && (target.includes(uName) || uName.includes(target))) return true;
+      if (uEmail && (target.includes(uEmail.replace(/[@.]/g, '_')) || target.includes(norm(uEmail)))) return true;
+      return false;
     });
-    return found || { id: null, name: String(userId), avatar: '👤' };
+
+    if (found) return found;
+
+    // Se o backend gravou o ID técnico como 'user_master', trata como Administrador / JBC Eletro
+    if (target === 'user_master' || target.includes('master') || target.includes('admin')) {
+      const adminUser = users.find(u => u.role === 'premium_admin' || norm(u.name).includes('admin') || norm(u.name).includes('jbc'));
+      return adminUser || { id: userId, name: 'JBC Eletro (Admin)', avatar: '⚡' };
+    }
+
+    // Se o ID for baseado em e-mail (ex: user_jeremiaseltroltda_40gmail_com), extrai um nome legível
+    if (target.startsWith('user_')) {
+      let clean = target.replace(/^user_/, '').replace(/_40gmail.*$/i, '').replace(/_40.*$/i, '').replace(/@.*$/, '');
+      clean = clean.replace(/_+/g, ' ').trim();
+      // Capitaliza a primeira letra de cada palavra
+      const formattedName = clean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      if (formattedName) {
+        // Tenta achar na lista de usuários pelo nome aproximado
+        const approxUser = users.find(u => norm(u.name).includes(norm(formattedName)) || norm(formattedName).includes(norm(u.name)));
+        if (approxUser) return approxUser;
+        return { id: userId, name: formattedName, avatar: '👤' };
+      }
+    }
+
+    return { id: null, name: String(userId), avatar: '👤' };
   }
 
   // Helper de plataformas atribuídas
@@ -1420,7 +1450,7 @@ export default function MobileAppView({
                       color: '#475569'
                     }}>
                       <User size={12} color="#64748b" />
-                      <span>{assignee.name || task.assignedByName || 'Colaborador'}</span>
+                      <span>{assignee.name || (task.assignedByName && !task.assignedByName.startsWith('user_') ? task.assignedByName : 'Colaborador')}</span>
                       {isRecurrent && <span style={{ color: '#7c3aed', marginLeft: '4px' }}>🔄</span>}
                       {isSpecial && <span style={{ color: '#d97706', marginLeft: '4px' }}>⭐</span>}
                     </div>
