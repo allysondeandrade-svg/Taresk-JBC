@@ -1533,24 +1533,25 @@ function MarketplaceCard({
           style={{
             width: '32px',
             height: '32px',
-            borderRadius: '9px',
-            background: isBoxDone ? '#d9f2e3' : '#ffffff',
-            border: isBoxDone ? '3px solid #1b6e36' : '1px solid rgba(0,0,0,0.06)',
+            borderRadius: '8px',
+            background: isBoxDone ? '#d0eedc' : '#ffffff',
+            border: isBoxDone ? '2.5px solid #1b6e36' : '1px solid rgba(0,0,0,0.08)',
             boxShadow: isBoxDone
-              ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 2px 5px rgba(0,0,0,0.12)'
+              ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 1px 3px rgba(0,0,0,0.12)'
               : '0 1px 3px rgba(0,0,0,0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             padding: 0,
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            boxSizing: 'border-box'
           }}
         >
           <Package
             size={18}
             color={isBoxDone ? '#1b6e36' : '#1e293b'}
-            strokeWidth={isBoxDone ? 2.4 : 1.75}
+            strokeWidth={isBoxDone ? 2.3 : 1.75}
           />
         </button>
 
@@ -1565,11 +1566,11 @@ function MarketplaceCard({
           style={{
             width: '32px',
             height: '32px',
-            borderRadius: '9px',
-            background: isRocketDone ? '#d9f2e3' : '#ffffff',
-            border: isRocketDone ? '3px solid #1b6e36' : '1px solid rgba(0,0,0,0.06)',
+            borderRadius: '8px',
+            background: isRocketDone ? '#d0eedc' : '#ffffff',
+            border: isRocketDone ? '2.5px solid #1b6e36' : '1px solid rgba(0,0,0,0.08)',
             boxShadow: isRocketDone
-              ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 2px 5px rgba(0,0,0,0.12)'
+              ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 1px 3px rgba(0,0,0,0.12)'
               : '0 1px 3px rgba(0,0,0,0.12)',
             display: 'flex',
             alignItems: 'center',
@@ -1577,16 +1578,16 @@ function MarketplaceCard({
             cursor: 'pointer',
             padding: 0,
             transition: 'all 0.15s ease',
-            overflow: 'hidden'
+            boxSizing: 'border-box'
           }}
         >
           <img
-            src={isRocketDone ? './marketplace_rocket_green.png' : './marketplace_rocket.png'}
+            src={isRocketDone ? './icon_rocket_inner_green.png' : './marketplace_rocket.png'}
             alt="Rocket"
             style={{
-              width: isRocketDone ? '100%' : '20px',
-              height: isRocketDone ? '100%' : '20px',
-              objectFit: 'cover'
+              width: '19px',
+              height: '19px',
+              objectFit: 'contain'
             }}
           />
         </button>
@@ -1602,11 +1603,11 @@ function MarketplaceCard({
           style={{
             width: '32px',
             height: '32px',
-            borderRadius: '9px',
-            background: isPieDone ? '#d9f2e3' : '#ffffff',
-            border: isPieDone ? '3px solid #1b6e36' : '1px solid rgba(0,0,0,0.06)',
+            borderRadius: '8px',
+            background: isPieDone ? '#d0eedc' : '#ffffff',
+            border: isPieDone ? '2.5px solid #1b6e36' : '1px solid rgba(0,0,0,0.08)',
             boxShadow: isPieDone
-              ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 2px 5px rgba(0,0,0,0.12)'
+              ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 1px 3px rgba(0,0,0,0.12)'
               : '0 1px 3px rgba(0,0,0,0.12)',
             display: 'flex',
             alignItems: 'center',
@@ -1614,16 +1615,16 @@ function MarketplaceCard({
             cursor: 'pointer',
             padding: 0,
             transition: 'all 0.15s ease',
-            overflow: 'hidden'
+            boxSizing: 'border-box'
           }}
         >
           <img
-            src={isPieDone ? './marketplace_pie_green.png' : './marketplace_pie.png'}
+            src={isPieDone ? './icon_pie_inner_green.png' : './marketplace_pie.png'}
             alt="Pie"
             style={{
-              width: isPieDone ? '100%' : '20px',
-              height: isPieDone ? '100%' : '20px',
-              objectFit: 'cover'
+              width: '19px',
+              height: '19px',
+              objectFit: 'contain'
             }}
           />
         </button>
