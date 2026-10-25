@@ -1799,10 +1799,12 @@ export default function MobileAppView({
                                 style={{
                                   width: '28px',
                                   height: '28px',
-                                  borderRadius: '6px',
-                                  background: isBoxDone ? '#dcfce7' : '#ffffff',
-                                  border: isBoxDone ? '2px solid #16a34a' : 'none',
-                                  boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                                  borderRadius: '8px',
+                                  background: isBoxDone ? '#d9f2e3' : '#ffffff',
+                                  border: isBoxDone ? '2.5px solid #1b6e36' : '1px solid rgba(0,0,0,0.06)',
+                                  boxShadow: isBoxDone
+                                    ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 2px 5px rgba(0,0,0,0.12)'
+                                    : '0 1px 3px rgba(0,0,0,0.12)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1811,7 +1813,11 @@ export default function MobileAppView({
                                   position: 'relative'
                                 }}
                               >
-                                <Package size={17} color={isBoxDone ? '#16a34a' : '#1e293b'} strokeWidth={1.75} />
+                                <Package
+                                  size={16}
+                                  color={isBoxDone ? '#1b6e36' : '#1e293b'}
+                                  strokeWidth={isBoxDone ? 2.4 : 1.75}
+                                />
                               </button>
 
                               {/* 2º Quadrado: Ícone Foguete azul (Foto 2) */}
@@ -1825,10 +1831,12 @@ export default function MobileAppView({
                                 style={{
                                   width: '28px',
                                   height: '28px',
-                                  borderRadius: '6px',
-                                  background: isRocketDone ? '#dcfce7' : '#ffffff',
-                                  border: isRocketDone ? '2px solid #16a34a' : 'none',
-                                  boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                                  borderRadius: '8px',
+                                  background: isRocketDone ? '#d9f2e3' : '#ffffff',
+                                  border: isRocketDone ? '2.5px solid #1b6e36' : '1px solid rgba(0,0,0,0.06)',
+                                  boxShadow: isRocketDone
+                                    ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 2px 5px rgba(0,0,0,0.12)'
+                                    : '0 1px 3px rgba(0,0,0,0.12)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1840,10 +1848,12 @@ export default function MobileAppView({
                                   src="./marketplace_rocket.png"
                                   alt="Rocket"
                                   style={{
-                                    width: '19px',
-                                    height: '19px',
+                                    width: '18px',
+                                    height: '18px',
                                     objectFit: 'contain',
-                                    filter: isRocketDone ? 'drop-shadow(0 0 1px #16a34a)' : 'none'
+                                    filter: isRocketDone
+                                      ? 'brightness(0) saturate(100%) invert(32%) sepia(55%) saturate(830%) hue-rotate(95deg) brightness(92%) contrast(93%)'
+                                      : 'none'
                                   }}
                                 />
                               </button>
@@ -1859,10 +1869,12 @@ export default function MobileAppView({
                                 style={{
                                   width: '28px',
                                   height: '28px',
-                                  borderRadius: '6px',
-                                  background: isPieDone ? '#dcfce7' : '#ffffff',
-                                  border: isPieDone ? '2px solid #16a34a' : 'none',
-                                  boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                                  borderRadius: '8px',
+                                  background: isPieDone ? '#d9f2e3' : '#ffffff',
+                                  border: isPieDone ? '2.5px solid #1b6e36' : '1px solid rgba(0,0,0,0.06)',
+                                  boxShadow: isPieDone
+                                    ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 2px 5px rgba(0,0,0,0.12)'
+                                    : '0 1px 3px rgba(0,0,0,0.12)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1874,10 +1886,12 @@ export default function MobileAppView({
                                   src="./marketplace_pie.png"
                                   alt="Pie"
                                   style={{
-                                    width: '19px',
-                                    height: '19px',
+                                    width: '18px',
+                                    height: '18px',
                                     objectFit: 'contain',
-                                    filter: isPieDone ? 'drop-shadow(0 0 1px #16a34a)' : 'none'
+                                    filter: isPieDone
+                                      ? 'brightness(0) saturate(100%) invert(32%) sepia(55%) saturate(830%) hue-rotate(95deg) brightness(92%) contrast(93%)'
+                                      : 'none'
                                   }}
                                 />
                               </button>
