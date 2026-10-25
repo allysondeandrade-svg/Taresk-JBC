@@ -357,12 +357,32 @@ export default function App() {
     localTaskUpdatesRef.current[taskId] = Date.now();
     setTasks(prev => prev.map(t => {
       if (t.id === taskId) {
-        const currentChannel = t.marketplaces?.[channelKey] || { u: false, o: false, active: false };
+        const currentChannel = t.marketplaces?.[channelKey] || { box: false, rocket: false, pie: false, u: false, o: false, p: false, active: false };
+        const updatedVal = !currentChannel[btnType];
+        
+        // Mapeamento bidirecional retrocompatível:
+        // box <-> u, rocket <-> o, pie <-> p
         const updatedChannel = {
           ...currentChannel,
-          [btnType]: !currentChannel[btnType]
+          [btnType]: updatedVal
         };
-        updatedChannel.active = updatedChannel.u && updatedChannel.o;
+
+        if (btnType === 'box' || btnType === 'u') {
+          updatedChannel.box = updatedVal;
+          updatedChannel.u = updatedVal;
+        } else if (btnType === 'rocket' || btnType === 'o') {
+          updatedChannel.rocket = updatedVal;
+          updatedChannel.o = updatedVal;
+        } else if (btnType === 'pie' || btnType === 'p') {
+          updatedChannel.pie = updatedVal;
+          updatedChannel.p = updatedVal;
+        }
+
+        const isBoxDone = Boolean(updatedChannel.box || updatedChannel.u);
+        const isRocketDone = Boolean(updatedChannel.rocket || updatedChannel.o);
+        const isPieDone = Boolean(updatedChannel.pie || updatedChannel.p);
+
+        updatedChannel.active = isBoxDone && isRocketDone && isPieDone;
         updatedChannel.status = updatedChannel.active ? 'published' : 'pending';
 
         const updatedTask = {

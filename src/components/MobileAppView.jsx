@@ -164,16 +164,19 @@ export default function MobileAppView({
     const doneChecks = task.checklist?.filter(c => c.completed).length || 0;
     const photoProgress = totalChecks > 0 ? (doneChecks / totalChecks) * 40 : 0;
 
-    const totalButtons = Math.max(taskPlats.length * 2, 2);
+    const totalButtons = Math.max(taskPlats.length * 3, 3);
     const mp = task.marketplaces || {};
     let mpButtonsCount = 0;
 
     taskPlats.forEach(plat => {
       const channel = mp[plat.id] || mp[plat.name] || mp[plat.name.toLowerCase()] || mp[plat.name.replace(/\s+/g, '')];
       if (channel) {
-        if (channel.u) mpButtonsCount++;
-        if (channel.o) mpButtonsCount++;
-        if (channel.active && !channel.u && !channel.o) mpButtonsCount += 2;
+        if (channel.box || channel.u) mpButtonsCount++;
+        if (channel.rocket || channel.o) mpButtonsCount++;
+        if (channel.pie || channel.p) mpButtonsCount++;
+        if (channel.active && !channel.box && !channel.rocket && !channel.pie && !channel.u && !channel.o && !channel.p) {
+          mpButtonsCount += 3;
+        }
       }
     });
 
@@ -1490,82 +1493,113 @@ export default function MobileAppView({
                     width: '100%',
                     boxSizing: 'border-box'
                   }}>
-                    {/* Bloco Cinza: flexível para caber na tela sem quebrar */}
+                    {/* Bloco do Produto: Modelo à esquerda (Foto, SKU/Nome, Barra verde e Olho) */}
                     <div style={{
-                      background: '#e2e8f0',
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
                       borderRadius: '12px',
                       padding: '8px 10px',
                       display: 'flex',
                       flexDirection: 'column',
+                      alignItems: 'center',
                       justifyContent: 'space-between',
                       flex: '1 1 auto',
                       minWidth: 0,
-                      maxWidth: '60%',
-                      minHeight: '62px',
-                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
+                      maxWidth: '62%',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                       boxSizing: 'border-box'
                     }}>
+                      {/* Foto do Produto */}
+                      <div style={{
+                        width: '100%',
+                        height: '74px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        marginBottom: '4px'
+                      }}>
+                        <img
+                          src={task.productImage || matchedProduct?.imageUrl || './fogao_thumb.png'}
+                          alt={displayTitle}
+                          onError={(e) => {
+                            // Fallback caso a imagem personalizada falhe
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = './fogao_thumb.png';
+                          }}
+                          style={{
+                            maxHeight: '100%',
+                            maxWidth: '100%',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      </div>
+
+                      {/* Nome / SKU do Produto */}
+                      <div
+                        title={displayTitle}
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: '800',
+                          color: '#0f172a',
+                          textAlign: 'center',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          width: '100%',
+                          marginBottom: '6px'
+                        }}
+                      >
+                        {displayTitle}
+                      </div>
+
+                      {/* Linha Inferior: Barra verde + Olho roxo */}
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '6px',
+                        gap: '8px',
                         width: '100%'
                       }}>
-                        <span
-                          title={displayTitle}
-                          style={{
-                            fontSize: '13px',
-                            fontWeight: '800',
-                            color: '#1e293b',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            flex: 1
-                          }}
-                        >
-                          {displayTitle}
-                        </span>
+                        {/* Barra de progresso verde */}
+                        <div style={{
+                          flex: 1,
+                          height: '11px',
+                          backgroundColor: '#e2e8f0',
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}>
+                          <div
+                            style={{
+                              width: `${totalChecks > 0 ? percentChecks : (progressPercent > 0 ? 100 : 0)}%`,
+                              height: '100%',
+                              backgroundColor: '#10b981',
+                              borderRadius: '6px',
+                              transition: 'width 0.3s ease'
+                            }}
+                          />
+                        </div>
 
+                        {/* Botão Olho Roxo */}
                         <button
+                          type="button"
                           onClick={() => onOpenChecklistModal(task)}
                           title="Ver fotos / checklist de cadastro"
                           style={{
-                            width: '24px',
-                            height: '24px',
+                            background: 'transparent',
+                            border: 'none',
+                            padding: 0,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#334155',
-                            borderRadius: '50%',
-                            background: '#ffffff',
-                            border: '1px solid #cbd5e1',
                             cursor: 'pointer',
+                            color: '#7c3aed',
                             flexShrink: 0
                           }}
                         >
-                          <Eye size={13} />
+                          <Eye size={20} strokeWidth={2.2} />
                         </button>
-                      </div>
-
-                      {/* Barra de progresso verde interna */}
-                      <div style={{
-                        width: '100%',
-                        height: '9px',
-                        backgroundColor: '#94a3b8',
-                        borderRadius: '5px',
-                        overflow: 'hidden',
-                        marginTop: '4px'
-                      }}>
-                        <div
-                          style={{
-                            width: `${totalChecks > 0 ? percentChecks : (progressPercent > 0 ? 100 : 0)}%`,
-                            height: '100%',
-                            backgroundColor: '#10b981',
-                            borderRadius: '5px',
-                            transition: 'width 0.3s ease'
-                          }}
-                        />
                       </div>
                     </div>
 
@@ -1597,7 +1631,7 @@ export default function MobileAppView({
                         {formatDueDateDisplay(task.dueDate)}
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '6px' }}>
                         {onDuplicateTask && (
                           <button
                             onClick={() => onDuplicateTask(task)}
@@ -1672,13 +1706,13 @@ export default function MobileAppView({
                   </div>
 
 
-                  {/* GRADE DE CANAIS DE MARKETPLACES (Apenas para tarefas que não sejam simples) */}
+                  {/* GRADE DE CANAIS DE MARKETPLACES (Com 3 quadrados brancos de checklist: Caixa, Foguete, Pizza) */}
                   {!isSimple && (
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(76px, 1fr))',
-                      gap: '6px',
-                      marginTop: '2px',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))',
+                      gap: '8px',
+                      marginTop: '4px',
                       width: '100%',
                       boxSizing: 'border-box'
                     }}>
@@ -1698,7 +1732,7 @@ export default function MobileAppView({
                         let defaultColor = plat.color;
                         if (!defaultColor || defaultColor === '#5925dc') {
                           const lower = plat.name.toLowerCase();
-                          if (lower.includes('shopee')) defaultColor = '#f97316';
+                          if (lower.includes('shopee')) defaultColor = '#ff5722';
                           else if (lower.includes('mercado') || lower.includes('ml')) defaultColor = '#eab308';
                           else if (lower.includes('amazon')) defaultColor = '#334155';
                           else if (lower.includes('magalu')) defaultColor = '#38bdf8';
@@ -1706,101 +1740,146 @@ export default function MobileAppView({
                           else defaultColor = '#6366f1';
                         }
 
-                        const isUActive = Boolean(channelState.u);
-                        const isOActive = Boolean(channelState.o);
-                        const isBothActive = isUActive && isOActive;
+                        const isBoxDone = Boolean(channelState.box || channelState.u);
+                        const isRocketDone = Boolean(channelState.rocket || channelState.o);
+                        const isPieDone = Boolean(channelState.pie || channelState.p);
+                        const isAllDone = isBoxDone && isRocketDone && isPieDone;
 
-                        const cardBg = isBothActive ? '#22c55e' : defaultColor;
+                        const cardBg = isAllDone ? '#22c55e' : defaultColor;
                         const isYellow = defaultColor === '#eab308' || plat.name.toLowerCase().includes('mercado');
-                        const textColor = (!isBothActive && isYellow) ? '#1e293b' : '#ffffff';
+                        const textColor = (!isAllDone && isYellow) ? '#1e293b' : '#ffffff';
 
                         return (
                           <div
                             key={plat.id || plat.name}
                             style={{
                               background: cardBg,
-                              borderRadius: '8px',
-                              padding: '5px 3px',
+                              borderRadius: '12px',
+                              padding: '8px 6px',
                               display: 'flex',
                               flexDirection: 'column',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              minHeight: '56px',
-                              boxShadow: isBothActive ? '0 2px 6px rgba(34, 197, 94, 0.3)' : '0 1px 3px rgba(0,0,0,0.06)',
+                              minHeight: '64px',
+                              boxShadow: isAllDone ? '0 2px 6px rgba(34, 197, 94, 0.35)' : '0 2px 5px rgba(0,0,0,0.08)',
                               userSelect: 'none',
                               boxSizing: 'border-box'
                             }}
                           >
+                            {/* Nome da plataforma */}
                             <div style={{
-                              fontSize: '10px',
+                              fontSize: '12px',
                               fontWeight: '800',
                               color: textColor,
                               textAlign: 'center',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
-                              maxWidth: '72px',
-                              marginBottom: '3px'
+                              maxWidth: '88px',
+                              marginBottom: '6px'
                             }}>
                               {plat.name}
                             </div>
 
+                            {/* 3 Quadrados brancos de checklist */}
                             <div style={{
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '6px'
+                              gap: '5px'
                             }}>
-                              {/* Botão U */}
+                              {/* 1º Quadrado: Ícone de Caixa */}
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onToggleMarketplace(task.id, channelKey, 'u');
+                                  onToggleMarketplace(task.id, channelKey, 'box');
                                 }}
+                                title="Checklist 1: Caixa"
                                 style={{
-                                  width: '20px',
-                                  height: '20px',
-                                  borderRadius: '50%',
-                                  background: isUActive ? '#22c55e' : 'transparent',
-                                  color: isUActive ? '#ffffff' : 'rgba(255,255,255,0.85)',
-                                  fontSize: '10px',
-                                  fontWeight: '900',
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '4px',
+                                  background: isBoxDone ? '#dcfce7' : '#ffffff',
+                                  border: isBoxDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  border: isUActive ? 'none' : '1.5px solid rgba(255,255,255,0.6)',
                                   cursor: 'pointer',
-                                  padding: 0
+                                  padding: 0,
+                                  position: 'relative'
                                 }}
                               >
-                                U
+                                <Package size={16} color={isBoxDone ? '#16a34a' : '#1e293b'} strokeWidth={1.8} />
                               </button>
 
-                              {/* Botão O */}
+                              {/* 2º Quadrado: Ícone Foguete azul (Foto 2) */}
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onToggleMarketplace(task.id, channelKey, 'o');
+                                  onToggleMarketplace(task.id, channelKey, 'rocket');
                                 }}
+                                title="Checklist 2: Foguete"
                                 style={{
-                                  width: '20px',
-                                  height: '20px',
-                                  borderRadius: '50%',
-                                  background: isOActive ? '#22c55e' : 'transparent',
-                                  color: isOActive ? '#ffffff' : 'rgba(255,255,255,0.85)',
-                                  fontSize: '10px',
-                                  fontWeight: '900',
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '4px',
+                                  background: isRocketDone ? '#dcfce7' : '#ffffff',
+                                  border: isRocketDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  border: isOActive ? 'none' : '1.5px solid rgba(255,255,255,0.6)',
                                   cursor: 'pointer',
                                   padding: 0
                                 }}
                               >
-                                O
+                                <img
+                                  src="./marketplace_rocket.png"
+                                  alt="Rocket"
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    objectFit: 'contain',
+                                    filter: isRocketDone ? 'drop-shadow(0 0 1px #16a34a)' : 'none'
+                                  }}
+                                />
+                              </button>
+
+                              {/* 3º Quadrado: Ícone Pizza roxo (Foto 3) */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleMarketplace(task.id, channelKey, 'pie');
+                                }}
+                                title="Checklist 3: Pizza"
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '4px',
+                                  background: isPieDone ? '#dcfce7' : '#ffffff',
+                                  border: isPieDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  padding: 0
+                                }}
+                              >
+                                <img
+                                  src="./marketplace_pie.png"
+                                  alt="Pie"
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    objectFit: 'contain',
+                                    filter: isPieDone ? 'drop-shadow(0 0 1px #16a34a)' : 'none'
+                                  }}
+                                />
                               </button>
                             </div>
                           </div>
