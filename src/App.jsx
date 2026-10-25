@@ -729,6 +729,19 @@ export default function App() {
           }}
           defaultChecklistItems={defaultChecklist}
           onUpdateDefaultChecklist={setDefaultChecklist}
+          isMobileMode={isMobileMode}
+          onToggleViewMode={(mode) => {
+            const isMob = mode === 'mobile';
+            setIsMobileMode(isMob);
+            localStorage.setItem('taresk_view_mode', mode);
+            if (isMob) {
+              window.location.hash = 'mobile';
+            } else {
+              if (window.location.hash.toLowerCase().includes('mobile')) {
+                window.location.hash = '';
+              }
+            }
+          }}
         />
       </>
     );
@@ -800,6 +813,34 @@ export default function App() {
           onClose={() => setCelebratingTask(null)}
           taskTitle={celebratingTask?.title}
           assigneeName={users.find(u => u.id === celebratingTask?.assignedTo)?.name}
+        />
+
+        <SettingsModal
+          isOpen={isSettingsModalOpen}
+          onClose={() => {
+            setIsSettingsModalOpen(false);
+            refreshFromSheets(true);
+          }}
+          currentTheme={appTheme}
+          onSelectTheme={(thId) => {
+            setAppTheme(thId);
+            localStorage.setItem('taresk_app_theme', thId);
+          }}
+          defaultChecklistItems={defaultChecklist}
+          onUpdateDefaultChecklist={setDefaultChecklist}
+          isMobileMode={isMobileMode}
+          onToggleViewMode={(mode) => {
+            const isMob = mode === 'mobile';
+            setIsMobileMode(isMob);
+            localStorage.setItem('taresk_view_mode', mode);
+            if (isMob) {
+              window.location.hash = 'mobile';
+            } else {
+              if (window.location.hash.toLowerCase().includes('mobile')) {
+                window.location.hash = '';
+              }
+            }
+          }}
         />
       </div>
     );
@@ -934,6 +975,19 @@ export default function App() {
         defaultChecklistItems={defaultChecklist}
         onUpdateDefaultChecklist={(updatedList) => {
           setDefaultChecklist(updatedList);
+        }}
+        isMobileMode={isMobileMode}
+        onToggleViewMode={(mode) => {
+          const isMob = mode === 'mobile';
+          setIsMobileMode(isMob);
+          localStorage.setItem('taresk_view_mode', mode);
+          if (isMob) {
+            window.location.hash = 'mobile';
+          } else {
+            if (window.location.hash.toLowerCase().includes('mobile')) {
+              window.location.hash = '';
+            }
+          }
         }}
       />
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Eye, CheckCircle2, Clock, Calendar, User, Sparkles, Filter, Plus, ArrowUpRight, Edit2, Trash2, X, Check, Copy } from 'lucide-react';
+import { Eye, CheckCircle2, Clock, Calendar, User, Sparkles, Filter, Plus, ArrowUpRight, Edit2, Trash2, X, Check, Copy, Package } from 'lucide-react';
 
 // Helper para formatar qualquer string de data em dd/mm
 function formatDueDateDisplay(val) {
@@ -179,15 +179,18 @@ export default function TasksView({
 
       // Se só tem plataformas e nenhum checklist
       if (!hasChecks && hasPlats) {
-        const totalButtons = Math.max(taskPlats.length * 2, 2);
+        const totalButtons = Math.max(taskPlats.length * 3, 3);
         const mp = task.marketplaces || {};
         let mpButtonsCount = 0;
         taskPlats.forEach(plat => {
           const channel = mp[plat.id] || mp[plat.name] || mp[plat.name.toLowerCase()] || mp[plat.name.replace(/\s+/g, '')];
           if (channel) {
-            if (channel.u) mpButtonsCount++;
-            if (channel.o) mpButtonsCount++;
-            if (channel.active && !channel.u && !channel.o) mpButtonsCount += 2;
+            if (channel.box || channel.u) mpButtonsCount++;
+            if (channel.rocket || channel.o) mpButtonsCount++;
+            if (channel.pie || channel.p) mpButtonsCount++;
+            if (channel.active && !channel.box && !channel.rocket && !channel.pie && !channel.u && !channel.o && !channel.p) {
+              mpButtonsCount += 3;
+            }
           }
         });
         return Math.round((mpButtonsCount / totalButtons) * 100);
@@ -198,15 +201,18 @@ export default function TasksView({
       const doneChecks = task.checklist.filter(c => c.completed).length;
       const chkProgress = (doneChecks / totalChecks) * 40;
 
-      const totalButtons = Math.max(taskPlats.length * 2, 2);
+      const totalButtons = Math.max(taskPlats.length * 3, 3);
       const mp = task.marketplaces || {};
       let mpButtonsCount = 0;
       taskPlats.forEach(plat => {
         const channel = mp[plat.id] || mp[plat.name] || mp[plat.name.toLowerCase()] || mp[plat.name.replace(/\s+/g, '')];
         if (channel) {
-          if (channel.u) mpButtonsCount++;
-          if (channel.o) mpButtonsCount++;
-          if (channel.active && !channel.u && !channel.o) mpButtonsCount += 2;
+          if (channel.box || channel.u) mpButtonsCount++;
+          if (channel.rocket || channel.o) mpButtonsCount++;
+          if (channel.pie || channel.p) mpButtonsCount++;
+          if (channel.active && !channel.box && !channel.rocket && !channel.pie && !channel.u && !channel.o && !channel.p) {
+            mpButtonsCount += 3;
+          }
         }
       });
       const mpProgress = (mpButtonsCount / totalButtons) * 60;
@@ -221,16 +227,19 @@ export default function TasksView({
 
     // 2. O restante (60%) é distribuído entre as plataformas do usuário
     const taskPlats = getTaskPlatforms(task);
-    const totalButtons = Math.max(taskPlats.length * 2, 2);
+    const totalButtons = Math.max(taskPlats.length * 3, 3);
     const mp = task.marketplaces || {};
     let mpButtonsCount = 0;
 
     taskPlats.forEach(plat => {
       const channel = mp[plat.id] || mp[plat.name] || mp[plat.name.toLowerCase()] || mp[plat.name.replace(/\s+/g, '')];
       if (channel) {
-        if (channel.u) mpButtonsCount++;
-        if (channel.o) mpButtonsCount++;
-        if (channel.active && !channel.u && !channel.o) mpButtonsCount += 2;
+        if (channel.box || channel.u) mpButtonsCount++;
+        if (channel.rocket || channel.o) mpButtonsCount++;
+        if (channel.pie || channel.p) mpButtonsCount++;
+        if (channel.active && !channel.box && !channel.rocket && !channel.pie && !channel.u && !channel.o && !channel.p) {
+          mpButtonsCount += 3;
+        }
       }
     });
 
@@ -551,97 +560,149 @@ export default function TasksView({
                 )}
               </div>
 
-              {/* Coluna 1: Bloco Cinza do Produto, Tarefa Especial ou Tarefa Recorrente */}
+              {/* Coluna 1: Bloco do Produto (Modelo com Foto, Nome/SKU, Barra e Olho), Tarefa Especial ou Tarefa Recorrente */}
               <div style={{
-                background: isRecurrent ? '#f3e8ff' : '#e2e8f0',
+                background: (isSpecial || isRecurrent) ? (isRecurrent ? '#f3e8ff' : '#e2e8f0') : '#ffffff',
+                border: (isSpecial || isRecurrent) ? 'none' : '1.5px solid #e2e8f0',
                 borderRadius: '14px',
-                padding: '10px 14px',
+                padding: (isSpecial || isRecurrent) ? '10px 14px' : '8px 10px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: (isSpecial || isRecurrent) ? 'center' : 'space-between',
-                alignItems: (isSpecial || isRecurrent) ? 'center' : 'stretch',
-                width: (isSpecial || isRecurrent) ? '200px' : '185px',
-                height: '74px',
-                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
-                flexShrink: 0
+                alignItems: (isSpecial || isRecurrent) ? 'center' : 'center',
+                width: (isSpecial || isRecurrent) ? '200px' : '160px',
+                minHeight: '80px',
+                boxShadow: (isSpecial || isRecurrent) ? 'inset 0 1px 2px rgba(0,0,0,0.03)' : '0 1px 3px rgba(0,0,0,0.04)',
+                flexShrink: 0,
+                boxSizing: 'border-box'
               }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: (isSpecial || isRecurrent) ? 'center' : 'space-between',
-                  gap: '8px',
-                  width: '100%',
-                  marginBottom: (isSpecial || isRecurrent) ? '0px' : '4px'
-                }}>
-                  <div
-                    title={productSkuDisplay}
-                    style={{
-                      fontSize: (isSpecial || isRecurrent) ? '14px' : '14px',
-                      fontWeight: '800',
-                      color: isRecurrent ? '#581c87' : '#1e293b',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      textAlign: (isSpecial || isRecurrent) ? 'center' : 'left',
-                      flex: 1
-                    }}
-                  >
-                    {productSkuDisplay}
-                  </div>
-
-                  {!isSpecial && !isRecurrent && (
-                    <button
-                      onClick={() => onOpenChecklistModal(task)}
-                      title="Abrir checklist de imagens e descrição"
+                {(isSpecial || isRecurrent) ? (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    width: '100%'
+                  }}>
+                    <div
+                      title={productSkuDisplay}
                       style={{
-                        width: '22px',
-                        height: '22px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#334155',
-                        borderRadius: '50%',
-                        background: 'rgba(255,255,255,0.9)',
-                        border: '1px solid #cbd5e1',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                        cursor: 'pointer',
-                        flexShrink: 0
+                        fontSize: '14px',
+                        fontWeight: '800',
+                        color: isRecurrent ? '#581c87' : '#1e293b',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        textAlign: 'center',
+                        flex: 1
                       }}
                     >
-                      <Eye size={12} />
-                    </button>
-                  )}
-                </div>
+                      {productSkuDisplay}
+                    </div>
+                  </div>
+                ) : (
+                  /* Modelo do Produto com Foto, SKU/Nome, Barra e Olho Roxo */
+                  <>
+                    {/* Foto do Produto */}
+                    <div style={{
+                      width: '100%',
+                      height: '52px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      marginBottom: '2px'
+                    }}>
+                      <img
+                        src={task.productImage || matchedProduct?.imageUrl || './fogao_thumb.png'}
+                        alt={productSkuDisplay}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = './fogao_thumb.png';
+                        }}
+                        style={{
+                          maxHeight: '100%',
+                          maxWidth: '100%',
+                          objectFit: 'contain'
+                        }}
+                      />
+                    </div>
 
-                {!isSpecial && !isRecurrent && (
-                  (() => {
-                    const percentFotos = totalChecks > 0 ? Math.round((doneChecks / totalChecks) * 100) : 0;
-                    return (
-                      <div style={{ width: '100%', marginTop: 'auto' }}>
-                        <div
-                          title={`Checklist: ${doneChecks} de ${totalChecks} itens (${percentFotos}%)`}
-                          style={{
-                            width: '100%',
-                            height: '13px',
-                            backgroundColor: '#94a3b8',
-                            borderRadius: '5px',
-                            overflow: 'hidden',
-                            position: 'relative'
-                          }}
-                        >
+                    {/* Nome / SKU do Produto */}
+                    <div
+                      title={productSkuDisplay}
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: '800',
+                        color: '#0f172a',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        width: '100%',
+                        marginBottom: '4px'
+                      }}
+                    >
+                      {productSkuDisplay}
+                    </div>
+
+                    {/* Linha Inferior: Barra verde + Olho roxo */}
+                    {(() => {
+                      const percentFotos = totalChecks > 0 ? Math.round((doneChecks / totalChecks) * 100) : 0;
+                      return (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          width: '100%'
+                        }}>
+                          {/* Barra de progresso verde */}
                           <div
+                            title={`Checklist: ${doneChecks} de ${totalChecks} itens (${percentFotos}%)`}
                             style={{
-                              width: `${percentFotos}%`,
-                              height: '100%',
-                              backgroundColor: '#22c55e',
-                              borderRadius: percentFotos === 100 ? '5px' : '5px 0 0 5px',
-                              transition: 'width 0.3s ease'
+                              flex: 1,
+                              height: '9px',
+                              backgroundColor: '#e2e8f0',
+                              borderRadius: '5px',
+                              overflow: 'hidden',
+                              display: 'flex',
+                              alignItems: 'center'
                             }}
-                          />
+                          >
+                            <div
+                              style={{
+                                width: `${percentFotos}%`,
+                                height: '100%',
+                                backgroundColor: '#10b981',
+                                borderRadius: '5px',
+                                transition: 'width 0.3s ease'
+                              }}
+                            />
+                          </div>
+
+                          {/* Botão Olho Roxo */}
+                          <button
+                            type="button"
+                            onClick={() => onOpenChecklistModal(task)}
+                            title="Ver fotos / checklist de cadastro"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              padding: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              color: '#7c3aed',
+                              flexShrink: 0
+                            }}
+                          >
+                            <Eye size={17} strokeWidth={2.2} />
+                          </button>
                         </div>
-                      </div>
-                    );
-                  })()
+                      );
+                    })()}
+                  </>
                 )}
 
                 {isRecurrent && totalChecks > 0 && (
@@ -830,15 +891,16 @@ export default function TasksView({
                       const textColor = isYellow ? '#1e293b' : '#ffffff';
 
                       return (
-                        <div key={plat.id || plat.name} style={{ width: '132px', flexShrink: 0 }}>
+                        <div key={plat.id || plat.name} style={{ width: '136px', flexShrink: 0 }}>
                           <MarketplaceCard
                             name={plat.name}
                             defaultColor={defaultColor}
                             activeColor="#22c55e"
                             textColor={textColor}
                             channelState={channelState}
-                            onToggleU={() => onToggleMarketplace(task.id, channelKey, 'u')}
-                            onToggleO={() => onToggleMarketplace(task.id, channelKey, 'o')}
+                            onToggleBox={() => onToggleMarketplace(task.id, channelKey, 'box')}
+                            onToggleRocket={() => onToggleMarketplace(task.id, channelKey, 'rocket')}
+                            onTogglePie={() => onToggleMarketplace(task.id, channelKey, 'pie')}
                           />
                         </div>
                       );
@@ -877,15 +939,16 @@ export default function TasksView({
                     const textColor = isYellow ? '#1e293b' : '#ffffff';
 
                     return (
-                      <div key={plat.id || plat.name} style={{ width: '132px', flexShrink: 0 }}>
+                      <div key={plat.id || plat.name} style={{ width: '136px', flexShrink: 0 }}>
                         <MarketplaceCard
                           name={plat.name}
                           defaultColor={defaultColor}
                           activeColor="#22c55e"
                           textColor={textColor}
                           channelState={channelState}
-                          onToggleU={() => onToggleMarketplace(task.id, channelKey, 'u')}
-                          onToggleO={() => onToggleMarketplace(task.id, channelKey, 'o')}
+                          onToggleBox={() => onToggleMarketplace(task.id, channelKey, 'box')}
+                          onToggleRocket={() => onToggleMarketplace(task.id, channelKey, 'rocket')}
+                          onTogglePie={() => onToggleMarketplace(task.id, channelKey, 'pie')}
                         />
                       </div>
                     );
@@ -1402,21 +1465,23 @@ export default function TasksView({
   );
 }
 
-// Subcomponente de Marketplace Card reproduzindo os botões "U" e "O" com altura reduzida e sem cápsula cinza
+// Subcomponente de Marketplace Card reproduzindo os 3 quadrados brancos de checklist (Caixa, Foguete e Pizza)
 function MarketplaceCard({
   name,
   defaultColor,
   activeColor = '#22c55e',
   textColor = '#ffffff',
   channelState = {},
-  onToggleU,
-  onToggleO
+  onToggleBox,
+  onToggleRocket,
+  onTogglePie
 }) {
-  const isUActive = Boolean(channelState.u);
-  const isOActive = Boolean(channelState.o);
-  const isFullyActive = isUActive && isOActive;
+  const isBoxDone = Boolean(channelState.box || channelState.u);
+  const isRocketDone = Boolean(channelState.rocket || channelState.o);
+  const isPieDone = Boolean(channelState.pie || channelState.p);
+  const isFullyActive = isBoxDone && isRocketDone && isPieDone;
 
-  // Cor do card: se ambos estiverem ativos, fica verde; se não, usa a cor padrão
+  // Cor do card: se os 3 estiverem ativos, fica verde; se não, usa a cor padrão
   const currentCardBg = isFullyActive ? activeColor : defaultColor;
   // Cor do texto: quando fica verde (isFullyActive), a letra fica branca assim como as outras
   const finalTextColor = isFullyActive ? '#ffffff' : textColor;
@@ -1426,15 +1491,16 @@ function MarketplaceCard({
       style={{
         background: currentCardBg,
         borderRadius: '14px',
-        padding: '8px 10px',
+        padding: '8px 8px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'space-between',
-        minHeight: '74px',
+        minHeight: '80px',
         boxShadow: isFullyActive ? '0 4px 12px rgba(34, 197, 94, 0.35)' : '0 2px 4px rgba(0,0,0,0.06)',
         transition: 'background 0.2s ease, transform 0.15s ease',
-        userSelect: 'none'
+        userSelect: 'none',
+        boxSizing: 'border-box'
       }}
     >
       <div style={{
@@ -1442,75 +1508,117 @@ function MarketplaceCard({
         fontWeight: '800',
         color: finalTextColor,
         textAlign: 'center',
-        marginBottom: '4px'
+        marginBottom: '6px',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        maxWidth: '120px'
       }}>
         {name}
       </div>
 
-      {/* Sem cápsula cinza de fundo: apenas os botões circulares U e O que ficam verdes quando clicados */}
+      {/* 3 Quadrados brancos de checklist: Caixa, Foguete e Pizza */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '12px',
+        gap: '6px',
         width: '100%'
       }}>
-        {/* Botão 1: "U" */}
+        {/* 1º Quadrado: Caixa */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onToggleU();
+            onToggleBox();
           }}
-          title={`Alternar U (${name})`}
+          title={`Checklist 1: Caixa (${name})`}
           style={{
             width: '28px',
             height: '28px',
-            borderRadius: '50%',
-            background: isUActive ? '#22c55e' : 'transparent',
-            color: isUActive ? '#ffffff' : 'rgba(255,255,255,0.7)',
-            fontSize: '14px',
-            fontWeight: '900',
+            borderRadius: '5px',
+            background: isBoxDone ? '#dcfce7' : '#ffffff',
+            border: isBoxDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: isUActive ? 'none' : '2px solid rgba(255,255,255,0.5)',
-            boxShadow: isUActive ? '0 2px 6px rgba(34, 197, 94, 0.4)' : 'none',
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            lineHeight: 1
+            padding: 0,
+            transition: 'all 0.15s ease'
           }}
         >
-          U
+          <Package size={17} color={isBoxDone ? '#16a34a' : '#1e293b'} strokeWidth={1.8} />
         </button>
 
-        {/* Botão 2: "O" (mesma fonte e tamanho do U) */}
+        {/* 2º Quadrado: Foguete (Foto 2) */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onToggleO();
+            onToggleRocket();
           }}
-          title={`Alternar O (${name})`}
+          title={`Checklist 2: Foguete (${name})`}
           style={{
             width: '28px',
             height: '28px',
-            borderRadius: '50%',
-            background: isOActive ? '#22c55e' : 'transparent',
-            color: isOActive ? '#ffffff' : 'rgba(255,255,255,0.7)',
-            fontSize: '14px',
-            fontWeight: '900',
+            borderRadius: '5px',
+            background: isRocketDone ? '#dcfce7' : '#ffffff',
+            border: isRocketDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: isOActive ? 'none' : '2px solid rgba(255,255,255,0.5)',
-            boxShadow: isOActive ? '0 2px 6px rgba(34, 197, 94, 0.4)' : 'none',
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            lineHeight: 1
+            padding: 0,
+            transition: 'all 0.15s ease'
           }}
         >
-          O
+          <img
+            src="./marketplace_rocket.png"
+            alt="Rocket"
+            style={{
+              width: '19px',
+              height: '19px',
+              objectFit: 'contain',
+              filter: isRocketDone ? 'drop-shadow(0 0 1px #16a34a)' : 'none'
+            }}
+          />
+        </button>
+
+        {/* 3º Quadrado: Pizza (Foto 3) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePie();
+          }}
+          title={`Checklist 3: Pizza (${name})`}
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '5px',
+            background: isPieDone ? '#dcfce7' : '#ffffff',
+            border: isPieDone ? '2px solid #16a34a' : '1px solid rgba(0,0,0,0.1)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <img
+            src="./marketplace_pie.png"
+            alt="Pie"
+            style={{
+              width: '19px',
+              height: '19px',
+              objectFit: 'contain',
+              filter: isPieDone ? 'drop-shadow(0 0 1px #16a34a)' : 'none'
+            }}
+          />
         </button>
       </div>
     </div>

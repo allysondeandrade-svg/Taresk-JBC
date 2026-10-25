@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown } from 'lucide-react';
+import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown, Monitor, Smartphone } from 'lucide-react';
 
 export const APP_THEMES = [
   {
@@ -26,10 +26,12 @@ export default function SettingsModal({
   currentTheme,
   onSelectTheme,
   defaultChecklistItems = [],
-  onUpdateDefaultChecklist
+  onUpdateDefaultChecklist,
+  isMobileMode,
+  onToggleViewMode
 }) {
   const [sheetsUrl, setSheetsUrl] = useState(() => localStorage.getItem('taresk_sheets_api_url') || '');
-  const [activeTab, setActiveTab] = useState('checklist'); // 'checklist', 'planilha' ou 'cores'
+  const [activeTab, setActiveTab] = useState('checklist'); // 'checklist', 'planilha', 'cores' ou 'visualizacao'
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [checklistItems, setChecklistItems] = useState(defaultChecklistItems);
   const [newChecklistLabel, setNewChecklistLabel] = useState('');
@@ -218,6 +220,27 @@ export default function SettingsModal({
           >
             <Palette size={16} />
             Tema & Cores
+          </button>
+
+          <button
+            onClick={() => setActiveTab('visualizacao')}
+            style={{
+              padding: '10px 14px',
+              border: 'none',
+              borderBottom: activeTab === 'visualizacao' ? '2.5px solid #5925dc' : '2.5px solid transparent',
+              background: 'transparent',
+              color: activeTab === 'visualizacao' ? '#5925dc' : '#64748b',
+              fontWeight: '700',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Monitor size={16} />
+            Versão (Desktop / Mobile)
           </button>
         </div>
 
@@ -547,6 +570,158 @@ export default function SettingsModal({
                     </button>
                   );
                 })}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: '#5925dc',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Concluir
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'visualizacao' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b', marginBottom: '4px' }}>
+                  Modo de Visualização do Aplicativo
+                </h4>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>
+                  Escolha se deseja utilizar o Taresk na versão para Computador (Desktop) ou na versão compacta (Mobile):
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                {/* Opção Versão Desktop */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onToggleViewMode) onToggleViewMode('desktop');
+                  }}
+                  style={{
+                    padding: '16px',
+                    borderRadius: '16px',
+                    border: !isMobileMode ? '2.5px solid #5925dc' : '1.5px solid #e2e8f0',
+                    background: !isMobileMode ? '#f8fafc' : '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    boxShadow: !isMobileMode ? '0 8px 20px -4px rgba(89, 37, 220, 0.25)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                    }}>
+                      <Monitor size={20} />
+                    </div>
+                    {!isMobileMode && (
+                      <span style={{
+                        background: '#5925dc',
+                        color: '#ffffff',
+                        borderRadius: '9999px',
+                        padding: '3px 8px',
+                        fontSize: '11px',
+                        fontWeight: '800'
+                      }}>
+                        Ativo ✓
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>
+                      🖥️ Versão Desktop
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', lineHeight: '1.4' }}>
+                      Visual completo com colunas expandidas, kanban, catálogo e relatório gerencial.
+                    </div>
+                  </div>
+                </button>
+
+                {/* Opção Versão Mobile */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onToggleViewMode) onToggleViewMode('mobile');
+                  }}
+                  style={{
+                    padding: '16px',
+                    borderRadius: '16px',
+                    border: isMobileMode ? '2.5px solid #5925dc' : '1.5px solid #e2e8f0',
+                    background: isMobileMode ? '#f8fafc' : '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    boxShadow: isMobileMode ? '0 8px 20px -4px rgba(89, 37, 220, 0.25)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                    }}>
+                      <Smartphone size={20} />
+                    </div>
+                    {isMobileMode && (
+                      <span style={{
+                        background: '#5925dc',
+                        color: '#ffffff',
+                        borderRadius: '9999px',
+                        padding: '3px 8px',
+                        fontSize: '11px',
+                        fontWeight: '800'
+                      }}>
+                        Ativo ✓
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>
+                      📱 Versão Mobile
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', lineHeight: '1.4' }}>
+                      Visual otimizado para celulares ou telas estreitas com cards táteis.
+                    </div>
+                  </div>
+                </button>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
