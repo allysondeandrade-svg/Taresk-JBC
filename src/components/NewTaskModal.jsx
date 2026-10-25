@@ -86,6 +86,13 @@ export default function NewTaskModal({
   if (!isOpen) return null;
 
   // Adicionar subtarefa e liberar automaticamente nova linha
+  const handleAddSubtask = () => {
+    if (newSubtaskInput && newSubtaskInput.trim()) {
+      setSubtasks(prev => [...prev, newSubtaskInput.trim()]);
+      setNewSubtaskInput('');
+    }
+  };
+
   const handleAddSubtaskFromText = (text) => {
     if (text && text.trim()) {
       setSubtasks(prev => [...prev, text.trim()]);
