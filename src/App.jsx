@@ -133,8 +133,20 @@ export default function App() {
   });
 
   const [appTheme, setAppTheme] = useState(() => {
-    return localStorage.getItem('taresk_app_theme') || 'default';
+    const saved = localStorage.getItem('taresk_app_theme');
+    if (saved === 'dark') return 'dark';
+    return 'light';
   });
+
+  useEffect(() => {
+    if (appTheme === 'dark') {
+      document.documentElement.classList.add('dark-mode');
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  }, [appTheme]);
 
   // Lista padrão de checklist editável nas Configurações (Foto 2)
   const [defaultChecklist, setDefaultChecklist] = useState(() => {
@@ -703,8 +715,9 @@ export default function App() {
   }
 
   if (isMobileMode) {
+    const isDark = appTheme === 'dark';
     return (
-      <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
+      <div style={{ minHeight: '100vh', background: isDark ? '#0b0f19' : '#f1f5f9' }} className={isDark ? 'dark-mode' : ''}>
         <MobileAppView
           tasks={tasks}
           completedTasks={completedTasks}
@@ -712,6 +725,7 @@ export default function App() {
           platforms={platforms}
           currentUser={currentUser}
           products={products}
+          appTheme={appTheme}
           onOpenChecklistModal={(task) => setActiveChecklistTask(task)}
           onToggleMarketplace={handleToggleMarketplace}
           onOpenNewTaskModal={() => setIsNewTaskModalOpen(true)}
@@ -771,8 +785,9 @@ export default function App() {
     );
   }
 
+  const isDark = appTheme === 'dark';
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? '#0b0f19' : '#f8fafc' }} className={isDark ? 'dark-mode' : ''}>
       {/* Header com Abas e Perfil */}
       <Header
         activeTab={activeTab}

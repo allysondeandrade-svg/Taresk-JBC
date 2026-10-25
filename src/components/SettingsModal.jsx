@@ -2,12 +2,22 @@ import React, { useState } from 'react';
 import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown } from 'lucide-react';
 
 export const APP_THEMES = [
-  { id: 'default', name: 'Roxo Taresk (Padrão)', primary: '#5925dc', light: '#ecebfa', gradient: 'linear-gradient(135deg, #6c5ce7 0%, #4834d4 100%)' },
-  { id: 'emerald', name: 'Esmeralda / Verde', primary: '#059669', light: '#ecfdf5', gradient: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' },
-  { id: 'ocean', name: 'Azul Oceano', primary: '#0284c7', light: '#f0f9ff', gradient: 'linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)' },
-  { id: 'sunset', name: 'Laranja Solar', primary: '#ea580c', light: '#fff7ed', gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)' },
-  { id: 'midnight', name: 'Preto & Grafite', primary: '#0f172a', light: '#f1f5f9', gradient: 'linear-gradient(135deg, #334155 0%, #0f172a 100%)' },
-  { id: 'rose', name: 'Rosa Magenta', primary: '#db2777', light: '#fdf2f8', gradient: 'linear-gradient(135deg, #f43f5e 0%, #be185d 100%)' }
+  {
+    id: 'light',
+    name: '☀️ Modo Claro',
+    description: 'Fundo suave e visual clean tradicional',
+    primary: '#5925dc',
+    light: '#ecebfa',
+    gradient: 'linear-gradient(135deg, #6c5ce7 0%, #4834d4 100%)'
+  },
+  {
+    id: 'dark',
+    name: '🌙 Modo Escuro',
+    description: 'Fundo escuro profundo com letras claras e alta legibilidade',
+    primary: '#8b5cf6',
+    light: '#1e293b',
+    gradient: 'linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)'
+  }
 ];
 
 export default function SettingsModal({
@@ -207,7 +217,7 @@ export default function SettingsModal({
             }}
           >
             <Palette size={16} />
-            Alterar Cores
+            Tema & Cores
           </button>
         </div>
 
@@ -455,44 +465,85 @@ export default function SettingsModal({
 
           {activeTab === 'cores' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <span style={{ fontSize: '13px', color: '#64748b' }}>
-                Selecione o esquema de cores principal do aplicativo:
-              </span>
+              <div>
+                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b', marginBottom: '4px' }}>
+                  Aparência do Aplicativo
+                </h4>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>
+                  Escolha como prefere visualizar o Taresk:
+                </span>
+              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
                 {APP_THEMES.map(th => {
-                  const isSelected = currentTheme === th.id;
+                  const isSelected = (currentTheme === th.id) || (!currentTheme && th.id === 'light') || (currentTheme === 'default' && th.id === 'light');
                   return (
                     <button
                       key={th.id}
                       type="button"
                       onClick={() => onSelectTheme(th.id)}
                       style={{
-                        padding: '12px 14px',
-                        borderRadius: '14px',
-                        border: isSelected ? `2.5px solid ${th.primary}` : '1.5px solid #e2e8f0',
-                        background: isSelected ? th.light : '#ffffff',
+                        padding: '16px',
+                        borderRadius: '16px',
+                        border: isSelected ? '2.5px solid #5925dc' : '1.5px solid #e2e8f0',
+                        background: isSelected ? (th.id === 'dark' ? '#0f172a' : '#f8fafc') : '#ffffff',
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        gap: '10px',
                         cursor: 'pointer',
                         textAlign: 'left',
-                        transition: 'all 0.15s ease'
+                        boxShadow: isSelected ? '0 8px 20px -4px rgba(89, 37, 220, 0.25)' : 'none',
+                        transition: 'all 0.15s ease',
+                        position: 'relative'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                         <div style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '10px',
                           background: th.gradient,
-                          boxShadow: '0 2px 5px rgba(0,0,0,0.15)'
-                        }} />
-                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
-                          {th.name}
-                        </span>
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ffffff',
+                          fontSize: '16px',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                        }}>
+                          {th.id === 'dark' ? '🌙' : '☀️'}
+                        </div>
+                        {isSelected && (
+                          <span style={{
+                            background: '#5925dc',
+                            color: '#ffffff',
+                            borderRadius: '9999px',
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            fontWeight: '800'
+                          }}>
+                            Ativo ✓
+                          </span>
+                        )}
                       </div>
-                      {isSelected && <Check size={16} color={th.primary} />}
+
+                      <div>
+                        <div style={{
+                          fontSize: '14px',
+                          fontWeight: '800',
+                          color: isSelected && th.id === 'dark' ? '#ffffff' : '#1e293b'
+                        }}>
+                          {th.name}
+                        </div>
+                        <div style={{
+                          fontSize: '11px',
+                          color: isSelected && th.id === 'dark' ? '#94a3b8' : '#64748b',
+                          marginTop: '2px',
+                          lineHeight: '1.4'
+                        }}>
+                          {th.description}
+                        </div>
+                      </div>
                     </button>
                   );
                 })}
@@ -503,7 +554,7 @@ export default function SettingsModal({
                   type="button"
                   onClick={onClose}
                   style={{
-                    padding: '10px 22px',
+                    padding: '10px 24px',
                     borderRadius: '12px',
                     border: 'none',
                     background: '#5925dc',

@@ -41,8 +41,10 @@ export default function MobileAppView({
   onOpenSettings,
   onSync,
   isSyncing,
+  appTheme,
   onSwitchToDesktop
 }) {
+  const isDark = appTheme === 'dark';
   // Abas do topo: 'tarefas', 'cadastro', 'precificadora'
   const [activeMainTab, setActiveMainTab] = useState('tarefas');
   // Sub-abas de tarefas: 'atuais' ou 'concluidas'
@@ -165,22 +167,23 @@ export default function MobileAppView({
       width: '100%',
       maxWidth: '520px',
       margin: '0 auto',
-      background: '#ffffff',
+      background: isDark ? '#0f172a' : '#ffffff',
+      color: isDark ? '#f8fafc' : '#1e293b',
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
       boxSizing: 'border-box',
       overflowX: 'hidden'
-    }}>
+    }} className={isDark ? 'dark-mode' : ''}>
       {/* 0. Barra superior compacta mobile com utilitários */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '10px 14px 6px 14px',
-        borderBottom: '1px solid #f1f5f9',
+        borderBottom: isDark ? '1px solid #1e293b' : '1px solid #f1f5f9',
         fontSize: '12px',
-        color: '#64748b',
+        color: isDark ? '#94a3b8' : '#64748b',
         boxSizing: 'border-box'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -198,8 +201,8 @@ export default function MobileAppView({
           }}>
             T
           </div>
-          <span style={{ fontWeight: '800', color: '#1e293b', fontSize: '13px' }}>Taresk Mobile</span>
-          {isSyncing && <RefreshCw size={12} className="animate-spin" color="#5925dc" />}
+          <span style={{ fontWeight: '800', color: isDark ? '#f8fafc' : '#1e293b', fontSize: '13px' }}>Taresk Mobile</span>
+          {isSyncing && <RefreshCw size={12} className="animate-spin" color="#8b5cf6" />}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -47,6 +47,112 @@
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
+/* ==========================================================================
+   MODO ESCURO PROFUNDO COM ALTA LEGIBILIDADE (HIGH CONTRAST DARK MODE)
+   ========================================================================== */
+:root[data-theme='dark'],
+.dark-mode {
+  --bg-main: #0b0f19;
+  --bg-card: #131b2e;
+  --bg-card-subtle: #1e293b;
+  --border-color: #334155;
+  --border-color-focus: #475569;
+  --text-main: #f8fafc;
+  --text-muted: #cbd5e1;
+  --text-light: #94a3b8;
+  --color-primary-light: #2e1065;
+}
+
+.dark-mode body,
+[data-theme='dark'] body {
+  background-color: #0b0f19 !important;
+  color: #f8fafc !important;
+}
+
+/* Adaptação inteligente de containers e cartões no modo escuro */
+.dark-mode div[style*="background: #ffffff"],
+.dark-mode div[style*="background: rgb(255, 255, 255)"],
+.dark-mode div[style*="backgroundColor: #ffffff"],
+.dark-mode div[style*="background-color: #ffffff"],
+.dark-mode header[style*="background: #ffffff"] {
+  background: #131b2e !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark-mode div[style*="background: #f8fafc"],
+.dark-mode div[style*="background: #f1f5f9"] {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Textos escuros viram claros e legíveis */
+.dark-mode span[style*="color: #1e293b"],
+.dark-mode span[style*="color: #0f172a"],
+.dark-mode div[style*="color: #1e293b"],
+.dark-mode div[style*="color: #0f172a"],
+.dark-mode h1[style*="color: #1e293b"],
+.dark-mode h2[style*="color: #1e293b"],
+.dark-mode h3[style*="color: #1e293b"],
+.dark-mode p[style*="color: #1e293b"],
+.dark-mode td[style*="color: #1e293b"],
+.dark-mode th[style*="color: #1e293b"],
+.dark-mode label[style*="color: #1e293b"] {
+  color: #f8fafc !important;
+}
+
+.dark-mode span[style*="color: #64748b"],
+.dark-mode span[style*="color: #475569"],
+.dark-mode div[style*="color: #64748b"],
+.dark-mode div[style*="color: #475569"],
+.dark-mode p[style*="color: #64748b"],
+.dark-mode p[style*="color: #475569"],
+.dark-mode label[style*="color: #475569"],
+.dark-mode label[style*="color: #64748b"] {
+  color: #cbd5e1 !important;
+}
+
+/* Inputs e selects no modo escuro */
+.dark-mode input:not([type="checkbox"]):not([type="radio"]),
+.dark-mode select,
+.dark-mode textarea {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Tabelas no modo escuro */
+.dark-mode table,
+.dark-mode tr,
+.dark-mode th,
+.dark-mode td {
+  border-color: #334155 !important;
+}
+
+.dark-mode th {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-mode tr[style*="border-bottom: 1px solid #f1f5f9"],
+.dark-mode tr[style*="borderBottom: 1px solid #f1f5f9"] {
+  border-bottom: 1px solid #334155 !important;
+}
+
+/* Modais e popups no modo escuro */
+.dark-mode div[style*="borderRadius: '24px'"],
+.dark-mode div[style*="border-radius: 24px"],
+.dark-mode div[style*="borderRadius: '20px'"],
+.dark-mode div[style*="border-radius: 20px"] {
+  border-color: #334155 !important;
+}
+
 * {
   margin: 0;
   padding: 0;
