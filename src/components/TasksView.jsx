@@ -157,8 +157,25 @@ export default function TasksView({
     ];
   }
 
+  function isTaskSimple(task) {
+    if (task.type === 'simple') return true;
+    if (task.type === 'special' || task.type === 'recurrent') return false;
+    // Se não tem tipo explicitamente definido ou veio com fallback
+    // Verifica se não possui produto cadastrado ou se é uma tarefa puramente com checklist
+    const hasProduct = Boolean(
+      (task.productId && task.productId !== 'null') ||
+      products?.some(p => (p.sku && p.sku === task.sku) || (p.id && p.id === task.productId))
+    );
+    // Se o título existe e não tem produto associado, e não tem marketplaces ativos
+    const hasMarketplaces = task.marketplaces && Object.keys(task.marketplaces).length > 0;
+    if (!hasProduct && (!hasMarketplaces || task.checklist?.length > 0)) {
+      return true;
+    }
+    return false;
+  }
+
   function calculateTaskProgress(task) {
-    if (task.type === 'special' || task.type === 'simple') {
+    if (task.type === 'special' || isTaskSimple(task)) {
       if (!task.checklist || task.checklist.length === 0) return 0;
       const completed = task.checklist.filter(c => c.completed).length;
       return Math.round((completed / task.checklist.length) * 100);
@@ -449,7 +466,7 @@ export default function TasksView({
           const assignee = getAssignee(task.assignedTo);
           const isSpecial = task.type === 'special';
           const isRecurrent = task.type === 'recurrent';
-          const isSimple = task.type === 'simple';
+          const isSimple = isTaskSimple(task);
 
           // Label da frequência de recorrência para exibição
           let recurrenceBadge = '';
@@ -578,7 +595,8 @@ export default function TasksView({
                 )}
               </div>
 
-              {/* Coluna 1: Bloco do Produto (Modelo com Foto, Nome/SKU, Barra e Olho), Tarefa Especial ou Tarefa Recorrente */}
+              {/* Coluna 1: Bloco do Produto (Modelo com Foto, Nome/SKU, Barra e Olho), Tarefa Especial ou Tarefa Recorrente (Não exibido em Tarefa Simples) */}
+              {!isSimple && (
               <div style={{
                 background: (isSpecial || isRecurrent) ? (isRecurrent ? '#f3e8ff' : '#e2e8f0') : '#ffffff',
                 border: (isSpecial || isRecurrent) ? 'none' : '1.5px solid #e2e8f0',
@@ -735,6 +753,7 @@ export default function TasksView({
                   </div>
                 )}
               </div>
+              )}
 
               {/* Seção Central: Para Tarefa Simples, Tarefa Especial OU Recorrente com subtarefas & plataformas */}
               {isSimple ? (
