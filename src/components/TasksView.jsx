@@ -1566,7 +1566,7 @@ function MarketplaceCard({
             width: '32px',
             height: '32px',
             borderRadius: '9px',
-            background: isBoxDone && isRocketDone ? '#d9f2e3' : (isRocketDone ? '#d9f2e3' : '#ffffff'),
+            background: isRocketDone ? '#d9f2e3' : '#ffffff',
             border: isRocketDone ? '3px solid #1b6e36' : '1px solid rgba(0,0,0,0.06)',
             boxShadow: isRocketDone
               ? 'inset 0 1px 2px rgba(27, 110, 54, 0.15), 0 2px 5px rgba(0,0,0,0.12)'
@@ -1576,19 +1576,17 @@ function MarketplaceCard({
             justifyContent: 'center',
             cursor: 'pointer',
             padding: 0,
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            overflow: 'hidden'
           }}
         >
           <img
-            src="./marketplace_rocket.png"
+            src={isRocketDone ? './marketplace_rocket_green.png' : './marketplace_rocket.png'}
             alt="Rocket"
             style={{
-              width: '20px',
-              height: '20px',
-              objectFit: 'contain',
-              filter: isRocketDone
-                ? 'brightness(0) saturate(100%) invert(32%) sepia(55%) saturate(830%) hue-rotate(95deg) brightness(92%) contrast(93%)'
-                : 'none'
+              width: isRocketDone ? '100%' : '20px',
+              height: isRocketDone ? '100%' : '20px',
+              objectFit: 'cover'
             }}
           />
         </button>
@@ -1615,19 +1613,17 @@ function MarketplaceCard({
             justifyContent: 'center',
             cursor: 'pointer',
             padding: 0,
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            overflow: 'hidden'
           }}
         >
           <img
-            src="./marketplace_pie.png"
+            src={isPieDone ? './marketplace_pie_green.png' : './marketplace_pie.png'}
             alt="Pie"
             style={{
-              width: '20px',
-              height: '20px',
-              objectFit: 'contain',
-              filter: isPieDone
-                ? 'brightness(0) saturate(100%) invert(32%) sepia(55%) saturate(830%) hue-rotate(95deg) brightness(92%) contrast(93%)'
-                : 'none'
+              width: isPieDone ? '100%' : '20px',
+              height: isPieDone ? '100%' : '20px',
+              objectFit: 'cover'
             }}
           />
         </button>

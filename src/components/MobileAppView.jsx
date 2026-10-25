@@ -1841,19 +1841,17 @@ export default function MobileAppView({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   cursor: 'pointer',
-                                  padding: 0
+                                  padding: 0,
+                                  overflow: 'hidden'
                                 }}
                               >
                                 <img
-                                  src="./marketplace_rocket.png"
+                                  src={isRocketDone ? './marketplace_rocket_green.png' : './marketplace_rocket.png'}
                                   alt="Rocket"
                                   style={{
-                                    width: '18px',
-                                    height: '18px',
-                                    objectFit: 'contain',
-                                    filter: isRocketDone
-                                      ? 'brightness(0) saturate(100%) invert(32%) sepia(55%) saturate(830%) hue-rotate(95deg) brightness(92%) contrast(93%)'
-                                      : 'none'
+                                    width: isRocketDone ? '100%' : '18px',
+                                    height: isRocketDone ? '100%' : '18px',
+                                    objectFit: 'cover'
                                   }}
                                 />
                               </button>
@@ -1879,19 +1877,17 @@ export default function MobileAppView({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   cursor: 'pointer',
-                                  padding: 0
+                                  padding: 0,
+                                  overflow: 'hidden'
                                 }}
                               >
                                 <img
-                                  src="./marketplace_pie.png"
+                                  src={isPieDone ? './marketplace_pie_green.png' : './marketplace_pie.png'}
                                   alt="Pie"
                                   style={{
-                                    width: '18px',
-                                    height: '18px',
-                                    objectFit: 'contain',
-                                    filter: isPieDone
-                                      ? 'brightness(0) saturate(100%) invert(32%) sepia(55%) saturate(830%) hue-rotate(95deg) brightness(92%) contrast(93%)'
-                                      : 'none'
+                                    width: isPieDone ? '100%' : '18px',
+                                    height: isPieDone ? '100%' : '18px',
+                                    objectFit: 'cover'
                                   }}
                                 />
                               </button>
