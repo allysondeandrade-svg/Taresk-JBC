@@ -78,8 +78,19 @@ export default function App() {
   });
 
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('taresk_current_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('taresk_current_user');
+      if (saved) return JSON.parse(saved);
+      // Se não houver usuário salvo ainda (primeira vez ou mobile), inicializa com Allyson ou Master
+      const defaultUser = INITIAL_USERS.find(u => u.name.toLowerCase().includes('allyson')) || INITIAL_USERS[0];
+      if (defaultUser) {
+        localStorage.setItem('taresk_current_user', JSON.stringify(defaultUser));
+        return defaultUser;
+      }
+      return null;
+    } catch (e) {
+      return INITIAL_USERS[0] || null;
+    }
   });
 
   const [products, setProducts] = useState(() => {
@@ -267,11 +278,15 @@ export default function App() {
   // Handlers de Autenticação
   const handleLogin = (user) => {
     setCurrentUser(user);
+    if (user) {
+      localStorage.setItem('taresk_current_user', JSON.stringify(user));
+    }
     setActiveTab('tarefas');
     refreshFromSheets(true);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('taresk_current_user');
     setCurrentUser(null);
   };
 
@@ -706,6 +721,10 @@ export default function App() {
           onDeleteTask={handleDeleteTask}
           onDuplicateTask={handleDuplicateTask}
           onLogout={handleLogout}
+          onChangeCurrentUser={handleLogin}
+          onAddProduct={handleAddProduct}
+          onUpdateProduct={handleUpdateProduct}
+          onDeleteProduct={handleDeleteProduct}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           onSync={refreshFromSheets}
           isSyncing={isSyncing}

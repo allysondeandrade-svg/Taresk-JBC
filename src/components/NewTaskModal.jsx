@@ -9,10 +9,11 @@ export default function NewTaskModal({
   products = [],
   users = [],
   platforms = [],
-  currentUser,
+  currentUser: rawCurrentUser,
   onCreateTask,
   defaultChecklistItems
 }) {
+  const currentUser = rawCurrentUser || users[0] || { id: 'user_master', name: 'Administrador', role: 'premium_admin' };
   const [taskType, setTaskType] = useState('simple'); // 'simple', 'product_catalog', 'special' ou 'recurrent'
   const [simpleTitle, setSimpleTitle] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -31,7 +32,7 @@ export default function NewTaskModal({
   }) || users[0] || currentUser;
 
   const [assignedTo, setAssignedTo] = useState(() => {
-    return allysonUser?.id || currentUser.id;
+    return allysonUser?.id || currentUser?.id || 'user_master';
   });
 
   // Atualiza assignedTo quando mudar para simple
@@ -77,6 +78,7 @@ export default function NewTaskModal({
 
   // Subtarefas para Tarefa Simples, Especial ou Recorrente
   const [subtasks, setSubtasks] = useState([]);
+  const [newSubtaskInput, setNewSubtaskInput] = useState('');
   const [editingSubtaskIndex, setEditingSubtaskIndex] = useState(null);
   const [editingSubtaskText, setEditingSubtaskText] = useState('');
   const [draggedSubtaskIndex, setDraggedSubtaskIndex] = useState(null);

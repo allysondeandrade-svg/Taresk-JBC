@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check } from 'lucide-react';
+import { Eye, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check, Search, Package, DollarSign } from 'lucide-react';
 
 // Helper para formatar dd/mm
 function formatDueDateDisplay(val) {
@@ -34,6 +34,10 @@ export default function MobileAppView({
   onDeleteTask,
   onDuplicateTask,
   onLogout,
+  onChangeCurrentUser,
+  onAddProduct,
+  onUpdateProduct,
+  onDeleteProduct,
   onOpenSettings,
   onSync,
   isSyncing,
@@ -47,6 +51,21 @@ export default function MobileAppView({
   const [selectedUserFilter, setSelectedUserFilter] = useState(
     currentUser?.role === 'premium_admin' ? 'all' : currentUser?.id || 'all'
   );
+
+  // Estados da página de Cadastro de Produtos no Mobile
+  const [productSearchMobile, setProductSearchMobile] = useState('');
+  const [isAddingProductMobile, setIsAddingProductMobile] = useState(false);
+  const [newProdMobile, setNewProdMobile] = useState({
+    sku: '',
+    title: '',
+    cost: '',
+    width: '',
+    length: '',
+    height: '',
+    weight: ''
+  });
+  const [editingProductIdMobile, setEditingProductIdMobile] = useState(null);
+  const [editingProdFormMobile, setEditingProdFormMobile] = useState({});
 
   // Edição rápida de tarefa no mobile
   const [editingTask, setEditingTask] = useState(null);
@@ -310,17 +329,590 @@ export default function MobileAppView({
         </button>
       </div>
 
-      {/* Conteúdo de Cadastro ou Precificadora */}
-      {activeMainTab !== 'tarefas' && (
+      {/* ABA CADASTRO: APENAS PRODUTOS RESPONSIVO (LINHA ÚNICA SEM QUEBRA, SEM ÍCONES DE PLATAFORMAS) */}
+      {activeMainTab === 'cadastro' && (
+        <div style={{
+          padding: '0 12px 60px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          boxSizing: 'border-box'
+        }}>
+          {/* Topo do Cadastro: Busca e Botão + Novo Produto */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            marginTop: '4px'
+          }}>
+            {/* Barra de Busca de Produtos */}
+            <div style={{
+              flex: 1,
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: '12px' }} />
+              <input
+                type="text"
+                placeholder="Buscar SKU ou Produto..."
+                value={productSearchMobile}
+                onChange={(e) => setProductSearchMobile(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px 8px 34px',
+                  borderRadius: '9999px',
+                  border: '1.5px solid #e2e8f0',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: '#1e293b',
+                  background: '#f8fafc',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+              {productSearchMobile && (
+                <button
+                  type="button"
+                  onClick={() => setProductSearchMobile('')}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '2px'
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Botão + Novo Produto */}
+            <button
+              onClick={() => setIsAddingProductMobile(!isAddingProductMobile)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '8px 14px',
+                borderRadius: '9999px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #6c5ce7 0%, #4834d4 100%)',
+                color: '#ffffff',
+                fontWeight: '700',
+                fontSize: '13px',
+                boxShadow: '0 4px 12px rgba(108, 92, 231, 0.35)',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
+              }}
+            >
+              {isAddingProductMobile ? <X size={15} /> : <Plus size={15} />}
+              <span>{isAddingProductMobile ? 'Fechar' : 'Novo'}</span>
+            </button>
+          </div>
+
+          {/* Formulário de Adicionar Novo Produto (Mobile) */}
+          {isAddingProductMobile && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newProdMobile.sku.trim()) {
+                  alert('Preencha o SKU do produto.');
+                  return;
+                }
+                if (onAddProduct) {
+                  onAddProduct({
+                    id: 'prod_' + Date.now(),
+                    sku: newProdMobile.sku.toUpperCase().trim(),
+                    title: newProdMobile.title.trim() || newProdMobile.sku.toUpperCase().trim(),
+                    cost: parseFloat(newProdMobile.cost) || 0,
+                    width: parseFloat(newProdMobile.width) || 0,
+                    length: parseFloat(newProdMobile.length) || 0,
+                    height: parseFloat(newProdMobile.height) || 0,
+                    weight: parseFloat(newProdMobile.weight) || 0
+                  });
+                }
+                setNewProdMobile({ sku: '', title: '', cost: '', width: '', length: '', height: '', weight: '' });
+                setIsAddingProductMobile(false);
+              }}
+              style={{
+                background: '#f8fafc',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: '16px',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', fontWeight: '800', color: '#5925dc' }}>+ Cadastrar Produto</span>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>Preencha os dados</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#475569' }}>SKU *</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: FOG-02-BOC"
+                    value={newProdMobile.sku}
+                    onChange={(e) => setNewProdMobile({ ...newProdMobile, sku: e.target.value })}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#475569' }}>Custo (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0,00"
+                    value={newProdMobile.cost}
+                    onChange={(e) => setNewProdMobile({ ...newProdMobile, cost: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', color: '#475569' }}>Nome / Descrição do Produto</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Fogão 2 Bocas Alta Pressão Inox"
+                  value={newProdMobile.title}
+                  onChange={(e) => setNewProdMobile({ ...newProdMobile, title: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '6px' }}>
+                <div>
+                  <label style={{ fontSize: '10px', fontWeight: '700', color: '#64748b' }}>Larg (cm)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="0"
+                    value={newProdMobile.width}
+                    onChange={(e) => setNewProdMobile({ ...newProdMobile, width: e.target.value })}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '10px', fontWeight: '700', color: '#64748b' }}>Comp (cm)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="0"
+                    value={newProdMobile.length}
+                    onChange={(e) => setNewProdMobile({ ...newProdMobile, length: e.target.value })}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '10px', fontWeight: '700', color: '#64748b' }}>Alt (cm)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="0"
+                    value={newProdMobile.height}
+                    onChange={(e) => setNewProdMobile({ ...newProdMobile, height: e.target.value })}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '10px', fontWeight: '700', color: '#64748b' }}>Peso (kg)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0"
+                    value={newProdMobile.weight}
+                    onChange={(e) => setNewProdMobile({ ...newProdMobile, weight: e.target.value })}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11px', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingProductMobile(false)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#64748b',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#5925dc',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Salvar Produto
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Contador de produtos */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>
+              Catálogo de Produtos ({products ? products.length : 0})
+            </span>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+              Role para o lado para ver dimensões ➡️
+            </span>
+          </div>
+
+          {/* TABELA / LISTA RESPONSIVA EM LINHA ÚNICA (SEM QUEBRA DE LINHA, SEM ÍCONES DE PLATAFORMAS) */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <table style={{
+              width: '100%',
+              minWidth: '680px',
+              borderCollapse: 'collapse',
+              fontSize: '12px',
+              textAlign: 'left',
+              whiteSpace: 'nowrap'
+            }}>
+              <thead>
+                <tr style={{
+                  background: '#f8fafc',
+                  borderBottom: '1.5px solid #e2e8f0',
+                  color: '#475569',
+                  fontWeight: '800',
+                  fontSize: '11px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  <th style={{ padding: '10px 12px', width: '130px' }}>SKU</th>
+                  <th style={{ padding: '10px 12px', minWidth: '180px' }}>Produto</th>
+                  <th style={{ padding: '10px 12px', width: '90px', textAlign: 'right' }}>Custo</th>
+                  <th style={{ padding: '10px 12px', width: '70px', textAlign: 'center' }}>Larg</th>
+                  <th style={{ padding: '10px 12px', width: '70px', textAlign: 'center' }}>Comp</th>
+                  <th style={{ padding: '10px 12px', width: '70px', textAlign: 'center' }}>Alt</th>
+                  <th style={{ padding: '10px 12px', width: '80px', textAlign: 'center' }}>Peso</th>
+                  <th style={{ padding: '10px 12px', width: '80px', textAlign: 'center' }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(!products || products.length === 0) ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                      Nenhum produto cadastrado no sistema.
+                    </td>
+                  </tr>
+                ) : (
+                  products
+                    .filter(p => {
+                      if (!productSearchMobile) return true;
+                      const q = productSearchMobile.toLowerCase();
+                      return (p.sku && p.sku.toLowerCase().includes(q)) || (p.title && p.title.toLowerCase().includes(q));
+                    })
+                    .map((prod) => {
+                      const isEditing = editingProductIdMobile === prod.id;
+
+                      if (isEditing) {
+                        return (
+                          <tr key={prod.id} style={{ background: '#f5f3ff', borderBottom: '1px solid #ddd6fe' }}>
+                            <td style={{ padding: '8px 10px' }}>
+                              <input
+                                type="text"
+                                value={editingProdFormMobile.sku || ''}
+                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, sku: e.target.value })}
+                                style={{ width: '100%', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', fontWeight: '700' }}
+                              />
+                            </td>
+                            <td style={{ padding: '8px 10px' }}>
+                              <input
+                                type="text"
+                                value={editingProdFormMobile.title || ''}
+                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, title: e.target.value })}
+                                style={{ width: '100%', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px' }}
+                              />
+                            </td>
+                            <td style={{ padding: '8px 10px' }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={editingProdFormMobile.cost || ''}
+                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, cost: e.target.value })}
+                                style={{ width: '70px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', textAlign: 'right' }}
+                              />
+                            </td>
+                            <td style={{ padding: '8px 10px' }}>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={editingProdFormMobile.width || ''}
+                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, width: e.target.value })}
+                                style={{ width: '50px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', textAlign: 'center' }}
+                              />
+                            </td>
+                            <td style={{ padding: '8px 10px' }}>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={editingProdFormMobile.length || ''}
+                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, length: e.target.value })}
+                                style={{ width: '50px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', textAlign: 'center' }}
+                              />
+                            </td>
+                            <td style={{ padding: '8px 10px' }}>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={editingProdFormMobile.height || ''}
+                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, height: e.target.value })}
+                                style={{ width: '50px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', textAlign: 'center' }}
+                              />
+                            </td>
+                            <td style={{ padding: '8px 10px' }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={editingProdFormMobile.weight || ''}
+                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, weight: e.target.value })}
+                                style={{ width: '60px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', textAlign: 'center' }}
+                              />
+                            </td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              <div style={{ display: 'inline-flex', gap: '4px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (onUpdateProduct) {
+                                      onUpdateProduct(prod.id, {
+                                        sku: (editingProdFormMobile.sku || prod.sku).toUpperCase().trim(),
+                                        title: (editingProdFormMobile.title || prod.title).trim(),
+                                        cost: parseFloat(editingProdFormMobile.cost) || 0,
+                                        width: parseFloat(editingProdFormMobile.width) || 0,
+                                        length: parseFloat(editingProdFormMobile.length) || 0,
+                                        height: parseFloat(editingProdFormMobile.height) || 0,
+                                        weight: parseFloat(editingProdFormMobile.weight) || 0
+                                      });
+                                    }
+                                    setEditingProductIdMobile(null);
+                                  }}
+                                  title="Salvar"
+                                  style={{
+                                    width: '26px',
+                                    height: '26px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    background: '#16a34a',
+                                    color: '#ffffff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <Check size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingProductIdMobile(null)}
+                                  title="Cancelar"
+                                  style={{
+                                    width: '26px',
+                                    height: '26px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #cbd5e1',
+                                    background: '#ffffff',
+                                    color: '#64748b',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <X size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return (
+                        <tr
+                          key={prod.id}
+                          style={{
+                            borderBottom: '1px solid #f1f5f9',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          {/* SKU */}
+                          <td style={{ padding: '10px 12px' }}>
+                            <span style={{
+                              fontFamily: 'JetBrains Mono, monospace',
+                              fontWeight: '700',
+                              color: '#6b21a8',
+                              background: '#f3e8ff',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              display: 'inline-block'
+                            }}>
+                              {prod.sku}
+                            </span>
+                          </td>
+
+                          {/* Produto / Título */}
+                          <td style={{ padding: '10px 12px', fontWeight: '600', color: '#1e293b' }}>
+                            {prod.title}
+                          </td>
+
+                          {/* Custo */}
+                          <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '700', color: '#059669' }}>
+                            R$ {Number(prod.cost || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+
+                          {/* Largura */}
+                          <td style={{ padding: '10px 12px', textAlign: 'center', color: '#64748b' }}>
+                            {prod.width || 0} cm
+                          </td>
+
+                          {/* Comprimento */}
+                          <td style={{ padding: '10px 12px', textAlign: 'center', color: '#64748b' }}>
+                            {prod.length || 0} cm
+                          </td>
+
+                          {/* Altura */}
+                          <td style={{ padding: '10px 12px', textAlign: 'center', color: '#64748b' }}>
+                            {prod.height || 0} cm
+                          </td>
+
+                          {/* Peso */}
+                          <td style={{ padding: '10px 12px', textAlign: 'center', color: '#64748b' }}>
+                            {prod.weight || 0} kg
+                          </td>
+
+                          {/* Ações (Editar / Excluir) */}
+                          <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingProductIdMobile(prod.id);
+                                  setEditingProdFormMobile({ ...prod });
+                                }}
+                                title="Editar Produto"
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #e2e8f0',
+                                  background: '#f8fafc',
+                                  color: '#64748b',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Excluir o produto "${prod.sku}"?`)) {
+                                    if (onDeleteProduct) onDeleteProduct(prod.id);
+                                  }
+                                }}
+                                title="Excluir Produto"
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #fecaca',
+                                  background: '#fef2f2',
+                                  color: '#ef4444',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ABA PRECIFICAÇÃO */}
+      {activeMainTab === 'precificadora' && (
         <div style={{ padding: '30px 16px', textAlign: 'center', color: '#64748b' }}>
           <div style={{ fontSize: '36px', marginBottom: '8px' }}>
-            {activeMainTab === 'cadastro' ? '📦' : '🏷️'}
+            🏷️
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>
-            {activeMainTab === 'cadastro' ? 'Gestão de Produtos' : 'Calculadora de Preço'}
+            Calculadora de Preço
           </h3>
           <p style={{ fontSize: '13px', lineHeight: '1.5', maxWidth: '300px', margin: '0 auto 16px auto' }}>
-            Acesse as configurações avançadas de {activeMainTab} ou abra na versão desktop.
+            Acesse a calculadora completa de margem e markup no computador.
           </p>
           {onSwitchToDesktop && (
             <button
@@ -445,8 +1037,8 @@ export default function MobileAppView({
             </button>
           </div>
 
-          {/* Filtro por usuário se admin */}
-          {currentUser?.role === 'premium_admin' && users && users.length > 1 && (
+          {/* Seletor de Perfil / Filtro Rápido */}
+          {users && users.length > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
               <button
                 onClick={() => setSelectedUserFilter('all')}
@@ -464,25 +1056,37 @@ export default function MobileAppView({
               >
                 Todos
               </button>
-              {users.map(u => (
-                <button
-                  key={u.id}
-                  onClick={() => setSelectedUserFilter(u.id)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '9999px',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    border: selectedUserFilter === u.id ? '1px solid #7c3aed' : '1px solid #e2e8f0',
-                    background: selectedUserFilter === u.id ? '#ede9fe' : '#ffffff',
-                    color: selectedUserFilter === u.id ? '#6d28d9' : '#64748b',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {u.name}
-                </button>
-              ))}
+              {users.map(u => {
+                const isSelected = selectedUserFilter === u.id || (selectedUserFilter === 'all' && currentUser?.id === u.id);
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      setSelectedUserFilter(u.id);
+                      if (onChangeCurrentUser) {
+                        onChangeCurrentUser(u);
+                      }
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '9999px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      border: isSelected ? '1px solid #7c3aed' : '1px solid #e2e8f0',
+                      background: isSelected ? '#ede9fe' : '#ffffff',
+                      color: isSelected ? '#6d28d9' : '#64748b',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>{u.avatar || '👤'}</span>
+                    <span>{u.name}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
