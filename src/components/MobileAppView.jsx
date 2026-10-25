@@ -1279,13 +1279,13 @@ export default function MobileAppView({
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '10px',
+                              gap: '12px',
                               width: '100%'
                             }}
                           >
                             <div
                               onClick={() => {
-                                // Se clicar no checkbox do principal, pode alternar todas ou marcar/desmarcar
+                                // Se clicar no checkbox do principal, alterna todas ou marca/desmarca
                                 const allDone = task.checklist.every(c => c.completed);
                                 task.checklist.forEach(c => {
                                   if (allDone && c.completed) onToggleChecklistItem(task.id, c.id);
@@ -1293,9 +1293,9 @@ export default function MobileAppView({
                                 });
                               }}
                               style={{
-                                width: '24px',
-                                height: '24px',
-                                borderRadius: '6px',
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '7px',
                                 border: task.checklist.every(c => c.completed) ? '2px solid #10b981' : '2px solid #94a3b8',
                                 background: task.checklist.every(c => c.completed) ? '#10b981' : '#ffffff',
                                 display: 'flex',
@@ -1321,12 +1321,12 @@ export default function MobileAppView({
                             </span>
                           </div>
 
-                          {/* Subtarefas indentadas logo abaixo (exatamente como na Foto 2) */}
+                          {/* Subtarefas indentadas logo abaixo (exatamente como na imagem) */}
                           <div style={{
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '8px',
-                            paddingLeft: '24px',
+                            gap: '10px',
+                            paddingLeft: '34px',
                             width: '100%',
                             boxSizing: 'border-box'
                           }}>
@@ -1339,7 +1339,7 @@ export default function MobileAppView({
                                   style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '10px',
+                                    gap: '12px',
                                     cursor: 'pointer',
                                     userSelect: 'none',
                                     width: '100%'
@@ -1348,7 +1348,7 @@ export default function MobileAppView({
                                   <div style={{
                                     width: '22px',
                                     height: '22px',
-                                    borderRadius: '6px',
+                                    borderRadius: '7px',
                                     border: isDone ? '2px solid #10b981' : '2px solid #94a3b8',
                                     background: isDone ? '#10b981' : '#ffffff',
                                     display: 'flex',
@@ -1357,12 +1357,12 @@ export default function MobileAppView({
                                     flexShrink: 0,
                                     transition: 'all 0.15s ease'
                                   }}>
-                                    {isDone && <CheckCircle2 size={15} color="#ffffff" />}
+                                    {isDone && <CheckCircle2 size={16} color="#ffffff" />}
                                   </div>
 
                                   <span style={{
-                                    fontSize: '14px',
-                                    fontWeight: '700',
+                                    fontSize: '15px',
+                                    fontWeight: '800',
                                     color: isDone ? '#64748b' : '#0f172a',
                                     textDecoration: isDone ? 'line-through' : 'none',
                                     wordBreak: 'break-word',

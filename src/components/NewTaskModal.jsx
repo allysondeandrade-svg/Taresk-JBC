@@ -656,15 +656,15 @@ export default function NewTaskModal({
                 background: '#f8fafc',
                 border: '1.5px dashed #cbd5e1',
                 borderRadius: '16px',
-                padding: '14px 12px',
+                padding: '14px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '10px',
+                gap: '12px',
                 boxSizing: 'border-box'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{
-                    fontSize: '13px',
+                    fontSize: '14px',
                     fontWeight: '800',
                     color: '#5925dc',
                     display: 'flex',
@@ -672,7 +672,7 @@ export default function NewTaskModal({
                     gap: '6px'
                   }}>
                     <CheckSquare size={16} />
-                    <span>Subtarefas (Opcional)</span>
+                    <span>Subtarefas</span>
                   </div>
                   {subtasks.length > 0 && (
                     <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>
@@ -904,7 +904,7 @@ export default function NewTaskModal({
                 )}
 
                 {/* Campo de Input com auto-adição de nova linha: ao digitar e pressionar Enter ou perder o foco com texto */}
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                   <input
                     type="text"
                     placeholder="Digitar subtarefa (cria nova linha abaixo)..."
@@ -921,12 +921,14 @@ export default function NewTaskModal({
                     }}
                     style={{
                       flex: 1,
-                      padding: '8px 12px',
-                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
                       border: '1.5px solid #cbd5e1',
-                      fontSize: '13px',
+                      fontSize: '14px',
+                      color: '#1e293b',
                       outline: 'none',
-                      background: '#ffffff'
+                      background: '#ffffff',
+                      boxSizing: 'border-box'
                     }}
                   />
                   <button
@@ -939,14 +941,19 @@ export default function NewTaskModal({
                     }}
                     style={{
                       background: '#5925dc',
-                      color: '#fff',
+                      color: '#ffffff',
                       border: 'none',
-                      padding: '8px 14px',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: '700',
+                      padding: '10px 18px',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      fontWeight: '800',
                       cursor: 'pointer',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 6px rgba(89, 37, 220, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
                     }}
                   >
                     + Adicionar
