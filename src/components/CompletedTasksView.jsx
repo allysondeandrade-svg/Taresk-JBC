@@ -12,20 +12,25 @@ export default function CompletedTasksView({
   onOpenNewTaskModal,
   setActiveTab
 }) {
+  const [filterUser, setFilterUser] = useState(
+    currentUser?.role === 'premium_admin' ? 'all' : (currentUser?.id || 'all')
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
 
-  // Filtro de permissão: admin vê todas, colaboradores veem as suas
+  // Filtro de permissão: admin e Allyson veem todas, colaboradores veem as suas
   const visibleTasks = completedTasks.filter((task) => {
-    if (currentUser.role !== 'premium_admin') {
-      const norm = (s) => String(s || '').toLowerCase().trim();
+    const norm = (s) => String(s || '').toLowerCase().trim();
+    const uName = norm(currentUser.name);
+    const uEmail = norm(currentUser.email);
+    const isPrivileged = currentUser.role === 'premium_admin' || uName.includes('allyson') || uEmail.includes('allyson');
+
+    if (!isPrivileged) {
       const taskAssignee = norm(task.assignedTo);
       const taskAssigneeName = norm(task.assignedByName);
       const taskCreator = norm(task.createdById);
       const uId = norm(currentUser.id);
-      const uName = norm(currentUser.name);
-      const uEmail = norm(currentUser.email);
 
       const matches = 
         (taskAssignee && (taskAssignee === uId || parseInt(taskAssignee, 10) === parseInt(uId, 10))) ||
@@ -37,6 +42,30 @@ export default function CompletedTasksView({
         return false;
       }
     }
+
+    // Filtro por usuário selecionado nas pílulas (Desktop)
+    if (filterUser !== 'all') {
+      const target = norm(filterUser);
+      const fUser = users?.find(u => norm(u.id) === target || norm(u.name) === target);
+      const tAssigned = norm(task.assignedTo);
+      const tAssignedName = norm(task.assignedByName);
+      const fUserId = fUser ? norm(fUser.id) : '';
+      const fUserName = fUser ? norm(fUser.name) : '';
+      const matches = 
+        tAssigned === target ||
+        tAssignedName === target ||
+        (target && (tAssigned.includes(target) || tAssignedName.includes(target))) ||
+        (fUser && (
+          tAssigned === fUserId || 
+          tAssigned === fUserName ||
+          tAssignedName === fUserName ||
+          (fUserName && (tAssigned.includes(fUserName) || tAssignedName.includes(fUserName)))
+        ));
+      if (!matches) {
+        return false;
+      }
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchTitle = (task.title || '').toLowerCase().includes(q);
@@ -145,6 +174,93 @@ export default function CompletedTasksView({
           </button>
         </div>
 
+        {/* Seletor de Perfil / Filtro Rápido por Usuário (Idêntico ao Mobile e TasksView) */}
+        {users && users.length > 1 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            overflowX: 'auto',
+            padding: '4px 2px',
+            maxWidth: '100%'
+          }}>
+            <button
+              onClick={() => setFilterUser('all')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                fontSize: '12px',
+                fontWeight: '700',
+                border: filterUser === 'all' ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
+                background: filterUser === 'all' ? '#ede9fe' : '#ffffff',
+                color: filterUser === 'all' ? '#6d28d9' : '#64748b',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+                boxShadow: filterUser === 'all' ? '0 1px 3px rgba(124, 58, 237, 0.15)' : 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (filterUser !== 'all') {
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.borderColor = '#cbd5e1';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (filterUser !== 'all') {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                }
+              }}
+            >
+              Todos
+            </button>
+            {users.map(u => {
+              const norm = (s) => String(s || '').toLowerCase().trim();
+              const isSelected = 
+                norm(filterUser) === norm(u.id) || 
+                norm(filterUser) === norm(u.name);
+
+              return (
+                <button
+                  key={u.id}
+                  onClick={() => setFilterUser(u.id)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
+                    background: isSelected ? '#ede9fe' : '#ffffff',
+                    color: isSelected ? '#6d28d9' : '#64748b',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isSelected ? '0 1px 3px rgba(124, 58, 237, 0.15)' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.borderColor = '#cbd5e1';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: '13px' }}>{u.avatar || '👤'}</span>
+                  <span>{u.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* No canto direito: Botão Nova Tarefa */}
         <button
           onClick={() => {
@@ -164,7 +280,8 @@ export default function CompletedTasksView({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            marginLeft: 'auto'
           }}
           onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}

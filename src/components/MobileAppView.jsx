@@ -1106,7 +1106,7 @@ export default function MobileAppView({
                 Todos
               </button>
               {users.map(u => {
-                const isSelected = selectedUserFilter === u.id || (selectedUserFilter === 'all' && currentUser?.id === u.id);
+                const isSelected = selectedUserFilter === u.id;
                 return (
                   <button
                     key={u.id}
