@@ -2065,13 +2065,23 @@ export default function MobileAppView({
                 <button
                   type="button"
                   onClick={() => {
-                    const updatePayload = {
-                      title: editTitle,
-                      dueDate: editDueDate
-                    };
-                    if (editSubtasks && editSubtasks.length > 0) {
-                      updatePayload.checklist = editSubtasks;
+                    const newTitle = (editTitle || '').trim();
+                    let updatedChecklist = editSubtasks && editSubtasks.length > 0 ? [...editSubtasks] : (editingTask.checklist || []);
+
+                    // Se for tarefa simples de 1 item com o rótulo anterior, sincroniza o rótulo do item
+                    if (updatedChecklist.length === 1 && updatedChecklist[0].label === editingTask.title) {
+                      updatedChecklist = [{ ...updatedChecklist[0], label: newTitle }];
+                    } else if (updatedChecklist.length === 0 && (editingTask.type === 'simple' || (!editingTask.type && !editingTask.productId))) {
+                      updatedChecklist = [{ id: `chk_${Date.now()}_0`, label: newTitle, completed: false }];
                     }
+
+                    const updatePayload = {
+                      title: newTitle,
+                      sku: editingTask.sku ? newTitle : (editingTask.productId || newTitle),
+                      dueDate: editDueDate,
+                      checklist: updatedChecklist
+                    };
+
                     onUpdateTask(editingTask.id, updatePayload);
                     setEditingTask(null);
                   }}

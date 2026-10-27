@@ -82,24 +82,46 @@ export default function TasksView({
     }
   };
 
+  const [editSubtasks, setEditSubtasks] = useState([]);
+  const [newEditSubtaskInput, setNewEditSubtaskInput] = useState('');
+
   const handleStartEdit = (t) => {
     setEditingTask(t);
     setEditForm({
-      title: t.title || '',
+      title: t.title || t.sku || '',
       dueDate: formatDueDateDisplay(t.dueDate),
       assignedTo: t.assignedTo || '',
       notes: t.notes || ''
     });
+    const subs = Array.isArray(t.checklist) ? t.checklist.map(c => ({ ...c })) : [];
+    setEditSubtasks(subs);
+    setNewEditSubtaskInput('');
   };
 
   const handleSaveEdit = (e) => {
     e.preventDefault();
     if (!editingTask) return;
-    onUpdateTask(editingTask.id, {
+
+    const newTitle = (editForm.title || '').trim();
+    let updatedChecklist = editSubtasks && editSubtasks.length > 0 ? [...editSubtasks] : (editingTask.checklist || []);
+
+    // Se for uma tarefa simples de item único cujo checklist tinha o título antigo, atualiza o item
+    if (updatedChecklist.length === 1 && updatedChecklist[0].label === editingTask.title) {
+      updatedChecklist = [{ ...updatedChecklist[0], label: newTitle }];
+    } else if (updatedChecklist.length === 0 && isTaskSimple(editingTask)) {
+      updatedChecklist = [{ id: `chk_${Date.now()}_0`, label: newTitle, completed: false }];
+    }
+
+    const payload = {
       ...editForm,
+      title: newTitle,
+      sku: editingTask.sku ? newTitle : (editingTask.productId || newTitle),
       dueDate: formatDueDateDisplay(editForm.dueDate),
-      assignedByName: users.find(u => u.id === editForm.assignedTo)?.name || 'Colaborador'
-    });
+      assignedByName: users.find(u => u.id === editForm.assignedTo)?.name || editingTask.assignedByName || 'Colaborador',
+      checklist: updatedChecklist
+    };
+
+    onUpdateTask(editingTask.id, payload);
     setEditingTask(null);
   };
 
@@ -1628,7 +1650,7 @@ export default function TasksView({
                     Observações / Notas:
                   </label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={editForm.notes}
                     onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                     placeholder="Instruções adicionais..."
@@ -1644,6 +1666,134 @@ export default function TasksView({
                     }}
                   />
                 </div>
+
+                {/* Se a tarefa possuir subtarefas cadastradas, exibe editor de subtarefas no desktop também */}
+                {editSubtasks && editSubtasks.length > 1 && (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px dashed #cbd5e1',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    <label style={{ fontSize: '12px', fontWeight: '800', color: '#5925dc', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <CheckCircle2 size={14} /> Subtarefas ({editSubtasks.length})
+                    </label>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
+                      {editSubtasks.map((st, sIdx) => (
+                        <div
+                          key={st.id || sIdx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#ffffff',
+                            padding: '6px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid #e2e8f0'
+                          }}
+                        >
+                          <input
+                            type="text"
+                            value={st.label}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setEditSubtasks(prev => prev.map((item, idx) => idx === sIdx ? { ...item, label: val } : item));
+                            }}
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              border: 'none',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              color: '#1e293b',
+                              outline: 'none',
+                              background: 'transparent'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditSubtasks(prev => prev.filter((_, idx) => idx !== sIdx));
+                            }}
+                            title="Remover subtarefa"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '2px'
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                      <input
+                        type="text"
+                        placeholder="Nova subtarefa..."
+                        value={newEditSubtaskInput}
+                        onChange={(e) => setNewEditSubtaskInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (newEditSubtaskInput.trim()) {
+                              setEditSubtasks(prev => [
+                                ...prev,
+                                { id: `chk_${Date.now()}_${prev.length}`, label: newEditSubtaskInput.trim(), completed: false }
+                              ]);
+                              setNewEditSubtaskInput('');
+                            }
+                          }
+                        }}
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12px',
+                          background: '#ffffff',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newEditSubtaskInput.trim()) {
+                            setEditSubtasks(prev => [
+                              ...prev,
+                              { id: `chk_${Date.now()}_${prev.length}`, label: newEditSubtaskInput.trim(), completed: false }
+                            ]);
+                            setNewEditSubtaskInput('');
+                          }
+                        }}
+                        style={{
+                          background: '#5925dc',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '7px 12px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
                   {onDuplicateTask && editingTask ? (

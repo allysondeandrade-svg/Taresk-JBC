@@ -50,6 +50,19 @@ export default function NewTaskModal({
   const [notes, setNotes] = useState('');
   const dateInputRef = useRef(null);
 
+  // Limpa os campos sempre que o modal for aberto para garantir que o nome da tarefa apareça vazio
+  useEffect(() => {
+    if (isOpen) {
+      setSimpleTitle('');
+      setSpecialTitle('');
+      setRecurrentTitle('');
+      setNotes('');
+      setProductSearch('');
+      setSubtasks([]);
+      setNewSubtaskInput('');
+    }
+  }, [isOpen]);
+
   // Inicializa plataformas selecionadas quando abrir ou quando as plataformas carregarem
   useEffect(() => {
     if (platforms && platforms.length > 0 && selectedPlatformIds.length === 0) {
@@ -356,8 +369,10 @@ export default function NewTaskModal({
       });
     }
 
+    setSimpleTitle('');
     setSpecialTitle('');
     setRecurrentTitle('');
+    setNotes('');
     setSubtasks([]);
     setNewSubtaskInput('');
     onClose();
