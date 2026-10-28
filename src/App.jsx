@@ -12,6 +12,7 @@ import CompletedTasksView from './components/CompletedTasksView';
 import SettingsModal, { APP_THEMES } from './components/SettingsModal';
 import MobileAppView from './components/MobileAppView';
 import AnnotationModal from './components/AnnotationModal';
+import DisputesView from './components/DisputesView';
 import { SheetsApi } from './services/sheetsApi';
 import {
   INITIAL_USERS,
@@ -133,6 +134,25 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [disputes, setDisputes] = useState(() => {
+    const saved = localStorage.getItem('taresk_disputes');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return []; }
+    }
+    // Dados iniciais de exemplo conforme imagem de referência
+    return [
+      { id: 'disp_00001', platform: 'SH', date: '06/10', product: 'ET 4 Band Dupla', orderNumber: '260910NPVMRD39', description: 'Vidro Quebrado', notes: '', returnCode: '', status: 'Em Disputa' },
+      { id: 'disp_00002', platform: 'SH', date: '04/10', product: 'CH 40X80', orderNumber: '26092602CW990RN', description: '', notes: '', returnCode: '', status: 'Disputa Perdida' },
+      { id: 'disp_00003', platform: 'SH', date: '04/10', product: 'et 4 Dupla', orderNumber: '260918B32DYCSQ', description: 'Vidro Quebrado', notes: '', returnCode: '26092602CW990RN', status: 'Em Disputa' },
+      { id: 'disp_00004', platform: 'SH', date: '02/10', product: 'ET 2 Band', orderNumber: '2609057YPE2F2X', description: 'Vidro Quebrado', notes: 'Shopee Izabela', returnCode: '', status: 'Em Disputa' },
+      { id: 'disp_00005', platform: 'SH', date: '24/09', product: 'CH 40X80', orderNumber: '260910KP2896FJ', description: 'Avariado', notes: '', returnCode: '2609190DHVYU2TS', status: 'Em Disputa' },
+      { id: 'disp_00006', platform: 'SH', date: '23/09', product: 'ET 6 Dupla', orderNumber: '260913UTT598KH', description: 'Vidro Quebrado', notes: '', returnCode: '2609200HSYTJM7T', status: 'Em Disputa' },
+      { id: 'disp_00007', platform: 'SH', date: '20/09', product: 'ET 2 Band', orderNumber: '26090575W9Q48V', description: 'Vidro Quebrado', notes: 'Shopee Izabela', returnCode: '2609130UUNKKM3J', status: 'Em Disputa' },
+      { id: 'disp_00008', platform: 'SH', date: '28/08', product: 'ET 3 Band', orderNumber: '260814BPWCYYPP', description: 'Vidro Quebrado', notes: 'Shopee Izabela', returnCode: '2608210UWRR6MQ8', status: 'Disputa Ganha' },
+      { id: 'disp_00009', platform: 'SH', date: '28/08', product: 'ET 3 Band', orderNumber: '260814APR11917', description: 'Vidro Quebrado', notes: 'Shopee Izabela', returnCode: '2608200SVGTQKUQ', status: 'Em Disputa' }
+    ];
+  });
+
   const [appTheme, setAppTheme] = useState(() => {
     const saved = localStorage.getItem('taresk_app_theme');
     if (saved === 'dark') return 'dark';
@@ -203,6 +223,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('taresk_checklist_templates', JSON.stringify(checklistTemplates));
   }, [checklistTemplates]);
+
+  useEffect(() => {
+    localStorage.setItem('taresk_disputes', JSON.stringify(disputes));
+  }, [disputes]);
 
   // Rastreia timestamps das tarefas modificadas localmente recentemente para o polling não sobrescrever com dados antigos do Sheets
   const localTaskUpdatesRef = useRef({});
@@ -277,6 +301,9 @@ export default function App() {
         if (Array.isArray(data.platforms) && data.platforms.length > 0) setPlatforms(data.platforms);
         if (Array.isArray(data.checklistTemplates) && data.checklistTemplates.length > 0) {
           setChecklistTemplates(data.checklistTemplates);
+        }
+        if (Array.isArray(data.disputes) && data.disputes.length > 0) {
+          setDisputes(data.disputes);
         }
         setLastSyncTime(new Date());
       }
@@ -649,6 +676,29 @@ export default function App() {
     return await SheetsApi.saveAnnotation(annotationData);
   };
 
+  // Handlers de Disputas (Aba Disputas)
+  const handleAddDispute = (newDispute) => {
+    setDisputes(prev => [newDispute, ...prev]);
+    SheetsApi.syncDispute(newDispute);
+  };
+
+  const handleUpdateDispute = (id, updatedFields) => {
+    setDisputes(prev => prev.map(d => {
+      if (d.id === id) {
+        const updated = { ...d, ...updatedFields };
+        SheetsApi.syncDispute(updated);
+        return updated;
+      }
+      return d;
+    }));
+  };
+
+  const handleDeleteDispute = (disputeOrId) => {
+    const id = typeof disputeOrId === 'object' ? disputeOrId.id : disputeOrId;
+    setDisputes(prev => prev.filter(d => d.id !== id));
+    SheetsApi.deleteDispute(disputeOrId);
+  };
+
   // Handlers de Produtos
   const handleAddProduct = (newProd) => {
     setProducts([...products, newProd]);
@@ -941,6 +991,15 @@ export default function App() {
 
         {activeTab === 'precificadora' && (
           <PricingView products={products} />
+        )}
+
+        {activeTab === 'disputas' && (
+          <DisputesView
+            disputes={disputes}
+            onAddDispute={handleAddDispute}
+            onUpdateDispute={handleUpdateDispute}
+            onDeleteDispute={handleDeleteDispute}
+          />
         )}
 
         {activeTab === 'relatorio' && currentUser.role === 'premium_admin' && (

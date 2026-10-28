@@ -424,5 +424,53 @@ export const SheetsApi = {
       console.error('Erro ao salvar anotação no Sheets:', err);
       return false;
     }
+  },
+
+  /**
+   * Sincroniza (salva ou atualiza) uma disputa na aba Disputas
+   */
+  async syncDispute(dispute) {
+    const url = this.getUrl();
+    if (!url) return false;
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'saveDispute',
+          data: dispute
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error('Erro ao sincronizar disputa no Sheets:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Exclui uma disputa da planilha
+   */
+  async deleteDispute(disputeOrId) {
+    const url = this.getUrl();
+    if (!url) return false;
+
+    const payload = typeof disputeOrId === 'object' ? disputeOrId : { id: disputeOrId };
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'deleteDispute',
+          data: payload
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error('Erro ao excluir disputa no Sheets:', err);
+      return false;
+    }
   }
 };

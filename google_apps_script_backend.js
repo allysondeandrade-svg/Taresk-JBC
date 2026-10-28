@@ -34,7 +34,8 @@ const SHEETS = {
   COMPLETED_TASKS: 'Tarefas_Finalizadas',
   PRICING: 'Precificadora',
   CHECKLIST_TEMPLATES: 'Modelos_Checklist',
-  ANNOTATIONS: 'Anotação'
+  ANNOTATIONS: 'Anotação',
+  DISPUTES: 'Disputas'
 };
 
 /**
@@ -196,6 +197,16 @@ function setupSheets() {
     ensureIdColumn(noteSheet, 'ID');
   }
 
+  // 9. Aba Disputas: [ID, Plataf, Data, Produto, Pedido, Descrição, Observação, Devolução, Situação]
+  let disputeSheet = ss.getSheetByName(SHEETS.DISPUTES) || ss.getSheetByName('Disputa');
+  if (!disputeSheet) {
+    disputeSheet = ss.insertSheet(SHEETS.DISPUTES);
+    disputeSheet.appendRow(['ID', 'Plataf', 'Data', 'Produto', 'Pedido', 'Descrição', 'Observação', 'Devolução', 'Situação']);
+    styleHeader(disputeSheet);
+  } else {
+    ensureIdColumn(disputeSheet, 'ID');
+  }
+
   Logger.log('Todas as abas do Taresk foram configuradas e corrigidas com sucesso!');
 }
 
@@ -345,8 +356,11 @@ function doGet(e) {
         tasks: getTasksDataAsJson(SHEETS.TASKS),
         completedTasks: getTasksDataAsJson(SHEETS.COMPLETED_TASKS),
         pricing: getSheetDataAsJson(SHEETS.PRICING),
-        checklistTemplates: getChecklistTemplatesDataAsJson()
+        checklistTemplates: getChecklistTemplatesDataAsJson(),
+        disputes: getDisputesDataAsJson()
       };
+    } else if (action === 'getDisputes') {
+      responseData = getDisputesDataAsJson();
     } else if (action === 'getTasks') {
       responseData = getTasksDataAsJson(SHEETS.TASKS);
     } else if (action === 'getCompletedTasks') {
@@ -449,6 +463,14 @@ function doPost(e) {
 
       case 'saveAnnotation':
         result = saveAnnotationRecord(data);
+        break;
+
+      case 'saveDispute':
+        result = upsertDisputeRecord(data);
+        break;
+
+      case 'deleteDispute':
+        result = deleteDisputeRecord(data);
         break;
 
       default:
@@ -1554,6 +1576,134 @@ function saveAnnotationRecord(annotationData) {
 
   sheet.appendRow(finalRow);
   return { status: 'success', id: newId, tipo: tipo, date: dateStr };
+}
+
+/**
+ * Retorna as disputas da aba "Disputas"
+ * Cabeçalhos: [ID, Plataf, Data, Produto, Pedido, Descrição, Observação, Devolução, Situação]
+ */
+function getDisputesDataAsJson() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.DISPUTES) || ss.getSheetByName('Disputa');
+  if (!sheet) return [];
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const rows = values.slice(1);
+
+  const idxId = headers.indexOf('id');
+  const idxPlat = headers.findIndex(h => h.includes('plat'));
+  const idxData = headers.findIndex(h => h.includes('data'));
+  const idxProd = headers.findIndex(h => h.includes('prod'));
+  const idxPedido = headers.findIndex(h => h.includes('ped'));
+  const idxDesc = headers.findIndex(h => h.includes('desc'));
+  const idxObs = headers.findIndex(h => h.includes('obs'));
+  const idxDev = headers.findIndex(h => h.includes('devol'));
+  const idxSit = headers.findIndex(h => h.includes('situa'));
+
+  return rows.map((r, index) => {
+    let rawDate = idxData !== -1 ? r[idxData] : '';
+    let formattedDate = '';
+    if (rawDate instanceof Date) {
+      const dd = String(rawDate.getDate()).padStart(2, '0');
+      const mm = String(rawDate.getMonth() + 1).padStart(2, '0');
+      formattedDate = `${dd}/${mm}`;
+    } else {
+      formattedDate = String(rawDate || '').trim();
+    }
+
+    return {
+      id: idxId !== -1 && r[idxId] ? String(r[idxId]).trim() : formatToFiveDigits(index + 1),
+      platform: idxPlat !== -1 ? String(r[idxPlat] || '').trim() : 'SH',
+      date: formattedDate,
+      product: idxProd !== -1 ? String(r[idxProd] || '').trim() : '',
+      orderNumber: idxPedido !== -1 ? String(r[idxPedido] || '').trim() : '',
+      description: idxDesc !== -1 ? String(r[idxDesc] || '').trim() : '',
+      notes: idxObs !== -1 ? String(r[idxObs] || '').trim() : '',
+      returnCode: idxDev !== -1 ? String(r[idxDev] || '').trim() : '',
+      status: idxSit !== -1 && r[idxSit] ? String(r[idxSit] || '').trim() : 'Em Disputa'
+    };
+  });
+}
+
+/**
+ * Salva ou atualiza uma Disputa na aba 'Disputas'
+ */
+function upsertDisputeRecord(dispute) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.DISPUTES) || ss.getSheetByName('Disputa');
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.DISPUTES);
+    sheet.appendRow(['ID', 'Plataf', 'Data', 'Produto', 'Pedido', 'Descrição', 'Observação', 'Devolução', 'Situação']);
+    styleHeader(sheet);
+  }
+
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const targetId = dispute.id ? String(dispute.id).trim() : '';
+
+  let rowIndex = -1;
+  if (idxId !== -1 && targetId) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxId]).trim() === targetId || formatToFiveDigits(values[i][idxId]) === formatToFiveDigits(targetId)) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+  }
+
+  const hasIdCol = idxId !== -1;
+  const finalId = targetId || (hasIdCol ? getNextFormattedId([SHEETS.DISPUTES, 'Disputa']) : '');
+
+  const rowData = [
+    dispute.platform || 'SH',
+    dispute.date || '',
+    dispute.product || '',
+    dispute.orderNumber || '',
+    dispute.description || '',
+    dispute.notes || '',
+    dispute.returnCode || '',
+    dispute.status || 'Em Disputa'
+  ];
+
+  const fullRow = hasIdCol ? [finalId, ...rowData] : rowData;
+
+  if (rowIndex > 0) {
+    sheet.getRange(rowIndex, 1, 1, fullRow.length).setValues([fullRow]);
+  } else {
+    sheet.appendRow(fullRow);
+  }
+
+  return { status: 'success', id: finalId };
+}
+
+/**
+ * Exclui uma disputa da planilha
+ */
+function deleteDisputeRecord(disputeData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.DISPUTES) || ss.getSheetByName('Disputa');
+  if (!sheet) return { deleted: false };
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return { deleted: false };
+
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const targetId = disputeData && disputeData.id ? String(disputeData.id).trim() : String(disputeData || '').trim();
+
+  for (let i = 1; i < values.length; i++) {
+    const rowId = idxId !== -1 ? String(values[i][idxId]).trim() : '';
+    if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+      sheet.deleteRow(i + 1);
+      return { deleted: true, id: targetId };
+    }
+  }
+
+  return { deleted: false };
 }
 
 /**

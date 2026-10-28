@@ -16,6 +16,7 @@ export default function Header({
     { id: 'tarefas', label: 'Tarefas' },
     { id: 'cadastro', label: 'Cadastro' },
     { id: 'precificadora', label: 'Precificadora' },
+    { id: 'disputas', label: 'Disputa' },
     ...(currentUser.role === 'premium_admin' ? [{ id: 'relatorio', label: 'Relatório Geral' }] : [])
   ];
 
