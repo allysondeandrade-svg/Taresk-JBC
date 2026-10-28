@@ -99,10 +99,17 @@ export default function TasksView({
   };
 
   const handleSaveEdit = (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
     if (!editingTask) return;
 
     const newTitle = (editForm.title || '').trim();
+    if (!newTitle) {
+      alert('Por favor, informe o título da tarefa.');
+      return;
+    }
+
     let updatedChecklist = editSubtasks && editSubtasks.length > 0 ? [...editSubtasks] : (editingTask.checklist || []);
 
     // Se for uma tarefa simples de item único cujo checklist tinha o título antigo, atualiza o item
@@ -113,15 +120,20 @@ export default function TasksView({
     }
 
     const payload = {
+      ...editingTask,
       ...editForm,
       title: newTitle,
       sku: editingTask.sku ? newTitle : (editingTask.productId || newTitle),
       dueDate: formatDueDateDisplay(editForm.dueDate),
-      assignedByName: users.find(u => u.id === editForm.assignedTo)?.name || editingTask.assignedByName || 'Colaborador',
+      assignedTo: editForm.assignedTo,
+      assignedByName: users.find(u => String(u.id) === String(editForm.assignedTo))?.name || editingTask.assignedByName || 'Colaborador',
+      notes: editForm.notes || '',
       checklist: updatedChecklist
     };
 
-    onUpdateTask(editingTask.id, payload);
+    if (onUpdateTask) {
+      onUpdateTask(editingTask.id, payload);
+    }
     setEditingTask(null);
   };
 
@@ -1844,6 +1856,7 @@ export default function TasksView({
                     </button>
                     <button
                       type="submit"
+                      onClick={handleSaveEdit}
                       style={{
                         padding: '10px 22px',
                         borderRadius: '12px',

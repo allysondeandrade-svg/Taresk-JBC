@@ -237,8 +237,11 @@ export default function App() {
           setTasks(prevTasks => {
             const now = Date.now();
             return sanitizedTasks.map(incomingTask => {
-              const localMatch = prevTasks.find(pt => pt.id === incomingTask.id || (pt.sku && pt.sku === incomingTask.sku && pt.assignedTo === incomingTask.assignedTo));
-              const lastLocalUpdate = localMatch ? (localTaskUpdatesRef.current[localMatch.id] || 0) : 0;
+              const localMatch = prevTasks.find(pt => 
+                (pt.id && incomingTask.id && String(pt.id) === String(incomingTask.id)) ||
+                (pt.sku && pt.sku === incomingTask.sku && pt.assignedTo === incomingTask.assignedTo)
+              );
+              const lastLocalUpdate = localMatch ? (localTaskUpdatesRef.current[localMatch.id] || localTaskUpdatesRef.current[String(localMatch.id)] || 0) : 0;
               // Se foi editado localmente há menos de 15 segundos, preserva o estado local mais recente
               if (localMatch && (now - lastLocalUpdate < 15000)) {
                 return localMatch;
@@ -489,9 +492,12 @@ export default function App() {
 
   // Handlers para Editar e Excluir Tarefas Ativas
   const handleUpdateTask = (id, updatedFields) => {
-    localTaskUpdatesRef.current[id] = Date.now();
+    const strId = String(id);
+    const now = Date.now();
+    localTaskUpdatesRef.current[id] = now;
+    localTaskUpdatesRef.current[strId] = now;
     setTasks(prev => prev.map(t => {
-      if (t.id === id) {
+      if (String(t.id) === strId || t.id === id) {
         const updated = { ...t, ...updatedFields };
         SheetsApi.syncTask(updated);
         return updated;
