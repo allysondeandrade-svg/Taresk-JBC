@@ -42,7 +42,8 @@ export default function MobileAppView({
   onSync,
   isSyncing,
   appTheme,
-  onSwitchToDesktop
+  onSwitchToDesktop,
+  onOpenAnnotationModal
 }) {
   const isDark = appTheme === 'dark';
   // Abas do topo: 'tarefas', 'cadastro', 'precificadora'
@@ -2102,6 +2103,61 @@ export default function MobileAppView({
             </div>
           </div>
         </div>
+      )}
+      {/* Botão Flutuante de Anotação (Foto 1) */}
+      {onOpenAnnotationModal && (
+        <button
+          type="button"
+          onClick={onOpenAnnotationModal}
+          title="Fazer Anotação"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '20px',
+            zIndex: 9999,
+            width: '68px',
+            height: '68px',
+            borderRadius: '50%',
+            background: '#6d28d9',
+            color: '#ffffff',
+            border: '3px solid #ffffff',
+            boxShadow: '0 8px 24px rgba(109, 40, 217, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.08)';
+            e.currentTarget.style.background = '#5b21b6';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.background = '#6d28d9';
+          }}
+        >
+          {/* Ícone de prancheta de anotação com linhas horizontais, lápis e estrelas de brilho (Foto 1) */}
+          <svg width="42" height="42" viewBox="0 0 48 48" fill="none">
+            {/* Folha/Prancheta */}
+            <rect x="9" y="7" width="26" height="34" rx="4" fill="#ffffff" />
+            {/* Linhas da anotação */}
+            <line x1="15" y1="14" x2="27" y2="14" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
+            <line x1="15" y1="20" x2="29" y2="20" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
+            <line x1="15" y1="26" x2="26" y2="26" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
+            <line x1="15" y1="32" x2="22" y2="32" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
+            
+            {/* Lápis desenhando na diagonal */}
+            <g transform="translate(19, 14)">
+              <rect x="8" y="1" width="5.5" height="18" rx="2" transform="rotate(45 8 1)" fill="#6d28d9" />
+              <polygon points="4,22 1,25 4,20" fill="#6d28d9" />
+            </g>
+
+            {/* Estrelinhas de brilho no canto da folha */}
+            <path d="M36 6 L37.5 9 L40.5 10.5 L37.5 12 L36 15 L34.5 12 L31.5 10.5 L34.5 9 Z" fill="#ffffff" />
+            <path d="M39 21 L39.8 22.5 L41.5 23.3 L39.8 24.1 L39 25.6 L38.2 24.1 L36.5 23.3 L38.2 22.5 Z" fill="#ffffff" />
+          </svg>
+        </button>
       )}
     </div>
   );

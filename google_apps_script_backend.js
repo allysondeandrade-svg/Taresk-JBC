@@ -33,7 +33,8 @@ const SHEETS = {
   TASKS: 'Tarefas',
   COMPLETED_TASKS: 'Tarefas_Finalizadas',
   PRICING: 'Precificadora',
-  CHECKLIST_TEMPLATES: 'Modelos_Checklist'
+  CHECKLIST_TEMPLATES: 'Modelos_Checklist',
+  ANNOTATIONS: 'Anotação'
 };
 
 /**
@@ -183,6 +184,16 @@ function setupSheets() {
     styleHeader(tmplSheet);
   } else {
     ensureIdColumn(tmplSheet, 'ID');
+  }
+
+  // 8. Aba Anotação: [ID, DataHora, Tipo_Anotacao, Valor, Numero_Pedido, Observacao, Usuario]
+  let noteSheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
+  if (!noteSheet) {
+    noteSheet = ss.insertSheet(SHEETS.ANNOTATIONS);
+    noteSheet.appendRow(['ID', 'DataHora', 'Tipo de Anotação', 'Valor', 'Número do Pedido', 'Observação', 'Usuário']);
+    styleHeader(noteSheet);
+  } else {
+    ensureIdColumn(noteSheet, 'ID');
   }
 
   Logger.log('Todas as abas do Taresk foram configuradas e corrigidas com sucesso!');
@@ -434,6 +445,10 @@ function doPost(e) {
 
       case 'deleteChecklistTemplate':
         result = deleteChecklistTemplateRecord(data);
+        break;
+
+      case 'saveAnnotation':
+        result = saveAnnotationRecord(data);
         break;
 
       default:
@@ -1504,6 +1519,41 @@ function deleteChecklistTemplateRecord(templateData) {
   }
 
   return { deleted: false };
+}
+
+/**
+ * Salva uma nova Anotação na aba 'Anotação'
+ * Campos: [ID, DataHora, Tipo de Anotação, Valor, Número do Pedido, Observação, Usuário]
+ */
+function saveAnnotationRecord(annotationData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.ANNOTATIONS);
+    sheet.appendRow(['ID', 'DataHora', 'Tipo de Anotação', 'Valor', 'Número do Pedido', 'Observação', 'Usuário']);
+    styleHeader(sheet);
+  }
+
+  const values = sheet.getDataRange().getValues();
+  const headers = values.length > 0 ? values[0].map(h => String(h).toLowerCase().trim()) : [];
+  const hasIdCol = headers.indexOf('id') !== -1;
+  const newId = hasIdCol ? getNextFormattedId([SHEETS.ANNOTATIONS, 'Anotacao', 'Anotações']) : '';
+
+  // Formata data e hora legível (ex: 27/10/2026 21:45)
+  const now = new Date();
+  const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss');
+
+  const tipo = String(annotationData.tipo || annotationData.type || 'Anotação').trim();
+  const valor = annotationData.valor !== undefined && annotationData.valor !== null ? String(annotationData.valor) : '';
+  const pedido = annotationData.pedido !== undefined && annotationData.pedido !== null ? String(annotationData.pedido) : '';
+  const obs = annotationData.observacao || annotationData.observation || annotationData.notes || '';
+  const usuario = annotationData.usuario || annotationData.userName || annotationData.user || '';
+
+  const baseRow = [dateStr, tipo, valor, pedido, obs, usuario];
+  const finalRow = hasIdCol ? [newId, ...baseRow] : baseRow;
+
+  sheet.appendRow(finalRow);
+  return { status: 'success', id: newId, tipo: tipo, date: dateStr };
 }
 
 /**

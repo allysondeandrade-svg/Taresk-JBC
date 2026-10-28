@@ -401,5 +401,28 @@ export const SheetsApi = {
       console.error('Erro ao excluir modelo de checklist no Sheets:', err);
       return false;
     }
+  },
+
+  /**
+   * Salva uma Anotação na aba 'Anotação' da planilha Google
+   */
+  async saveAnnotation(annotation) {
+    const url = this.getUrl();
+    if (!url) return false;
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'saveAnnotation',
+          data: annotation
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error('Erro ao salvar anotação no Sheets:', err);
+      return false;
+    }
   }
 };

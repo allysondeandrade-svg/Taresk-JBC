@@ -11,6 +11,7 @@ import DopamineCelebrationModal from './components/DopamineCelebrationModal';
 import CompletedTasksView from './components/CompletedTasksView';
 import SettingsModal, { APP_THEMES } from './components/SettingsModal';
 import MobileAppView from './components/MobileAppView';
+import AnnotationModal from './components/AnnotationModal';
 import { SheetsApi } from './services/sheetsApi';
 import {
   INITIAL_USERS,
@@ -170,6 +171,7 @@ export default function App() {
   // Modais
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isAnnotationModalOpen, setIsAnnotationModalOpen] = useState(false);
   const [activeChecklistTask, setActiveChecklistTask] = useState(null);
   const [celebratingTask, setCelebratingTask] = useState(null); // Tarefa em celebração dopaminérgica
 
@@ -642,6 +644,11 @@ export default function App() {
     }));
   };
 
+  // Handler de Anotações (Foto 1 e 2 - Salva na aba Anotação da Planilha)
+  const handleSaveAnnotation = async (annotationData) => {
+    return await SheetsApi.saveAnnotation(annotationData);
+  };
+
   // Handlers de Produtos
   const handleAddProduct = (newProd) => {
     setProducts([...products, newProd]);
@@ -788,9 +795,17 @@ export default function App() {
               window.location.hash = '';
             }
           }}
+          onOpenAnnotationModal={() => setIsAnnotationModalOpen(true)}
         />
 
         {/* Modais compartilhados para uso no mobile */}
+        <AnnotationModal
+          isOpen={isAnnotationModalOpen}
+          onClose={() => setIsAnnotationModalOpen(false)}
+          currentUser={currentUser}
+          onSave={handleSaveAnnotation}
+        />
+
         <NewTaskModal
           isOpen={isNewTaskModalOpen}
           onClose={() => setIsNewTaskModalOpen(false)}
@@ -996,6 +1011,61 @@ export default function App() {
           }
         }}
       />
+
+      {/* Modal de Anotação (Desktop) */}
+      <AnnotationModal
+        isOpen={isAnnotationModalOpen}
+        onClose={() => setIsAnnotationModalOpen(false)}
+        currentUser={currentUser}
+        onSave={handleSaveAnnotation}
+      />
+
+      {/* Botão Flutuante de Anotação no Desktop */}
+      <button
+        type="button"
+        onClick={() => setIsAnnotationModalOpen(true)}
+        title="Fazer Anotação"
+        style={{
+          position: 'fixed',
+          bottom: '28px',
+          right: '28px',
+          zIndex: 9999,
+          width: '68px',
+          height: '68px',
+          borderRadius: '50%',
+          background: '#6d28d9',
+          color: '#ffffff',
+          border: '3px solid #ffffff',
+          boxShadow: '0 8px 24px rgba(109, 40, 217, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.08)';
+          e.currentTarget.style.background = '#5b21b6';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.background = '#6d28d9';
+        }}
+      >
+        <svg width="42" height="42" viewBox="0 0 48 48" fill="none">
+          <rect x="9" y="7" width="26" height="34" rx="4" fill="#ffffff" />
+          <line x1="15" y1="14" x2="27" y2="14" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
+          <line x1="15" y1="20" x2="29" y2="20" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
+          <line x1="15" y1="26" x2="26" y2="26" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
+          <line x1="15" y1="32" x2="22" y2="32" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
+          <g transform="translate(19, 14)">
+            <rect x="8" y="1" width="5.5" height="18" rx="2" transform="rotate(45 8 1)" fill="#6d28d9" />
+            <polygon points="4,22 1,25 4,20" fill="#6d28d9" />
+          </g>
+          <path d="M36 6 L37.5 9 L40.5 10.5 L37.5 12 L36 15 L34.5 12 L31.5 10.5 L34.5 9 Z" fill="#ffffff" />
+          <path d="M39 21 L39.8 22.5 L41.5 23.3 L39.8 24.1 L39 25.6 L38.2 24.1 L36.5 23.3 L38.2 22.5 Z" fill="#ffffff" />
+        </svg>
+      </button>
     </div>
   );
 }
