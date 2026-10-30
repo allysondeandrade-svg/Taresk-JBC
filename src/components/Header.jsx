@@ -12,12 +12,16 @@ export default function Header({
   isSyncing,
   lastSyncTime
 }) {
+  const norm = (s) => String(s || '').toLowerCase().trim();
+  const isAllyson = norm(currentUser?.name).includes('allyson') || norm(currentUser?.email).includes('allyson');
+
   const tabs = [
     { id: 'tarefas', label: 'Tarefas' },
     { id: 'cadastro', label: 'Cadastro' },
     { id: 'precificadora', label: 'Precificadora' },
     { id: 'disputas', label: 'Disputa' },
-    ...(currentUser.role === 'premium_admin' ? [{ id: 'relatorio', label: 'Relatório Geral' }] : [])
+    ...(currentUser.role === 'premium_admin' ? [{ id: 'relatorio', label: 'Relatório Geral' }] : []),
+    ...(isAllyson ? [{ id: 'conciliacao', label: 'Conciliação' }] : [])
   ];
 
   return (
@@ -91,6 +95,7 @@ export default function Header({
                   }}
                 >
                   {tab.id === 'relatorio' && <BarChart2 size={16} />}
+                  {tab.id === 'conciliacao' && <CheckSquare size={16} />}
                   {tab.label}
                 </button>
               );

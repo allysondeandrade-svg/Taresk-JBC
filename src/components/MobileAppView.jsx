@@ -126,6 +126,7 @@ export default function MobileAppView({
     if (lower.includes('shopee')) return './icon_shopee.png';
     if (lower.includes('mercado') || lower.includes('ml')) return './icon_mercadolivre.png';
     if (lower.includes('amazon')) return './icon_amazon.png';
+    if (lower.includes('magalu') || lower.includes('magazine')) return './icon_magalu.png';
     return null;
   }
 
