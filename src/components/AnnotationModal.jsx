@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check, Sparkles } from 'lucide-react';
+import { X, Check, Sparkles } from 'lucide-react';
 
 // Tipos de anotações com seus ícones SVG fiéis aos modelos do usuário
 const ANNOTATION_TYPES = [
@@ -8,9 +8,9 @@ const ANNOTATION_TYPES = [
     label: 'Entrega Local',
     // Caminhão de entrega estilizado
     svg: (
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="1" y="3" width="15" height="13" rx="2" />
-        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+        <polygon points="16 8 20 8 23 11 23 16 16 16 8" />
         <circle cx="5.5" cy="18.5" r="2.5" />
         <circle cx="18.5" cy="18.5" r="2.5" />
       </svg>
@@ -21,7 +21,7 @@ const ANNOTATION_TYPES = [
     label: 'Envio Próprio',
     // Caixa de encomenda em movimento
     svg: (
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
         <path d="m3.3 7 8.7 5 8.7-5" />
         <path d="M12 22V12" />
@@ -35,7 +35,7 @@ const ANNOTATION_TYPES = [
     label: 'Retirada Fábrica',
     // Loja / fábrica com caixas na frente
     svg: (
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
         <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
         <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
@@ -50,7 +50,7 @@ const ANNOTATION_TYPES = [
     label: 'Gasto Manual',
     // Cifrão estilizado $
     svg: (
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="1" x2="12" y2="23" />
         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
       </svg>
@@ -61,7 +61,7 @@ const ANNOTATION_TYPES = [
     label: 'Prejuízo',
     // Engrenagem quebrada / faíscas de alerta
     svg: (
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2v4" />
         <path d="M12 18v4" />
         <path d="m4.93 4.93 2.83 2.83" />
@@ -77,9 +77,9 @@ const ANNOTATION_TYPES = [
   {
     id: 'anotacao',
     label: 'Anotação',
-    // Prancheta com lápis e estrelas de brilho
+    // Prancheta com lápis
     svg: (
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14 2 14 8 20 8" />
         <line x1="16" y1="13" x2="8" y2="13" />
@@ -169,8 +169,7 @@ export default function AnnotationModal({
           background: '#ffffff',
           width: '100%',
           maxWidth: '430px',
-          minHeight: '600px',
-          borderRadius: '32px',
+          borderRadius: '28px',
           boxShadow: '0 25px 50px -12px rgba(91, 33, 182, 0.25)',
           display: 'flex',
           flexDirection: 'column',
@@ -180,41 +179,50 @@ export default function AnnotationModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Topo: Botão Voltar Circular Roxo */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '22px' }}>
+        {/* Topo com Botão Fechar (X) no Canto Superior Direito */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '16px' }}>
           <button
             type="button"
             onClick={onClose}
             disabled={isSaving}
+            title="Fechar"
             style={{
-              width: '44px',
-              height: '44px',
+              width: '36px',
+              height: '36px',
               borderRadius: '50%',
-              background: '#6d28d9',
-              color: '#ffffff',
+              background: '#f1f5f9',
+              color: '#64748b',
               border: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              boxShadow: '0 4px 10px rgba(109, 40, 217, 0.3)',
-              transition: 'transform 0.15s ease, background 0.15s ease'
+              transition: 'all 0.15s ease'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#e2e8f0';
+              e.currentTarget.style.color = '#0f172a';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#f1f5f9';
+              e.currentTarget.style.color = '#64748b';
+            }}
           >
-            <ArrowLeft size={22} strokeWidth={2.6} />
+            <X size={20} strokeWidth={2.5} />
           </button>
         </div>
 
-        {/* Grade de 6 Ícones de Tipo de Anotação */}
+        {/* Grade de Ícones: 2 Linhas com 3 Ícones cada, todos 100% contidos dentro do card */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(6, 1fr)',
-            gap: '6px',
-            marginBottom: '36px',
-            alignItems: 'start'
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            columnGap: '12px',
+            rowGap: '16px',
+            marginBottom: '32px',
+            justifyItems: 'center',
+            alignItems: 'start',
+            width: '100%'
           }}
         >
           {ANNOTATION_TYPES.map((t) => {
@@ -228,10 +236,12 @@ export default function AnnotationModal({
                   flexDirection: 'column',
                   alignItems: 'center',
                   cursor: 'pointer',
-                  userSelect: 'none'
+                  userSelect: 'none',
+                  width: '100%',
+                  maxWidth: '96px'
                 }}
               >
-                {/* Círculo do Ícone: Roxo padrão (#6d28d9) ou Verde se selecionado (#22c55e) */}
+                {/* Círculo do Ícone: Roxo (#6d28d9) ou Verde se selecionado (#22c55e) */}
                 <div
                   style={{
                     width: '52px',
@@ -245,8 +255,8 @@ export default function AnnotationModal({
                     boxShadow: isSelected
                       ? '0 6px 14px rgba(34, 197, 94, 0.4)'
                       : '0 4px 10px rgba(109, 40, 217, 0.25)',
-                    transform: isSelected ? 'scale(1.08)' : 'scale(1)',
-                    transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   {t.svg}
@@ -255,12 +265,12 @@ export default function AnnotationModal({
                 {/* Nome do tipo abaixo do ícone com quebra harmoniosa */}
                 <span
                   style={{
-                    fontSize: '11px',
+                    fontSize: '12px',
                     fontWeight: isSelected ? '800' : '700',
                     color: isSelected ? '#15803d' : '#6d28d9',
                     textAlign: 'center',
-                    marginTop: '8px',
-                    lineHeight: '1.15',
+                    marginTop: '6px',
+                    lineHeight: '1.2',
                     wordBreak: 'break-word',
                     width: '100%'
                   }}
@@ -272,17 +282,17 @@ export default function AnnotationModal({
           })}
         </div>
 
-        {/* Campos do Formulário com design idêntico à Foto 2 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', flex: 1 }}>
+        {/* Campos do Formulário com retângulos de pontas moderadamente arredondadas (10px) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
           {/* Campo: Valor */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <label
               style={{
-                fontSize: '18px',
-                fontWeight: '900',
+                fontSize: '17px',
+                fontWeight: '800',
                 color: '#0f172a',
                 letterSpacing: '-0.3px',
-                width: '42%'
+                flexShrink: 0
               }}
             >
               Valor
@@ -293,17 +303,18 @@ export default function AnnotationModal({
               onChange={(e) => setValor(e.target.value)}
               placeholder=""
               style={{
-                width: '56%',
-                height: '46px',
-                borderRadius: '9999px',
+                width: '60%',
+                height: '44px',
+                borderRadius: '10px',
                 border: '1.5px solid #cbd5e1',
-                padding: '0 18px',
-                fontSize: '16px',
+                padding: '0 14px',
+                fontSize: '15px',
                 fontWeight: '700',
                 color: '#0f172a',
                 outline: 'none',
                 boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease'
+                transition: 'border-color 0.15s ease',
+                background: '#ffffff'
               }}
               onFocus={(e) => { e.currentTarget.style.borderColor = '#6d28d9'; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
@@ -311,15 +322,15 @@ export default function AnnotationModal({
           </div>
 
           {/* Campo: Número do pedido */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <label
               style={{
-                fontSize: '18px',
-                fontWeight: '900',
+                fontSize: '17px',
+                fontWeight: '800',
                 color: '#0f172a',
                 letterSpacing: '-0.3px',
-                width: '42%',
-                lineHeight: '1.15'
+                lineHeight: '1.15',
+                flexShrink: 0
               }}
             >
               Número do pedido
@@ -330,17 +341,18 @@ export default function AnnotationModal({
               onChange={(e) => setPedido(e.target.value)}
               placeholder=""
               style={{
-                width: '56%',
-                height: '46px',
-                borderRadius: '9999px',
+                width: '60%',
+                height: '44px',
+                borderRadius: '10px',
                 border: '1.5px solid #cbd5e1',
-                padding: '0 18px',
+                padding: '0 14px',
                 fontSize: '15px',
                 fontWeight: '700',
                 color: '#0f172a',
                 outline: 'none',
                 boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease'
+                transition: 'border-color 0.15s ease',
+                background: '#ffffff'
               }}
               onFocus={(e) => { e.currentTarget.style.borderColor = '#6d28d9'; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
@@ -348,14 +360,14 @@ export default function AnnotationModal({
           </div>
 
           {/* Campo: Observação */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <label
               style={{
-                fontSize: '18px',
-                fontWeight: '900',
+                fontSize: '17px',
+                fontWeight: '800',
                 color: '#0f172a',
                 letterSpacing: '-0.3px',
-                width: '42%'
+                flexShrink: 0
               }}
             >
               Observação
@@ -366,17 +378,18 @@ export default function AnnotationModal({
               onChange={(e) => setObservacao(e.target.value)}
               placeholder=""
               style={{
-                width: '56%',
-                height: '46px',
-                borderRadius: '9999px',
+                width: '60%',
+                height: '44px',
+                borderRadius: '10px',
                 border: '1.5px solid #cbd5e1',
-                padding: '0 18px',
+                padding: '0 14px',
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#0f172a',
                 outline: 'none',
                 boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease'
+                transition: 'border-color 0.15s ease',
+                background: '#ffffff'
               }}
               onFocus={(e) => { e.currentTarget.style.borderColor = '#6d28d9'; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
@@ -384,8 +397,8 @@ export default function AnnotationModal({
           </div>
         </div>
 
-        {/* Botão Salvar no Canto Inferior Direito como na Foto 2 */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '36px' }}>
+        {/* Botão Salvar no Canto Inferior Direito */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
           <button
             type="button"
             onClick={handleSave}
@@ -395,8 +408,8 @@ export default function AnnotationModal({
               color: '#ffffff',
               border: 'none',
               borderRadius: '9999px',
-              padding: '12px 34px',
-              fontSize: '17px',
+              padding: '12px 32px',
+              fontSize: '16px',
               fontWeight: '900',
               cursor: isSaving ? 'not-allowed' : 'pointer',
               boxShadow: successToast
