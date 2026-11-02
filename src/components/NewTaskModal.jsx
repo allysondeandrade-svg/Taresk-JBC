@@ -32,15 +32,15 @@ export default function NewTaskModal({
   }) || users[0] || currentUser;
 
   const [assignedTo, setAssignedTo] = useState(() => {
-    return allysonUser?.id || currentUser?.id || 'user_master';
+    return currentUser?.id || allysonUser?.id || 'user_master';
   });
 
-  // Atualiza assignedTo quando mudar para simple
+  // Mantém o usuário selecionado ou atual ao mudar de tipo
   useEffect(() => {
-    if (taskType === 'simple' && allysonUser) {
-      setAssignedTo(allysonUser.id);
+    if (!assignedTo && currentUser?.id) {
+      setAssignedTo(currentUser.id);
     }
-  }, [taskType, allysonUser]);
+  }, [taskType, currentUser]);
 
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date();
@@ -189,7 +189,7 @@ export default function NewTaskModal({
         }
       }
 
-      const assignedTargetUser = allysonUser || assignedUser || currentUser;
+      const assignedTargetUser = assignedUser || currentUser || allysonUser;
 
       // Se houver subtarefas, monta o checklist com as subtarefas
       // Caso contrário, usa o próprio título da tarefa simples como único item
@@ -664,6 +664,34 @@ export default function NewTaskModal({
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Atribuição de Usuário para Tarefa Simples */}
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
+                  Responsável
+                </label>
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    background: '#ffffff',
+                    color: '#1e293b',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.avatar} {u.name} {u.role === 'premium_admin' ? '(Admin)' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Bloco de Subtarefas com criação dinâmica, arrastar, editar, duplicar e excluir */}

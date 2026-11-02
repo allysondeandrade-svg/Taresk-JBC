@@ -815,10 +815,11 @@ function upsertTask(task) {
   const targetSku = String(task.sku || task.productId || task.title || '').trim().toLowerCase();
   const targetAssignee = String(task.assignedTo || '').trim().toLowerCase();
 
-  // 1. Procura primeiro pelo ID exato
-  if (hasIdCol && targetId && /^\d{5}$/.test(targetId)) {
+  // 1. Procura primeiro pelo ID (exato ou formatado de 5 dígitos)
+  if (hasIdCol && targetId) {
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][idxId]).trim() === targetId) {
+      const rowId = String(values[i][idxId]).trim();
+      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
         rowIndex = i + 1;
         break;
       }
@@ -838,9 +839,12 @@ function upsertTask(task) {
   }
 
   // Define ou mantém o ID de 5 dígitos
-  let finalId = targetId && /^\d{5}$/.test(targetId) ? targetId : '';
-  if (!finalId && rowIndex > 0 && hasIdCol) {
+  let finalId = '';
+  if (rowIndex > 0 && hasIdCol) {
     finalId = String(values[rowIndex - 1][idxId] || '').trim();
+  }
+  if (!finalId && targetId) {
+    finalId = formatToFiveDigits(targetId);
   }
   if (!finalId) {
     finalId = getNextFormattedId([SHEETS.TASKS, SHEETS.COMPLETED_TASKS]);
@@ -899,9 +903,10 @@ function upsertCompletedTask(task) {
   const targetSku = String(task.sku || task.productId || task.title || '').trim().toLowerCase();
   const targetAssignee = String(task.assignedTo || '').trim().toLowerCase();
 
-  if (hasIdCol && targetId && /^\d{5}$/.test(targetId)) {
+  if (hasIdCol && targetId) {
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][idxId]).trim() === targetId) {
+      const rowId = String(values[i][idxId]).trim();
+      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
         rowIndex = i + 1;
         break;
       }
@@ -1027,9 +1032,10 @@ function upsertProduct(prod) {
   const targetId = String(prod.id || '').trim();
   const targetSku = String(prod.sku || prod.id || '').toUpperCase().trim();
 
-  if (hasIdCol && targetId && /^\d{5}$/.test(targetId)) {
+  if (hasIdCol && targetId) {
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][idxId]).trim() === targetId) {
+      const rowId = String(values[i][idxId]).trim();
+      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
         rowIndex = i + 1;
         break;
       }
@@ -1109,9 +1115,10 @@ function upsertPlatform(plat) {
   const targetId = String(plat.id || '').trim();
   const targetName = String(plat.name || '').toLowerCase().trim();
 
-  if (hasIdCol && targetId && /^\d{5}$/.test(targetId)) {
+  if (hasIdCol && targetId) {
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][idxId]).trim() === targetId) {
+      const rowId = String(values[i][idxId]).trim();
+      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
         rowIndex = i + 1;
         break;
       }
@@ -1177,9 +1184,10 @@ function upsertUser(user) {
   const targetId = String(user.id || '').trim();
   const targetEmail = String(user.email || '').toLowerCase().trim();
 
-  if (hasIdCol && targetId && /^\d{5}$/.test(targetId)) {
+  if (hasIdCol && targetId) {
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][idxId]).trim() === targetId) {
+      const rowId = String(values[i][idxId]).trim();
+      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
         rowIndex = i + 1;
         break;
       }

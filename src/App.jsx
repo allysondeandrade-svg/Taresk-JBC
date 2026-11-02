@@ -260,17 +260,19 @@ export default function App() {
             };
           });
 
-          // Mescla com tarefas locais que tenham atualizações muito recentes (últimos 15 segundos)
+          // Mescla com tarefas locais que tenham atualizações muito recentes (últimos 30 segundos)
           setTasks(prevTasks => {
             const now = Date.now();
             return sanitizedTasks.map(incomingTask => {
-              const localMatch = prevTasks.find(pt => 
-                (pt.id && incomingTask.id && String(pt.id) === String(incomingTask.id)) ||
-                (pt.sku && pt.sku === incomingTask.sku && pt.assignedTo === incomingTask.assignedTo)
-              );
+              const localMatch = prevTasks.find(pt => {
+                if (pt.id && incomingTask.id && (String(pt.id) === String(incomingTask.id) || parseInt(pt.id, 10) === parseInt(incomingTask.id, 10))) {
+                  return true;
+                }
+                return pt.sku && pt.sku === incomingTask.sku && String(pt.assignedTo) === String(incomingTask.assignedTo);
+              });
               const lastLocalUpdate = localMatch ? (localTaskUpdatesRef.current[localMatch.id] || localTaskUpdatesRef.current[String(localMatch.id)] || 0) : 0;
-              // Se foi editado localmente há menos de 15 segundos, preserva o estado local mais recente
-              if (localMatch && (now - lastLocalUpdate < 15000)) {
+              // Se foi editado localmente há menos de 30 segundos, preserva o estado local mais recente
+              if (localMatch && (now - lastLocalUpdate < 30000)) {
                 return localMatch;
               }
               return incomingTask;
