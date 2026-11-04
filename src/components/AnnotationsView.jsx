@@ -384,6 +384,28 @@ export default function AnnotationsView({
     });
   }, [annotations, searchTerm, platformFilter, typeFilter, monthFilter, startDate, endDate]);
 
+  // Cálculo do Valor Total de todas as linhas filtradas
+  const totalFilteredValue = useMemo(() => {
+    return filteredList.reduce((acc, item) => {
+      if (!item.valor) return acc;
+      const clean = String(item.valor)
+        .replace(/[^0-9,-]/g, '')
+        .replace(',', '.');
+      const n = parseFloat(clean);
+      return acc + (isNaN(n) ? 0 : n);
+    }, 0);
+  }, [filteredList]);
+
+  // Função para limpar todos os filtros
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setPlatformFilter('all');
+    setTypeFilter('all');
+    setMonthFilter('all');
+    setStartDate('');
+    setEndDate('');
+  };
+
   // Helper para renderizar o ícone e estilo do Tipo
   const getTypeObj = (typeLabel) => {
     const found = ANNOTATION_TYPES.find(t => t.label.toLowerCase() === String(typeLabel || '').toLowerCase());
@@ -392,50 +414,17 @@ export default function AnnotationsView({
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {/* Banner Superior Roxo Estilizado com Título limpo e Botão Nova Anotação */}
-      <div style={{
-        background: 'linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%)',
-        borderRadius: '24px',
-        padding: '24px 32px',
-        color: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '20px',
-        boxShadow: '0 10px 25px -5px rgba(109, 40, 217, 0.3)',
-        marginBottom: '24px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '28px' }}>📝</span>
-          <h1 style={{ fontSize: '28px', fontWeight: '900', letterSpacing: '-0.5px', margin: 0 }}>
-            Anotações
-          </h1>
-        </div>
-
-        <button
-          onClick={handleAddNewRow}
-          style={{
-            background: '#ffffff',
-            color: '#6d28d9',
-            border: 'none',
-            borderRadius: '14px',
-            padding: '12px 24px',
-            fontSize: '15px',
-            fontWeight: '800',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            transition: 'transform 0.15s ease'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          <Plus size={18} strokeWidth={3} />
-          Nova Anotação
-        </button>
+      {/* Título simples em Roxo no canto superior esquerdo */}
+      <div style={{ marginBottom: '20px' }}>
+        <h1 style={{
+          fontSize: '26px',
+          fontWeight: '900',
+          color: '#6d28d9',
+          letterSpacing: '-0.5px',
+          margin: 0
+        }}>
+          Anotação
+        </h1>
       </div>
 
       {/* Barra de Filtros e Busca Completa: Plataforma, Tipo, Mês e Período por Calendário */}
@@ -604,9 +593,65 @@ export default function AnnotationsView({
             )}
           </div>
 
-          <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '700', marginLeft: '4px' }}>
-            {filteredList.length} registro{filteredList.length !== 1 ? 's' : ''}
-          </span>
+          {/* Botão Limpar Filtro */}
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: '1.5px solid #e2e8f0',
+              background: '#ffffff',
+              fontSize: '12px',
+              fontWeight: '700',
+              color: '#334155',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+          >
+            Limpar Filtro
+          </button>
+
+          {/* Valor Total de todas as linhas filtradas */}
+          <div style={{
+            fontSize: '14px',
+            fontWeight: '800',
+            color: '#0f172a',
+            padding: '4px 8px',
+            whiteSpace: 'nowrap'
+          }}>
+            Total: <span style={{ color: '#16a34a' }}>{totalFilteredValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+          </div>
+
+          {/* Botão circular roxo com ícone de + */}
+          <button
+            type="button"
+            onClick={handleAddNewRow}
+            title="Adicionar Linha"
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: '#8b5cf6',
+              color: '#ffffff',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 10px rgba(139, 92, 246, 0.35)',
+              transition: 'transform 0.15s ease, background 0.15s ease',
+              flexShrink: 0,
+              marginLeft: '4px'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.background = '#7c3aed'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#8b5cf6'; }}
+          >
+            <Plus size={22} strokeWidth={3} />
+          </button>
         </div>
       </div>
 
