@@ -136,6 +136,15 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+
+  const [annotations, setAnnotations] = useState(() => {
+    const saved = localStorage.getItem('taresk_annotations');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return []; }
+    }
+    return [];
+  });
+
   const [disputes, setDisputes] = useState(() => {
     const saved = localStorage.getItem('taresk_disputes');
     if (saved) {
@@ -230,6 +239,10 @@ export default function App() {
     localStorage.setItem('taresk_disputes', JSON.stringify(disputes));
   }, [disputes]);
 
+  useEffect(() => {
+    localStorage.setItem('taresk_annotations', JSON.stringify(annotations));
+  }, [annotations]);
+
   // Rastreia timestamps das tarefas modificadas localmente recentemente para o polling não sobrescrever com dados antigos do Sheets
   const localTaskUpdatesRef = useRef({});
 
@@ -308,6 +321,9 @@ export default function App() {
         }
         if (Array.isArray(data.disputes) && data.disputes.length > 0) {
           setDisputes(data.disputes);
+        }
+        if (Array.isArray(data.annotations)) {
+          setAnnotations(data.annotations);
         }
         setLastSyncTime(new Date());
       }
@@ -680,6 +696,26 @@ export default function App() {
     return await SheetsApi.saveAnnotation(annotationData);
   };
 
+  // Handlers para Anotações
+  const handleAddAnnotation = async (newAnnotation) => {
+    setAnnotations(prev => [newAnnotation, ...prev]);
+    await SheetsApi.saveAnnotation(newAnnotation);
+  };
+
+  const handleUpdateAnnotation = async (id, updatedFields) => {
+    setAnnotations(prev => {
+      const updated = prev.map(a => String(a.id) === String(id) ? { ...a, ...updatedFields } : a);
+      const target = updated.find(a => String(a.id) === String(id));
+      if (target) SheetsApi.saveAnnotation(target);
+      return updated;
+    });
+  };
+
+  const handleDeleteAnnotation = async (id) => {
+    setAnnotations(prev => prev.filter(a => String(a.id) !== String(id)));
+    await SheetsApi.deleteAnnotation(id);
+  };
+
   // Handlers de Disputas (Aba Disputas)
   const handleAddDispute = (newDispute) => {
     setDisputes(prev => [newDispute, ...prev]);
@@ -1013,6 +1049,18 @@ export default function App() {
             onOpenChecklistModal={(task) => setActiveChecklistTask(task)}
             onReassignTask={handleReassignTask}
             setActiveTab={setActiveTab}
+          />
+        )}
+
+        
+        {activeTab === 'anotacoes' && (
+          <AnnotationsView
+            annotations={annotations}
+            currentUser={currentUser}
+            platforms={platforms}
+            onAddAnnotation={handleAddAnnotation}
+            onUpdateAnnotation={handleUpdateAnnotation}
+            onDeleteAnnotation={handleDeleteAnnotation}
           />
         )}
 
