@@ -48,24 +48,24 @@ export default function LoginScreen({ onLogin, users, onOpenSettings, isSyncing,
           {onSync && (
             <button
               onClick={onSync}
-              title="Sincronizar dados da Planilha"
+              title={isSyncing ? "Sincronizando dados da Planilha..." : "Sincronizar dados da Planilha"}
+              disabled={isSyncing}
               style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                border: '1.5px solid #cbd5e1',
+                background: isSyncing ? '#f1f5f9' : '#ffffff',
+                color: '#334155',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: '10px',
-                border: '1.5px solid #cbd5e1',
-                background: '#ffffff',
-                color: '#334155',
-                fontSize: '13px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
+                justifyContent: 'center',
+                cursor: isSyncing ? 'wait' : 'pointer',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+                transition: 'all 0.2s ease'
               }}
             >
-              <RefreshCw size={14} style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} />
-              <span>{isSyncing ? 'Sincronizando...' : 'Planilha'}</span>
+              <RefreshCw size={15} style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} />
             </button>
           )}
           <button

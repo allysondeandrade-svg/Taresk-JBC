@@ -117,17 +117,16 @@ export default function Header({
             disabled={isSyncing}
             title={lastSyncTime ? `Sincronizado às ${lastSyncTime.toLocaleTimeString('pt-BR')}. Clique para atualizar da planilha agora.` : 'Sincronizar com Google Sheets'}
             style={{
-              padding: '7px 14px',
-              borderRadius: '9999px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
               border: '1.5px solid #cbd5e1',
               background: isSyncing ? '#f1f5f9' : '#ffffff',
               color: '#334155',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              justifyContent: 'center',
               cursor: isSyncing ? 'wait' : 'pointer',
-              fontSize: '13px',
-              fontWeight: '700',
               transition: 'all 0.2s ease',
               boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
             }}
@@ -144,8 +143,7 @@ export default function Header({
               }
             }}
           >
-            <RefreshCw size={15} style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} />
-            <span>{isSyncing ? 'Sincronizando...' : 'Planilha'}</span>
+            <RefreshCw size={17} style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} />
           </button>
 
           {currentUser.role === 'premium_admin' && (
