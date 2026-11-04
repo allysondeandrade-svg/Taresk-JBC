@@ -187,14 +187,15 @@ function setupSheets() {
     ensureIdColumn(tmplSheet, 'ID');
   }
 
-  // 8. Aba Anotação: [ID, DataHora, Tipo_Anotacao, Valor, Numero_Pedido, Observacao, Usuario]
+  // 8. Aba Anotação: [ID, Data, Plataforma, Pedido, Cliente, Valor, Observação, Usuário]
   let noteSheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
   if (!noteSheet) {
     noteSheet = ss.insertSheet(SHEETS.ANNOTATIONS);
-    noteSheet.appendRow(['ID', 'DataHora', 'Tipo de Anotação', 'Valor', 'Número do Pedido', 'Observação', 'Usuário']);
+    noteSheet.appendRow(['ID', 'Data', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário']);
     styleHeader(noteSheet);
   } else {
     ensureIdColumn(noteSheet, 'ID');
+    fixAnnotationSheetHeaders(noteSheet);
   }
 
   // 9. Aba Disputas: [ID, Plataf, Data, Produto, Pedido, Descrição, Observação, Devolução, Situação]
@@ -214,6 +215,28 @@ function setupSheets() {
  * Corrige cabeçalhos da aba Tarefas / Tarefas_Finalizadas
  * Se o cabeçalho da coluna 2 for 'x' ou estiver desalinhado, renomeia para 'Tipo'
  */
+
+/**
+ * Corrige e padroniza os cabeçalhos da aba Anotação para bater exatamente com as colunas do app:
+ * [ID, Data, Plataforma, Pedido, Cliente, Valor, Observação, Usuário]
+ */
+function fixAnnotationSheetHeaders(sheet) {
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const currentHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').trim());
+  const standardHeaders = ['ID', 'Data', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário'];
+  
+  // Se a aba tem cabeçalhos antigos ou desalinhados (ex: Tipo de Anotação, DataHora, etc)
+  const isOld = currentHeaders.some(h => {
+    const l = h.toLowerCase();
+    return l.includes('datahora') || l.includes('tipo de anota') || l.includes('número do ped');
+  });
+
+  if (isOld || currentHeaders.length < standardHeaders.length) {
+    sheet.getRange(1, 1, 1, standardHeaders.length).setValues([standardHeaders]);
+    styleHeader(sheet);
+  }
+}
+
 function fixTaskSheetHeaders(sheet, dateHeaderName) {
   const lastCol = Math.max(sheet.getLastColumn(), 1);
   const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').trim());
@@ -357,8 +380,11 @@ function doGet(e) {
         completedTasks: getTasksDataAsJson(SHEETS.COMPLETED_TASKS),
         pricing: getSheetDataAsJson(SHEETS.PRICING),
         checklistTemplates: getChecklistTemplatesDataAsJson(),
-        disputes: getDisputesDataAsJson()
+        disputes: getDisputesDataAsJson(),
+        annotations: getAnnotationsDataAsJson()
       };
+    } else if (action === 'getAnnotations') {
+      responseData = getAnnotationsDataAsJson();
     } else if (action === 'getDisputes') {
       responseData = getDisputesDataAsJson();
     } else if (action === 'getTasks') {
@@ -463,6 +489,10 @@ function doPost(e) {
 
       case 'saveAnnotation':
         result = saveAnnotationRecord(data);
+        break;
+
+      case 'deleteAnnotation':
+        result = deleteAnnotationRecord(data);
         break;
 
       case 'saveDispute':
@@ -1650,8 +1680,10 @@ function saveAnnotationRecord(annotationData) {
   const notes = String(annotationData.notes || annotationData.observacao || annotationData.observation || '').trim();
   const user = String(annotationData.usuario || annotationData.userName || annotationData.user || '').trim();
 
-  const baseRow = [dateStr, platform, orderNumber, client, value, notes, user];
-  const finalRow = hasIdCol ? [finalId, ...baseRow] : baseRow;
+  // Ordem estrita das colunas: ID, Data, Plataforma, Pedido, Cliente, Valor, Observação, Usuário
+  const finalRow = hasIdCol 
+    ? [finalId, dateStr, platform, orderNumber, client, value, notes, user]
+    : [dateStr, platform, orderNumber, client, value, notes, user];
 
   if (rowIndex > 0) {
     sheet.getRange(rowIndex, 1, 1, finalRow.length).setValues([finalRow]);

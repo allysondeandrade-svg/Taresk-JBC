@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Search, Calendar, FileText, ArrowUpDown, ChevronDown } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Plus, Trash2, Edit2, Copy, Check, X, Search, Calendar, FileText, ArrowUpDown, ChevronDown } from 'lucide-react';
 
 function formatCurrencyInput(val) {
   const digits = String(val || '').replace(/\D/g, '');
@@ -15,30 +15,59 @@ function getTodayFormatted() {
   return `${dd}/${mm}`;
 }
 
-const PLATFORM_OPTIONS = [
-  { value: 'Shopee', label: 'Shopee', color: '#ffedd5', textColor: '#c2410c', border: '#fed7aa' },
-  { value: 'Mercado Livre', label: 'Mercado Livre', color: '#fef9c3', textColor: '#854d0e', border: '#fef08a' },
-  { value: 'Amazon', label: 'Amazon', color: '#e2e8f0', textColor: '#334155', border: '#cbd5e1' },
-  { value: 'Magalu', label: 'Magalu', color: '#e0f2fe', textColor: '#0369a1', border: '#bae6fd' },
-  { value: 'Shein', label: 'Shein', color: '#f1f5f9', textColor: '#0f172a', border: '#cbd5e1' },
-  { value: 'Geral', label: 'Geral / Outros', color: '#ede9fe', textColor: '#6d28d9', border: '#ddd6fe' }
-];
-
 export default function AnnotationsView({
   annotations = [],
   onAddAnnotation,
   onUpdateAnnotation,
   onDeleteAnnotation,
-  currentUser
+  currentUser,
+  platforms = [],
+  users = []
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [platformFilter, setPlatformFilter] = useState('all');
+
+  // Input de data (calendário nativo oculto acionado pelo botão)
+  const dateInputAddRef = useRef(null);
+  const dateInputEditRef = useRef(null);
+
+  // Lista dinâmica e unificada de todas as plataformas cadastradas
+  const allPlatformNames = useMemo(() => {
+    const namesSet = new Set();
+    
+    // Plataformas dos usuários (ex: Shopee JBC, Shopee Izabela, Mercado Livre, etc)
+    (users || []).forEach(u => {
+      if (Array.isArray(u.platforms)) {
+        u.platforms.forEach(p => {
+          const n = typeof p === 'string' ? p : (p?.name || p?.label);
+          if (n && n.trim()) namesSet.add(n.trim());
+        });
+      }
+    });
+
+    // Plataformas globais cadastradas no sistema
+    (platforms || []).forEach(p => {
+      const n = typeof p === 'string' ? p : (p?.name || p?.label);
+      if (n && n.trim()) namesSet.add(n.trim());
+    });
+
+    // Anotações existentes caso haja alguma personalizada já salva
+    annotations.forEach(a => {
+      if (a.platform && a.platform.trim()) namesSet.add(a.platform.trim());
+    });
+
+    // Fallbacks padrão caso o banco ainda esteja limpo
+    const defaults = ['Shopee', 'Shopee JBC', 'Shopee Izabela', 'Mercado Livre', 'Amazon', 'Magalu', 'Shein', 'Geral'];
+    defaults.forEach(d => namesSet.add(d));
+
+    return Array.from(namesSet);
+  }, [users, platforms, annotations]);
 
   // Modal / Formulário de Adição
   const [isAdding, setIsAdding] = useState(false);
   const [newAnnotation, setNewAnnotation] = useState({
     date: getTodayFormatted(),
-    platform: 'Shopee',
+    platform: allPlatformNames[0] || 'Shopee',
     orderNumber: '',
     client: '',
     value: '',
@@ -52,7 +81,7 @@ export default function AnnotationsView({
   const handleOpenAdd = () => {
     setNewAnnotation({
       date: getTodayFormatted(),
-      platform: 'Shopee',
+      platform: allPlatformNames[0] || 'Shopee',
       orderNumber: '',
       client: '',
       value: '',
@@ -71,7 +100,7 @@ export default function AnnotationsView({
     const item = {
       id: 'anot_' + Date.now(),
       date: newAnnotation.date.trim() || getTodayFormatted(),
-      platform: newAnnotation.platform,
+      platform: newAnnotation.platform || 'Shopee',
       orderNumber: newAnnotation.orderNumber.trim(),
       client: newAnnotation.client.trim(),
       value: newAnnotation.value.trim(),
@@ -90,7 +119,7 @@ export default function AnnotationsView({
     setEditForm({
       id: item.id,
       date: item.date || getTodayFormatted(),
-      platform: item.platform || 'Shopee',
+      platform: item.platform || allPlatformNames[0] || 'Shopee',
       orderNumber: item.orderNumber || item.pedido || '',
       client: item.client || item.cliente || '',
       value: item.value || item.valor || '',
@@ -107,12 +136,34 @@ export default function AnnotationsView({
     setEditingId(null);
   };
 
+  // Duplicar anotação
+  const handleDuplicate = async (item) => {
+    const duplicated = {
+      ...item,
+      id: 'anot_' + Date.now(),
+      date: getTodayFormatted(),
+      usuario: currentUser?.name || item.usuario || 'Vendedor'
+    };
+    if (onAddAnnotation) {
+      await onAddAnnotation(duplicated);
+    }
+  };
+
   const handleDelete = (id, clientName) => {
-    if (window.confirm(`Deseja excluir a anotação ${clientName ? `do cliente "${clientName}"` : ''}?`)) {
+    if (window.confirm(`Deseja excluir permanentemente a anotação ${clientName ? `do cliente "${clientName}"` : ''}?`)) {
       if (onDeleteAnnotation) {
         onDeleteAnnotation(id);
       }
     }
+  };
+
+  // Helper para máscara dd/mm enquanto digita
+  const handleDateMask = (val, setter, currentObj) => {
+    let clean = val.replace(/\D/g, '');
+    if (clean.length > 2) {
+      clean = clean.slice(0, 2) + '/' + clean.slice(2, 4);
+    }
+    setter({ ...currentObj, date: clean });
   };
 
   const filteredList = useMemo(() => {
@@ -132,21 +183,22 @@ export default function AnnotationsView({
   }, [annotations, searchTerm, platformFilter]);
 
   const getPlatformBadge = (platName) => {
-    const found = PLATFORM_OPTIONS.find(p => p.value === platName) || PLATFORM_OPTIONS[0];
-    return {
-      background: found.color,
-      color: found.textColor,
-      border: `1px solid ${found.border}`
-    };
+    const lower = String(platName || '').toLowerCase();
+    if (lower.includes('shopee')) return { background: '#ffedd5', color: '#c2410c', border: '1px solid #fed7aa' };
+    if (lower.includes('mercado') || lower.includes('ml')) return { background: '#fef9c3', color: '#854d0e', border: '1px solid #fef08a' };
+    if (lower.includes('amazon')) return { background: '#e2e8f0', color: '#334155', border: '1px solid #cbd5e1' };
+    if (lower.includes('magalu')) return { background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' };
+    if (lower.includes('shein')) return { background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1' };
+    return { background: '#ede9fe', color: '#6d28d9', border: '1px solid #ddd6fe' };
   };
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {/* Banner Superior Roxo Estilizado */}
+      {/* Banner Superior Roxo Estilizado (sem texto de descrição abaixo do título) */}
       <div style={{
         background: 'linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%)',
         borderRadius: '24px',
-        padding: '28px 32px',
+        padding: '24px 32px',
         color: '#ffffff',
         display: 'flex',
         alignItems: 'center',
@@ -156,16 +208,11 @@ export default function AnnotationsView({
         boxShadow: '0 10px 25px -5px rgba(109, 40, 217, 0.3)',
         marginBottom: '28px'
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <span style={{ fontSize: '24px' }}>📝</span>
-            <h1 style={{ fontSize: '28px', fontWeight: '900', letterSpacing: '-0.5px', margin: 0 }}>
-              Anotações
-            </h1>
-          </div>
-          <p style={{ margin: 0, fontSize: '14px', color: '#e9d5ff', maxWidth: '600px', lineHeight: '1.4' }}>
-            Planilha interativa de notas rápidas para todos os vendedores. Sincronizada automaticamente com a aba Anotação do Google Sheets.
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '28px' }}>📝</span>
+          <h1 style={{ fontSize: '28px', fontWeight: '900', letterSpacing: '-0.5px', margin: 0 }}>
+            Anotações
+          </h1>
         </div>
 
         <button
@@ -248,22 +295,20 @@ export default function AnnotationsView({
               padding: '8px 14px',
               borderRadius: '10px',
               border: '1.5px solid #cbd5e1',
+              background: '#ffffff',
               fontSize: '13px',
               fontWeight: '600',
-              color: '#1e293b',
-              background: '#ffffff',
-              outline: 'none',
+              color: '#334155',
               cursor: 'pointer'
             }}
           >
             <option value="all">Todas as Plataformas</option>
-            {PLATFORM_OPTIONS.map(p => (
-              <option key={p.value} value={p.value}>{p.label}</option>
+            {allPlatformNames.map(p => (
+              <option key={p} value={p}>{p}</option>
             ))}
           </select>
-
-          <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748b' }}>
-            {filteredList.length} {filteredList.length === 1 ? 'registro' : 'registros'}
+          <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '700' }}>
+            {filteredList.length} registro{filteredList.length !== 1 ? 's' : ''}
           </span>
         </div>
       </div>
@@ -271,31 +316,51 @@ export default function AnnotationsView({
       {/* Tabela Interativa de Anotações (Estilo Planilha) */}
       <div style={{
         background: '#ffffff',
-        borderRadius: '18px',
+        borderRadius: '20px',
         border: '1px solid #e2e8f0',
         overflow: 'hidden',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
       }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Data</th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Plataforma</th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Pedido</th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Cliente</th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Valor</th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Observação</th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', textAlign: 'center', width: '100px' }}>Ações</th>
+              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  DATA
+                </th>
+                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  PLATAFORMA
+                </th>
+                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  PEDIDO
+                </th>
+                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  CLIENTE
+                </th>
+                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  VALOR
+                </th>
+                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  OBSERVAÇÃO
+                </th>
+                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' }}>
+                  AÇÕES
+                </th>
               </tr>
             </thead>
             <tbody>
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '48px 20px', textAlign: 'center', color: '#64748b' }}>
-                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>📋</div>
-                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#334155' }}>Nenhuma anotação encontrada</div>
-                    <div style={{ fontSize: '13px', color: '#94a3b8' }}>Clique em "Nova Anotação" acima para adicionar uma linha.</div>
+                  <td colSpan={7} style={{ padding: '60px 20px', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '36px' }}>📋</span>
+                      <h4 style={{ fontSize: '16px', fontWeight: '800', color: '#334155', margin: 0 }}>
+                        Nenhuma anotação encontrada
+                      </h4>
+                      <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
+                        Clique em "Nova Anotação" acima para adicionar uma linha.
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -305,39 +370,107 @@ export default function AnnotationsView({
 
                   if (isEditing) {
                     return (
-                      <tr key={item.id} style={{ background: '#f5f3ff', borderBottom: '1px solid #ddd6fe' }}>
+                      <tr key={item.id} style={{ background: '#fdf4ff', borderBottom: '1px solid #f0abfc' }}>
+                        {/* Data com input dd/mm + botão de calendário */}
                         <td style={{ padding: '10px 14px' }}>
-                          <input
-                            type="text"
-                            value={editForm.date}
-                            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                            style={{
-                              width: '75px',
-                              padding: '6px 8px',
-                              borderRadius: '8px',
-                              border: '1px solid #a855f7',
-                              fontSize: '13px',
-                              fontWeight: '700'
-                            }}
-                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <input
+                              type="text"
+                              value={editForm.date}
+                              maxLength={5}
+                              placeholder="dd/mm"
+                              onChange={(e) => handleDateMask(e.target.value, setEditForm, editForm)}
+                              style={{
+                                width: '60px',
+                                padding: '6px 8px',
+                                borderRadius: '8px',
+                                border: '1.5px solid #a855f7',
+                                fontSize: '13px',
+                                fontWeight: '700',
+                                textAlign: 'center'
+                              }}
+                            />
+                            <div style={{ position: 'relative' }}>
+                              <input
+                                ref={dateInputEditRef}
+                                type="date"
+                                value={(() => {
+                                  if (editForm.date && editForm.date.includes('/')) {
+                                    const parts = editForm.date.split('/');
+                                    if (parts[0] && parts[1]) {
+                                      const y = new Date().getFullYear();
+                                      return `${y}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                                    }
+                                  }
+                                  return '';
+                                })()}
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    const [year, month, day] = e.target.value.split('-');
+                                    setEditForm({ ...editForm, date: `${day}/${month}` });
+                                  }
+                                }}
+                                style={{
+                                  position: 'absolute',
+                                  opacity: 0,
+                                  width: '1px',
+                                  height: '1px',
+                                  pointerEvents: 'none',
+                                  bottom: 0,
+                                  right: 0
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (dateInputEditRef.current) {
+                                    if (typeof dateInputEditRef.current.showPicker === 'function') {
+                                      dateInputEditRef.current.showPicker();
+                                    } else {
+                                      dateInputEditRef.current.focus();
+                                    }
+                                  }
+                                }}
+                                title="Abrir calendário"
+                                style={{
+                                  background: '#ede9fe',
+                                  border: '1px solid #c4b5fd',
+                                  borderRadius: '6px',
+                                  padding: '4px 6px',
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                📅
+                              </button>
+                            </div>
+                          </div>
                         </td>
+
+                        {/* Plataforma */}
                         <td style={{ padding: '10px 14px' }}>
                           <select
                             value={editForm.platform}
                             onChange={(e) => setEditForm({ ...editForm, platform: e.target.value })}
                             style={{
-                              padding: '6px 10px',
+                              padding: '6px 8px',
                               borderRadius: '8px',
-                              border: '1px solid #a855f7',
+                              border: '1.5px solid #a855f7',
                               fontSize: '13px',
-                              fontWeight: '600'
+                              fontWeight: '700',
+                              background: '#ffffff'
                             }}
                           >
-                            {PLATFORM_OPTIONS.map(p => (
-                              <option key={p.value} value={p.value}>{p.label}</option>
+                            {allPlatformNames.map(p => (
+                              <option key={p} value={p}>{p}</option>
                             ))}
                           </select>
                         </td>
+
+                        {/* Pedido */}
                         <td style={{ padding: '10px 14px' }}>
                           <input
                             type="text"
@@ -347,12 +480,15 @@ export default function AnnotationsView({
                               width: '100%',
                               padding: '6px 8px',
                               borderRadius: '8px',
-                              border: '1px solid #a855f7',
+                              border: '1.5px solid #a855f7',
                               fontSize: '13px',
-                              fontWeight: '600'
+                              fontWeight: '700',
+                              fontFamily: 'monospace'
                             }}
                           />
                         </td>
+
+                        {/* Cliente */}
                         <td style={{ padding: '10px 14px' }}>
                           <input
                             type="text"
@@ -362,28 +498,31 @@ export default function AnnotationsView({
                               width: '100%',
                               padding: '6px 8px',
                               borderRadius: '8px',
-                              border: '1px solid #a855f7',
-                              fontSize: '13px',
-                              fontWeight: '600'
+                              border: '1.5px solid #a855f7',
+                              fontSize: '13px'
                             }}
                           />
                         </td>
+
+                        {/* Valor */}
                         <td style={{ padding: '10px 14px' }}>
                           <input
                             type="text"
                             value={editForm.value}
                             onChange={(e) => setEditForm({ ...editForm, value: formatCurrencyInput(e.target.value) })}
                             style={{
-                              width: '110px',
+                              width: '100px',
                               padding: '6px 8px',
                               borderRadius: '8px',
-                              border: '1px solid #a855f7',
+                              border: '1.5px solid #a855f7',
                               fontSize: '13px',
                               fontWeight: '700',
                               color: '#15803d'
                             }}
                           />
                         </td>
+
+                        {/* Observação */}
                         <td style={{ padding: '10px 14px' }}>
                           <input
                             type="text"
@@ -393,11 +532,13 @@ export default function AnnotationsView({
                               width: '100%',
                               padding: '6px 8px',
                               borderRadius: '8px',
-                              border: '1px solid #a855f7',
+                              border: '1.5px solid #a855f7',
                               fontSize: '13px'
                             }}
                           />
                         </td>
+
+                        {/* Salvar / Cancelar */}
                         <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                             <button
@@ -491,9 +632,37 @@ export default function AnnotationsView({
                         {item.notes || item.observacao || '-'}
                       </td>
 
-                      {/* Ações */}
+                      {/* Ações: Duplicar, Editar e Excluir */}
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                          <button
+                            onClick={() => handleDuplicate(item)}
+                            title="Duplicar anotação"
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
+                              border: '1px solid #d1fae5',
+                              background: '#ecfdf5',
+                              color: '#059669',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#059669';
+                              e.currentTarget.style.color = '#ffffff';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#ecfdf5';
+                              e.currentTarget.style.color = '#059669';
+                            }}
+                          >
+                            <Copy size={14} />
+                          </button>
+
                           <button
                             onClick={() => handleStartEdit(item)}
                             title="Editar anotação"
@@ -560,18 +729,21 @@ export default function AnnotationsView({
         </div>
       </div>
 
-      {/* Modal para Adicionar Anotação Rápida */}
+      {/* Modal de Criação Rápida */}
       {isAdding && (
         <div style={{
           position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.45)',
-          backdropFilter: 'blur(3px)',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 99999,
-          padding: '16px'
+          zIndex: 9999,
+          padding: '20px'
         }}>
           <div style={{
             background: '#ffffff',
@@ -607,24 +779,88 @@ export default function AnnotationsView({
             </div>
 
             <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>Data</label>
-                  <input
-                    type="text"
-                    value={newAnnotation.date}
-                    onChange={(e) => setNewAnnotation({ ...newAnnotation, date: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '10px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '14px',
-                      fontWeight: '700',
-                      boxSizing: 'border-box'
-                    }}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      type="text"
+                      maxLength={5}
+                      placeholder="dd/mm"
+                      value={newAnnotation.date}
+                      onChange={(e) => handleDateMask(e.target.value, setNewAnnotation, newAnnotation)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        textAlign: 'center',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        ref={dateInputAddRef}
+                        type="date"
+                        value={(() => {
+                          if (newAnnotation.date && newAnnotation.date.includes('/')) {
+                            const parts = newAnnotation.date.split('/');
+                            if (parts[0] && parts[1]) {
+                              const y = new Date().getFullYear();
+                              return `${y}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                            }
+                          }
+                          return '';
+                        })()}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const [year, month, day] = e.target.value.split('-');
+                            setNewAnnotation({ ...newAnnotation, date: `${day}/${month}` });
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          opacity: 0,
+                          width: '1px',
+                          height: '1px',
+                          pointerEvents: 'none',
+                          bottom: 0,
+                          right: 0
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (dateInputAddRef.current) {
+                            if (typeof dateInputAddRef.current.showPicker === 'function') {
+                              dateInputAddRef.current.showPicker();
+                            } else {
+                              dateInputAddRef.current.focus();
+                            }
+                          }
+                        }}
+                        title="Abrir calendário"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0 12px',
+                          borderRadius: '10px',
+                          background: '#ede9fe',
+                          border: '1.5px solid #c4b5fd',
+                          fontSize: '16px',
+                          height: '42px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        📅
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
                 <div>
                   <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>Plataforma</label>
                   <select
@@ -637,11 +873,12 @@ export default function AnnotationsView({
                       border: '1.5px solid #cbd5e1',
                       fontSize: '14px',
                       fontWeight: '600',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      background: '#ffffff'
                     }}
                   >
-                    {PLATFORM_OPTIONS.map(p => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
+                    {allPlatformNames.map(p => (
+                      <option key={p} value={p}>{p}</option>
                     ))}
                   </select>
                 </div>
@@ -743,17 +980,18 @@ export default function AnnotationsView({
                 <button
                   type="submit"
                   style={{
-                    padding: '10px 22px',
+                    padding: '10px 24px',
                     borderRadius: '10px',
                     border: 'none',
                     background: '#6d28d9',
                     color: '#ffffff',
                     fontSize: '14px',
                     fontWeight: '800',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(109, 40, 217, 0.3)'
                   }}
                 >
-                  Adicionar
+                  Salvar Linha
                 </button>
               </div>
             </form>
@@ -763,4 +1001,3 @@ export default function AnnotationsView({
     </div>
   );
 }
-

@@ -1058,6 +1058,7 @@ export default function App() {
             annotations={annotations}
             currentUser={currentUser}
             platforms={platforms}
+            users={users}
             onAddAnnotation={handleAddAnnotation}
             onUpdateAnnotation={handleUpdateAnnotation}
             onDeleteAnnotation={handleDeleteAnnotation}
