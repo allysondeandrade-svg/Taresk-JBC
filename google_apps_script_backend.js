@@ -191,7 +191,7 @@ function setupSheets() {
   let noteSheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
   if (!noteSheet) {
     noteSheet = ss.insertSheet(SHEETS.ANNOTATIONS);
-    noteSheet.appendRow(['ID', 'Data', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário']);
+    noteSheet.appendRow(['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário']);
     styleHeader(noteSheet);
   } else {
     ensureIdColumn(noteSheet, 'ID');
@@ -223,7 +223,7 @@ function setupSheets() {
 function fixAnnotationSheetHeaders(sheet) {
   const lastCol = Math.max(sheet.getLastColumn(), 1);
   const currentHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').trim());
-  const standardHeaders = ['ID', 'Data', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário'];
+  const standardHeaders = ['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário'];
   
   // Se a aba tem cabeçalhos antigos ou desalinhados (ex: Tipo de Anotação, DataHora, etc)
   const isOld = currentHeaders.some(h => {
@@ -1602,7 +1602,8 @@ function getAnnotationsDataAsJson() {
 
   const idxId = headers.indexOf('id');
   const idxData = headers.findIndex(h => h.includes('data'));
-  const idxPlat = headers.findIndex(h => h.includes('plat') || h.includes('tipo'));
+  const idxTipo = headers.findIndex(h => h.includes('tipo'));
+  const idxPlat = headers.findIndex(h => h.includes('plat'));
   const idxPedido = headers.findIndex(h => h.includes('ped'));
   const idxCliente = headers.findIndex(h => h.includes('client'));
   const idxValor = headers.findIndex(h => h.includes('val'));
@@ -1622,10 +1623,20 @@ function getAnnotationsDataAsJson() {
 
     const rowId = (idxId !== -1 && r[idxId]) ? String(r[idxId]).trim() : formatToFiveDigits(index + 1);
 
+    let typeVal = idxTipo !== -1 && r[idxTipo] ? String(r[idxTipo]).trim() : '';
+    let platVal = idxPlat !== -1 && r[idxPlat] ? String(r[idxPlat]).trim() : '';
+    const knownTypes = ['Entrega Local', 'Envio Próprio', 'Retirada Fábrica', 'Gasto Manual', 'Prejuízo', 'Anotação'];
+    if (!typeVal && knownTypes.includes(platVal)) {
+      typeVal = platVal;
+      platVal = '';
+    }
+    if (!typeVal) typeVal = 'Anotação';
+
     return {
       id: rowId,
       date: formattedDate,
-      platform: idxPlat !== -1 && r[idxPlat] ? String(r[idxPlat]).trim() : 'Geral',
+      type: typeVal,
+      platform: platVal,
       orderNumber: idxPedido !== -1 && r[idxPedido] ? String(r[idxPedido]).trim() : '',
       client: idxCliente !== -1 && r[idxCliente] ? String(r[idxCliente]).trim() : '',
       value: idxValor !== -1 && r[idxValor] ? String(r[idxValor]).trim() : '',
@@ -1643,7 +1654,7 @@ function saveAnnotationRecord(annotationData) {
   let sheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.ANNOTATIONS);
-    sheet.appendRow(['ID', 'Data', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário']);
+    sheet.appendRow(['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário']);
     styleHeader(sheet);
   }
 
@@ -1673,17 +1684,18 @@ function saveAnnotationRecord(annotationData) {
     dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM');
   }
 
-  const platform = String(annotationData.platform || annotationData.tipo || annotationData.type || 'Geral').trim();
+  const type = String(annotationData.type || annotationData.tipo || 'Anotação').trim();
+  const platform = String(annotationData.platform || '').trim();
   const orderNumber = String(annotationData.orderNumber || annotationData.pedido || '').trim();
   const client = String(annotationData.client || annotationData.cliente || '').trim();
   const value = String(annotationData.value || annotationData.valor || '').trim();
   const notes = String(annotationData.notes || annotationData.observacao || annotationData.observation || '').trim();
   const user = String(annotationData.usuario || annotationData.userName || annotationData.user || '').trim();
 
-  // Ordem estrita das colunas: ID, Data, Plataforma, Pedido, Cliente, Valor, Observação, Usuário
+  // Ordem estrita das colunas: ID, Data, Tipo, Plataforma, Pedido, Cliente, Valor, Observação, Usuário
   const finalRow = hasIdCol 
-    ? [finalId, dateStr, platform, orderNumber, client, value, notes, user]
-    : [dateStr, platform, orderNumber, client, value, notes, user];
+    ? [finalId, dateStr, type, platform, orderNumber, client, value, notes, user]
+    : [dateStr, type, platform, orderNumber, client, value, notes, user];
 
   if (rowIndex > 0) {
     sheet.getRange(rowIndex, 1, 1, finalRow.length).setValues([finalRow]);
