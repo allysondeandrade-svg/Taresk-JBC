@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { X, Check, Sparkles } from 'lucide-react';
 
+// Helper de formatação de moeda R$ xx,yy
+function formatCurrencyInput(val) {
+  const digits = String(val || '').replace(/\D/g, '');
+  if (!digits) return '';
+  const num = parseInt(digits, 10) / 100;
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
 // Tipos de anotações com seus ícones SVG fiéis aos modelos do usuário
 const ANNOTATION_TYPES = [
   {
@@ -179,8 +187,17 @@ export default function AnnotationModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Topo com Botão Fechar (X) no Canto Superior Direito */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '16px' }}>
+        {/* Topo com Cabeçalho "Nota" (mesma fonte e cor de Relatório Geral: 24px, 800, #1e293b) e Botão Fechar (X) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: '800',
+            color: '#1e293b',
+            letterSpacing: '-0.5px',
+            margin: 0
+          }}>
+            Nota
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -284,7 +301,7 @@ export default function AnnotationModal({
 
         {/* Campos do Formulário com retângulos de pontas moderadamente arredondadas (10px) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
-          {/* Campo: Valor */}
+          {/* Campo: Valor com máscara de moeda R$ xx,yy */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <label
               style={{
@@ -300,8 +317,8 @@ export default function AnnotationModal({
             <input
               type="text"
               value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              placeholder=""
+              onChange={(e) => setValor(formatCurrencyInput(e.target.value))}
+              placeholder="R$ 0,00"
               style={{
                 width: '60%',
                 height: '44px',
@@ -321,7 +338,7 @@ export default function AnnotationModal({
             />
           </div>
 
-          {/* Campo: Número do pedido */}
+          {/* Campo: Pedido (renomeado de Número do pedido para Pedido) */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <label
               style={{
@@ -333,7 +350,7 @@ export default function AnnotationModal({
                 flexShrink: 0
               }}
             >
-              Número do pedido
+              Pedido
             </label>
             <input
               type="text"

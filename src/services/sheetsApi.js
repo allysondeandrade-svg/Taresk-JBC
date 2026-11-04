@@ -404,7 +404,7 @@ export const SheetsApi = {
   },
 
   /**
-   * Salva uma Anotação na aba 'Anotação' da planilha Google
+   * Salva ou atualiza uma Anotação na aba 'Anotação' da planilha Google
    */
   async saveAnnotation(annotation) {
     const url = this.getUrl();
@@ -422,6 +422,31 @@ export const SheetsApi = {
       return true;
     } catch (err) {
       console.error('Erro ao salvar anotação no Sheets:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Exclui uma Anotação da aba 'Anotação' da planilha Google
+   */
+  async deleteAnnotation(annotationOrId) {
+    const url = this.getUrl();
+    if (!url) return false;
+
+    const payload = typeof annotationOrId === 'object' ? annotationOrId : { id: annotationOrId };
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'deleteAnnotation',
+          data: payload
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error('Erro ao excluir anotação no Sheets:', err);
       return false;
     }
   },

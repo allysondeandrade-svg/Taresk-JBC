@@ -13,6 +13,7 @@ import SettingsModal, { APP_THEMES } from './components/SettingsModal';
 import MobileAppView from './components/MobileAppView';
 import AnnotationModal from './components/AnnotationModal';
 import DisputesView from './components/DisputesView';
+import AnnotationsView from './components/AnnotationsView';
 import ConciliacaoView from './components/ConciliacaoView';
 import { SheetsApi } from './services/sheetsApi';
 import {

@@ -1555,41 +1555,139 @@ function deleteChecklistTemplateRecord(templateData) {
  * Salva uma nova Anotação na aba 'Anotação'
  * Campos: [ID, DataHora, Tipo de Anotação, Valor, Número do Pedido, Observação, Usuário]
  */
+/**
+ * Retorna as anotações da aba "Anotação"
+ * Cabeçalhos: [ID, Data, Plataforma, Pedido, Cliente, Valor, Observação, Usuário]
+ */
+function getAnnotationsDataAsJson() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
+  if (!sheet) return [];
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const rows = values.slice(1);
+
+  const idxId = headers.indexOf('id');
+  const idxData = headers.findIndex(h => h.includes('data'));
+  const idxPlat = headers.findIndex(h => h.includes('plat') || h.includes('tipo'));
+  const idxPedido = headers.findIndex(h => h.includes('ped'));
+  const idxCliente = headers.findIndex(h => h.includes('client'));
+  const idxValor = headers.findIndex(h => h.includes('val'));
+  const idxObs = headers.findIndex(h => h.includes('obs'));
+  const idxUser = headers.findIndex(h => h.includes('usu'));
+
+  return rows.map((r, index) => {
+    let rawDate = idxData !== -1 ? r[idxData] : '';
+    let formattedDate = '';
+    if (rawDate instanceof Date) {
+      const dd = String(rawDate.getDate()).padStart(2, '0');
+      const mm = String(rawDate.getMonth() + 1).padStart(2, '0');
+      formattedDate = dd + '/' + mm;
+    } else {
+      formattedDate = String(rawDate || '').trim();
+    }
+
+    const rowId = (idxId !== -1 && r[idxId]) ? String(r[idxId]).trim() : formatToFiveDigits(index + 1);
+
+    return {
+      id: rowId,
+      date: formattedDate,
+      platform: idxPlat !== -1 && r[idxPlat] ? String(r[idxPlat]).trim() : 'Geral',
+      orderNumber: idxPedido !== -1 && r[idxPedido] ? String(r[idxPedido]).trim() : '',
+      client: idxCliente !== -1 && r[idxCliente] ? String(r[idxCliente]).trim() : '',
+      value: idxValor !== -1 && r[idxValor] ? String(r[idxValor]).trim() : '',
+      notes: idxObs !== -1 && r[idxObs] ? String(r[idxObs]).trim() : '',
+      usuario: idxUser !== -1 && r[idxUser] ? String(r[idxUser]).trim() : ''
+    };
+  });
+}
+
+/**
+ * Salva ou atualiza uma anotação na aba "Anotação"
+ */
 function saveAnnotationRecord(annotationData) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.ANNOTATIONS);
-    sheet.appendRow(['ID', 'DataHora', 'Tipo de Anotação', 'Valor', 'Número do Pedido', 'Observação', 'Usuário']);
+    sheet.appendRow(['ID', 'Data', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário']);
     styleHeader(sheet);
   }
 
   const values = sheet.getDataRange().getValues();
   const headers = values.length > 0 ? values[0].map(h => String(h).toLowerCase().trim()) : [];
-  const hasIdCol = headers.indexOf('id') !== -1;
-  const newId = hasIdCol ? getNextFormattedId([SHEETS.ANNOTATIONS, 'Anotacao', 'Anotações']) : '';
+  const idxId = headers.indexOf('id');
+  const targetId = annotationData.id ? String(annotationData.id).trim() : '';
 
-  // Formata data e hora legível (ex: 27/10/2026 21:45)
-  const now = new Date();
-  const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss');
+  let rowIndex = -1;
+  if (idxId !== -1 && targetId) {
+    for (let i = 1; i < values.length; i++) {
+      const rowId = String(values[i][idxId]).trim();
+      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+  }
 
-  const tipo = String(annotationData.tipo || annotationData.type || 'Anotação').trim();
-  const valor = annotationData.valor !== undefined && annotationData.valor !== null ? String(annotationData.valor) : '';
-  const pedido = annotationData.pedido !== undefined && annotationData.pedido !== null ? String(annotationData.pedido) : '';
-  const obs = annotationData.observacao || annotationData.observation || annotationData.notes || '';
-  const usuario = annotationData.usuario || annotationData.userName || annotationData.user || '';
+  const hasIdCol = idxId !== -1;
+  const finalId = targetId || (hasIdCol ? getNextFormattedId([SHEETS.ANNOTATIONS, 'Anotacao', 'Anotações']) : '');
 
-  const baseRow = [dateStr, tipo, valor, pedido, obs, usuario];
-  const finalRow = hasIdCol ? [newId, ...baseRow] : baseRow;
+  // Formata data padrão (dd/MM)
+  let dateStr = annotationData.date || annotationData.data || '';
+  if (!dateStr) {
+    const now = new Date();
+    dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM');
+  }
 
-  sheet.appendRow(finalRow);
-  return { status: 'success', id: newId, tipo: tipo, date: dateStr };
+  const platform = String(annotationData.platform || annotationData.tipo || annotationData.type || 'Geral').trim();
+  const orderNumber = String(annotationData.orderNumber || annotationData.pedido || '').trim();
+  const client = String(annotationData.client || annotationData.cliente || '').trim();
+  const value = String(annotationData.value || annotationData.valor || '').trim();
+  const notes = String(annotationData.notes || annotationData.observacao || annotationData.observation || '').trim();
+  const user = String(annotationData.usuario || annotationData.userName || annotationData.user || '').trim();
+
+  const baseRow = [dateStr, platform, orderNumber, client, value, notes, user];
+  const finalRow = hasIdCol ? [finalId, ...baseRow] : baseRow;
+
+  if (rowIndex > 0) {
+    sheet.getRange(rowIndex, 1, 1, finalRow.length).setValues([finalRow]);
+  } else {
+    sheet.appendRow(finalRow);
+  }
+
+  return { status: 'success', id: finalId, date: dateStr, platform: platform };
 }
 
 /**
- * Retorna as disputas da aba "Disputas"
- * Cabeçalhos: [ID, Plataf, Data, Produto, Pedido, Descrição, Observação, Devolução, Situação]
+ * Exclui uma anotação da aba "Anotação"
  */
+function deleteAnnotationRecord(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
+  if (!sheet) return { deleted: false };
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return { deleted: false };
+
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const targetId = data && data.id ? String(data.id).trim() : String(data || '').trim();
+
+  for (let i = 1; i < values.length; i++) {
+    const rowId = idxId !== -1 ? String(values[i][idxId]).trim() : '';
+    if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+      sheet.deleteRow(i + 1);
+      return { deleted: true, id: targetId };
+    }
+  }
+
+  return { deleted: false };
+}
+
 function getDisputesDataAsJson() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEETS.DISPUTES) || ss.getSheetByName('Disputa');
