@@ -191,7 +191,7 @@ function setupSheets() {
   let noteSheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
   if (!noteSheet) {
     noteSheet = ss.insertSheet(SHEETS.ANNOTATIONS);
-    noteSheet.appendRow(['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário']);
+    noteSheet.appendRow(['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Valor', 'Observação', 'Usuário']);
     styleHeader(noteSheet);
   } else {
     ensureIdColumn(noteSheet, 'ID');
@@ -223,7 +223,7 @@ function setupSheets() {
 function fixAnnotationSheetHeaders(sheet) {
   const lastCol = Math.max(sheet.getLastColumn(), 1);
   const currentHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').trim());
-  const standardHeaders = ['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário'];
+  const standardHeaders = ['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Valor', 'Observação', 'Usuário'];
   
   // Se a aba tem cabeçalhos antigos ou desalinhados (ex: Tipo de Anotação, DataHora, etc)
   const isOld = currentHeaders.some(h => {
@@ -323,6 +323,17 @@ function styleHeader(sheet) {
 /**
  * Converte um número ou string numérica para 5 dígitos com zeros à esquerda (ex: 1 -> "00001")
  */
+
+/**
+ * Converte um número ou string numérica para 4 dígitos com zeros à esquerda (ex: 1 -> "0001", 2 -> "0002")
+ */
+function formatToFourDigits(num) {
+  if (typeof num === 'string' && /^\d{4}$/.test(num)) return num;
+  const parsed = parseInt(String(num || '').replace(/\D/g, ''), 10);
+  if (isNaN(parsed) || parsed < 0) return '0001';
+  return String(parsed).padStart(4, '0');
+}
+
 function formatToFiveDigits(num) {
   if (typeof num === 'string' && /^\d{5}$/.test(num)) return num;
   const parsed = parseInt(num, 10);
@@ -1605,7 +1616,6 @@ function getAnnotationsDataAsJson() {
   const idxTipo = headers.findIndex(h => h.includes('tipo'));
   const idxPlat = headers.findIndex(h => h.includes('plat'));
   const idxPedido = headers.findIndex(h => h.includes('ped'));
-  const idxCliente = headers.findIndex(h => h.includes('client'));
   const idxValor = headers.findIndex(h => h.includes('val'));
   const idxObs = headers.findIndex(h => h.includes('obs'));
   const idxUser = headers.findIndex(h => h.includes('usu'));
@@ -1619,29 +1629,51 @@ function getAnnotationsDataAsJson() {
       formattedDate = dd + '/' + mm;
     } else {
       formattedDate = String(rawDate || '').trim();
+      if (formattedDate.includes('/') && formattedDate.length > 5) {
+        const parts = formattedDate.split(' ')[0].split('/');
+        if (parts.length >= 2) formattedDate = parts[0].padStart(2, '0') + '/' + parts[1].padStart(2, '0');
+      }
     }
 
-    const rowId = (idxId !== -1 && r[idxId]) ? String(r[idxId]).trim() : formatToFiveDigits(index + 1);
+    let rawId = (idxId !== -1 && r[idxId]) ? String(r[idxId]).trim() : '';
+    let formattedId = rawId ? formatToFourDigits(rawId) : formatToFourDigits(index + 1);
 
     let typeVal = idxTipo !== -1 && r[idxTipo] ? String(r[idxTipo]).trim() : '';
     let platVal = idxPlat !== -1 && r[idxPlat] ? String(r[idxPlat]).trim() : '';
-    const knownTypes = ['Entrega Local', 'Envio Próprio', 'Retirada Fábrica', 'Gasto Manual', 'Prejuízo', 'Anotação'];
+
+    // Normalização dos 6 tipos solicitados pelo usuário:
+    // Entrega Local, Retirada Fábrica, Entrega Direta, Gasto Pontual, Prejuízo, Anotação
+    if (typeVal.toLowerCase().includes('envio') || typeVal.toLowerCase().includes('direta')) {
+      typeVal = 'Entrega Direta';
+    } else if (typeVal.toLowerCase().includes('manual') || typeVal.toLowerCase().includes('pontual')) {
+      typeVal = 'Gasto Pontual';
+    }
+
+    const knownTypes = ['Entrega Local', 'Retirada Fábrica', 'Entrega Direta', 'Gasto Pontual', 'Prejuízo', 'Anotação', 'Envio Próprio', 'Gasto Manual'];
     if (!typeVal && knownTypes.includes(platVal)) {
       typeVal = platVal;
       platVal = '';
     }
     if (!typeVal) typeVal = 'Anotação';
 
+    // Formata valor R$ xx,yy
+    let valStr = idxValor !== -1 && r[idxValor] !== '' && r[idxValor] !== undefined ? String(r[idxValor]).trim() : '';
+    if (valStr && !valStr.startsWith('R$')) {
+      const num = parseFloat(valStr.replace(/[^0-9,-.]/g, '').replace(',', '.'));
+      if (!isNaN(num)) {
+        valStr = 'R$ ' + num.toFixed(2).replace('.', ',');
+      }
+    }
+
     return {
-      id: rowId,
+      id: formattedId,
       date: formattedDate,
       type: typeVal,
       platform: platVal,
       orderNumber: idxPedido !== -1 && r[idxPedido] ? String(r[idxPedido]).trim() : '',
-      client: idxCliente !== -1 && r[idxCliente] ? String(r[idxCliente]).trim() : '',
-      value: idxValor !== -1 && r[idxValor] ? String(r[idxValor]).trim() : '',
+      value: valStr,
       notes: idxObs !== -1 && r[idxObs] ? String(r[idxObs]).trim() : '',
-      usuario: idxUser !== -1 && r[idxUser] ? String(r[idxUser]).trim() : ''
+      usuario: idxUser !== -1 && r[idxUser] ? String(r[idxUser]).trim() : 'Allyson'
     };
   });
 }
@@ -1654,7 +1686,7 @@ function saveAnnotationRecord(annotationData) {
   let sheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.ANNOTATIONS);
-    sheet.appendRow(['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Cliente', 'Valor', 'Observação', 'Usuário']);
+    sheet.appendRow(['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Valor', 'Observação', 'Usuário']);
     styleHeader(sheet);
   }
 
@@ -1667,7 +1699,7 @@ function saveAnnotationRecord(annotationData) {
   if (idxId !== -1 && targetId) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId]).trim();
-      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+      if (rowId && (rowId === targetId || formatToFourDigits(rowId) === formatToFourDigits(targetId))) {
         rowIndex = i + 1;
         break;
       }
@@ -1675,27 +1707,56 @@ function saveAnnotationRecord(annotationData) {
   }
 
   const hasIdCol = idxId !== -1;
-  const finalId = targetId || (hasIdCol ? getNextFormattedId([SHEETS.ANNOTATIONS, 'Anotacao', 'Anotações']) : '');
 
-  // Formata data padrão (dd/MM)
+  // Gera ID sequencial de 4 dígitos (0001, 0002...)
+  let finalId = '';
+  if (targetId && !targetId.startsWith('anot_')) {
+    finalId = formatToFourDigits(targetId);
+  } else {
+    let maxId = 0;
+    if (idxId !== -1) {
+      for (let i = 1; i < values.length; i++) {
+        const num = parseInt(String(values[i][idxId] || '').replace(/\D/g, ''), 10);
+        if (!isNaN(num) && num > maxId) maxId = num;
+      }
+    }
+    finalId = formatToFourDigits(maxId + 1);
+  }
+
+  // Formata data padrão dd/MM
   let dateStr = annotationData.date || annotationData.data || '';
   if (!dateStr) {
     const now = new Date();
     dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM');
   }
 
-  const type = String(annotationData.type || annotationData.tipo || 'Anotação').trim();
+  // Normalização do tipo
+  let type = String(annotationData.type || annotationData.tipo || 'Anotação').trim();
+  if (type.toLowerCase().includes('envio') || type.toLowerCase().includes('direta')) {
+    type = 'Entrega Direta';
+  } else if (type.toLowerCase().includes('manual') || type.toLowerCase().includes('pontual')) {
+    type = 'Gasto Pontual';
+  }
+
   const platform = String(annotationData.platform || '').trim();
   const orderNumber = String(annotationData.orderNumber || annotationData.pedido || '').trim();
-  const client = String(annotationData.client || annotationData.cliente || '').trim();
-  const value = String(annotationData.value || annotationData.valor || '').trim();
-  const notes = String(annotationData.notes || annotationData.observacao || annotationData.observation || '').trim();
-  const user = String(annotationData.usuario || annotationData.userName || annotationData.user || '').trim();
 
-  // Ordem estrita das colunas: ID, Data, Tipo, Plataforma, Pedido, Cliente, Valor, Observação, Usuário
+  // Valor com formatação R$ xx,yy
+  let value = String(annotationData.value || annotationData.valor || '').trim();
+  if (value && !value.startsWith('R$')) {
+    const num = parseFloat(value.replace(/[^0-9,-.]/g, '').replace(',', '.'));
+    if (!isNaN(num)) {
+      value = 'R$ ' + num.toFixed(2).replace('.', ',');
+    }
+  }
+
+  const notes = String(annotationData.notes || annotationData.observacao || annotationData.observation || '').trim();
+  const user = String(annotationData.usuario || annotationData.userName || annotationData.user || 'Allyson').trim();
+
+  // Colunas estritas: [ID, Data, Tipo, Plataforma, Pedido, Valor, Observação, Usuário]
   const finalRow = hasIdCol 
-    ? [finalId, dateStr, type, platform, orderNumber, client, value, notes, user]
-    : [dateStr, type, platform, orderNumber, client, value, notes, user];
+    ? [finalId, dateStr, type, platform, orderNumber, value, notes, user]
+    : [dateStr, type, platform, orderNumber, value, notes, user];
 
   if (rowIndex > 0) {
     sheet.getRange(rowIndex, 1, 1, finalRow.length).setValues([finalRow]);

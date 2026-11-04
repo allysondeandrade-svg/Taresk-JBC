@@ -29,7 +29,7 @@ function getTodayFormatted() {
   return `${dd}/${mm}`;
 }
 
-// Os 6 tipos com os ícones exatos do modal da Foto 2
+// Os 6 tipos solicitados pelo usuário com os ícones fiéis
 export const ANNOTATION_TYPES = [
   {
     id: 'entrega_local',
@@ -43,22 +43,6 @@ export const ANNOTATION_TYPES = [
         <polygon points="16 8 20 8 23 11 23 16 16 16 8" />
         <circle cx="5.5" cy="18.5" r="2.5" />
         <circle cx="18.5" cy="18.5" r="2.5" />
-      </svg>
-    )
-  },
-  {
-    id: 'envio_proprio',
-    label: 'Envio Próprio',
-    color: '#16a34a',
-    bg: '#f0fdf4',
-    border: '#bbf7d0',
-    svg: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-        <path d="m3.3 7 8.7 5 8.7-5" />
-        <path d="M12 22V12" />
-        <path d="m7 17-4 2" />
-        <path d="m5 13-2 1" />
       </svg>
     )
   },
@@ -80,8 +64,24 @@ export const ANNOTATION_TYPES = [
     )
   },
   {
-    id: 'gasto_manual',
-    label: 'Gasto Manual',
+    id: 'entrega_direta',
+    label: 'Entrega Direta',
+    color: '#16a34a',
+    bg: '#f0fdf4',
+    border: '#bbf7d0',
+    svg: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+        <path d="m3.3 7 8.7 5 8.7-5" />
+        <path d="M12 22V12" />
+        <path d="m7 17-4 2" />
+        <path d="m5 13-2 1" />
+      </svg>
+    )
+  },
+  {
+    id: 'gasto_pontual',
+    label: 'Gasto Pontual',
     color: '#6d28d9',
     bg: '#f5f3ff',
     border: '#ddd6fe',
@@ -156,6 +156,15 @@ export default function AnnotationsView({
   // Input oculto para o calendário na edição de linha
   const dateInputEditRef = useRef(null);
 
+  // Lista dinâmica de usuários (Allyson, Jeremias, João, etc)
+  const availableUserNames = useMemo(() => {
+    const list = (users || []).map(u => u.name).filter(Boolean);
+    if (!list.includes('Allyson')) list.unshift('Allyson');
+    if (!list.includes('Jeremias')) list.push('Jeremias');
+    if (currentUser?.name && !list.includes(currentUser.name)) list.push(currentUser.name);
+    return Array.from(new Set(list));
+  }, [users, currentUser]);
+
   // Lista dinâmica de plataformas unificadas (Shopee JBC, Shopee Izabela, Mercado Livre, etc)
   const allPlatformNames = useMemo(() => {
     const namesSet = new Set();
@@ -208,10 +217,18 @@ export default function AnnotationsView({
 
   // Botão "Nova Anotação": adiciona linha direto na tabela e já entra em modo de edição
   const handleAddNewRow = async () => {
-    const newId = 'anot_' + Date.now();
+    // Próximo ID sequencial de 4 dígitos: 0001, 0002...
+    let maxId = 0;
+    annotations.forEach(a => {
+      const num = parseInt(String(a.id || '').replace(/\D/g, ''), 10);
+      if (!isNaN(num) && num > maxId) maxId = num;
+    });
+    const newId = String(maxId + 1).padStart(4, '0');
+
     const today = getTodayFormatted();
     const defaultPlat = allPlatformNames[0] || 'Shopee JBC';
     const defaultType = 'Entrega Local';
+    const defaultUser = currentUser?.name || availableUserNames[0] || 'Allyson';
 
     const newRow = {
       id: newId,
@@ -219,10 +236,9 @@ export default function AnnotationsView({
       type: defaultType,
       platform: defaultPlat,
       orderNumber: '',
-      client: '',
       value: '',
       notes: '',
-      usuario: currentUser?.name || 'Vendedor'
+      usuario: defaultUser
     };
 
     // Salva local e na planilha imediatamente
@@ -243,10 +259,9 @@ export default function AnnotationsView({
       type: item.type || item.tipo || 'Anotação',
       platform: item.platform || allPlatformNames[0] || 'Shopee JBC',
       orderNumber: item.orderNumber || item.pedido || '',
-      client: item.client || item.cliente || '',
       value: item.value || item.valor || '',
       notes: item.notes || item.observacao || item.obs || '',
-      usuario: item.usuario || currentUser?.name || ''
+      usuario: item.usuario || currentUser?.name || 'Allyson'
     });
   };
 
@@ -259,19 +274,26 @@ export default function AnnotationsView({
   };
 
   const handleDuplicate = async (item) => {
+    let maxId = 0;
+    annotations.forEach(a => {
+      const num = parseInt(String(a.id || '').replace(/\D/g, ''), 10);
+      if (!isNaN(num) && num > maxId) maxId = num;
+    });
+    const newId = String(maxId + 1).padStart(4, '0');
+
     const duplicated = {
       ...item,
-      id: 'anot_' + Date.now(),
+      id: newId,
       date: getTodayFormatted(),
-      usuario: currentUser?.name || item.usuario || 'Vendedor'
+      usuario: currentUser?.name || item.usuario || 'Allyson'
     };
     if (onAddAnnotation) {
       await onAddAnnotation(duplicated);
     }
   };
 
-  const handleDelete = (id, clientOrOrder) => {
-    if (window.confirm(`Deseja excluir permanentemente a anotação ${clientOrOrder ? `"${clientOrOrder}"` : ''}?`)) {
+  const handleDelete = (id, orderOrNotes) => {
+    if (window.confirm(`Deseja excluir permanentemente a anotação ${id ? `#${id}` : ''}?`)) {
       if (onDeleteAnnotation) {
         onDeleteAnnotation(id);
       }
@@ -292,16 +314,22 @@ export default function AnnotationsView({
   const filteredList = useMemo(() => {
     const currentYear = new Date().getFullYear();
 
-    return annotations.filter(item => {
+    return annotations.map(item => {
+      // Normaliza id para formato 0001
+      const rawNum = parseInt(String(item.id || '').replace(/\D/g, ''), 10);
+      const formattedId = !isNaN(rawNum) && rawNum > 0 ? String(rawNum).padStart(4, '0') : item.id;
+      return { ...item, formattedId };
+    }).filter(item => {
       // 1. Busca textual
       const matchSearch = (
+        (item.formattedId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.orderNumber || item.pedido || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.client || item.cliente || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.notes || item.observacao || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.platform || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.type || item.tipo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.date || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.value || item.valor || '').toLowerCase().includes(searchTerm.toLowerCase())
+        (item.value || item.valor || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.usuario || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
       if (!matchSearch) return false;
 
@@ -425,7 +453,7 @@ export default function AnnotationsView({
         boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
       }}>
         {/* Campo de Busca Textual */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 260px', minWidth: '220px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 240px', minWidth: '200px' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -439,7 +467,7 @@ export default function AnnotationsView({
             <Search size={16} color="#64748b" />
             <input
               type="text"
-              placeholder="Buscar por pedido, cliente, valor, observação..."
+              placeholder="Buscar por ID, pedido, valor, usuário..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
@@ -582,7 +610,8 @@ export default function AnnotationsView({
         </div>
       </div>
 
-      {/* Tabela Interativa de Anotações com Coluna TIPO e PLATAFORMA separadas */}
+      {/* Tabela Interativa de Anotações com as colunas EXATAS:
+          ID | DATA | TIPO | PLATAFORMA | PEDIDO | VALOR | OBSERVAÇÃO | USUÁRIO | AÇÕES */}
       <div style={{
         background: '#ffffff',
         borderRadius: '20px',
@@ -594,6 +623,9 @@ export default function AnnotationsView({
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  ID
+                </th>
                 <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   DATA
                 </th>
@@ -607,13 +639,13 @@ export default function AnnotationsView({
                   PEDIDO
                 </th>
                 <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  CLIENTE
-                </th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   VALOR
                 </th>
                 <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   OBSERVAÇÃO
+                </th>
+                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  USUÁRIO
                 </th>
                 <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' }}>
                   AÇÕES
@@ -623,7 +655,7 @@ export default function AnnotationsView({
             <tbody>
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <td colSpan={9} style={{ padding: '60px 20px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '36px' }}>📋</span>
                       <h4 style={{ fontSize: '16px', fontWeight: '800', color: '#334155', margin: 0 }}>
@@ -644,6 +676,11 @@ export default function AnnotationsView({
                   if (isEditing) {
                     return (
                       <tr key={item.id} style={{ background: '#fdf4ff', borderBottom: '1px solid #f0abfc' }}>
+                        {/* ID (somente leitura ou editável) */}
+                        <td style={{ padding: '10px 14px', fontSize: '13px', fontWeight: '700', color: '#6d28d9', fontFamily: 'monospace' }}>
+                          {item.formattedId || item.id}
+                        </td>
+
                         {/* 1. Data com input dd/mm + botão de calendário */}
                         <td style={{ padding: '10px 14px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -725,7 +762,7 @@ export default function AnnotationsView({
                           </div>
                         </td>
 
-                        {/* 2. Tipo (Seletor com os 6 ícones) */}
+                        {/* 2. Tipo (Seletor com os 6 tipos oficiais) */}
                         <td style={{ padding: '10px 14px' }}>
                           <select
                             value={editForm.type}
@@ -747,7 +784,7 @@ export default function AnnotationsView({
                           </select>
                         </td>
 
-                        {/* 3. Plataforma (Seletor com as plataformas: Shopee JBC, Shopee Izabela...) */}
+                        {/* 3. Plataforma (Shopee JBC, Shopee Izabela...) */}
                         <td style={{ padding: '10px 14px' }}>
                           <select
                             value={editForm.platform}
@@ -789,27 +826,7 @@ export default function AnnotationsView({
                           />
                         </td>
 
-                        {/* 5. Cliente */}
-                        <td style={{ padding: '10px 14px' }}>
-                          <input
-                            type="text"
-                            placeholder="Nome do cliente"
-                            value={editForm.client}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, client: e.target.value }))}
-                            style={{
-                              width: '100%',
-                              padding: '6px 8px',
-                              borderRadius: '8px',
-                              border: '1.5px solid #a855f7',
-                              fontSize: '13px',
-                              fontWeight: '700',
-                              color: '#334155',
-                              outline: 'none'
-                            }}
-                          />
-                        </td>
-
-                        {/* 6. Valor com formatação de moeda */}
+                        {/* 5. Valor com formatação de moeda R$ xx,yy */}
                         <td style={{ padding: '10px 14px' }}>
                           <input
                             type="text"
@@ -829,7 +846,7 @@ export default function AnnotationsView({
                           />
                         </td>
 
-                        {/* 7. Observação */}
+                        {/* 6. Observação */}
                         <td style={{ padding: '10px 14px' }}>
                           <input
                             type="text"
@@ -847,6 +864,28 @@ export default function AnnotationsView({
                               outline: 'none'
                             }}
                           />
+                        </td>
+
+                        {/* 7. Usuário */}
+                        <td style={{ padding: '10px 14px' }}>
+                          <select
+                            value={editForm.usuario}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, usuario: e.target.value }))}
+                            style={{
+                              padding: '6px 10px',
+                              borderRadius: '8px',
+                              border: '1.5px solid #a855f7',
+                              fontSize: '13px',
+                              fontWeight: '700',
+                              color: '#334155',
+                              background: '#ffffff',
+                              outline: 'none'
+                            }}
+                          >
+                            {availableUserNames.map(u => (
+                              <option key={u} value={u}>{u}</option>
+                            ))}
+                          </select>
                         </td>
 
                         {/* 8. Ações: Salvar / Cancelar */}
@@ -905,12 +944,17 @@ export default function AnnotationsView({
                       onMouseEnter={(e) => e.currentTarget.style.background = '#faf5ff'}
                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >
-                      {/* Data */}
+                      {/* ID: 0001, 0002... */}
+                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#6d28d9', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                        {item.formattedId || item.id}
+                      </td>
+
+                      {/* Data: dd/mm */}
                       <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
                         {item.date || '-'}
                       </td>
 
-                      {/* Tipo: Ícone + Nome do tipo */}
+                      {/* Tipo: Entrega Local, Retirada Fábrica, Entrega Direta, Gasto Pontual, Prejuízo, Anotação */}
                       <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
                           <span style={{
@@ -930,7 +974,7 @@ export default function AnnotationsView({
                         </div>
                       </td>
 
-                      {/* Plataforma: mesma tipografia simples (#334155, 13px, 700) */}
+                      {/* Plataforma: Shopee JBC, Shopee Izabela... */}
                       <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
                         {item.platform || '-'}
                       </td>
@@ -940,12 +984,7 @@ export default function AnnotationsView({
                         {item.orderNumber || item.pedido || '-'}
                       </td>
 
-                      {/* Cliente */}
-                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
-                        {item.client || item.cliente || '-'}
-                      </td>
-
-                      {/* Valor */}
+                      {/* Valor: R$ xx,yy */}
                       <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
                         {item.value || item.valor || '-'}
                       </td>
@@ -953,6 +992,11 @@ export default function AnnotationsView({
                       {/* Observação */}
                       <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', maxWidth: '300px', wordBreak: 'break-word' }}>
                         {item.notes || item.observacao || '-'}
+                      </td>
+
+                      {/* Usuário: Allyson, Jeremias, etc */}
+                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
+                        {item.usuario || 'Allyson'}
                       </td>
 
                       {/* Ações: Duplicar, Editar e Excluir */}
@@ -1015,7 +1059,7 @@ export default function AnnotationsView({
                           </button>
 
                           <button
-                            onClick={() => handleDelete(item.id, item.orderNumber || item.client)}
+                            onClick={() => handleDelete(item.id, item.orderNumber || item.notes)}
                             title="Excluir anotação"
                             style={{
                               width: '32px',
