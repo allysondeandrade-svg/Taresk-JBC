@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check, Search, Package, DollarSign, Settings } from 'lucide-react';
 
 // Helper para formatar dd/mm
@@ -51,9 +51,15 @@ export default function MobileAppView({
   // Sub-abas de tarefas: 'atuais' ou 'concluidas'
   const [taskSubTab, setTaskSubTab] = useState('atuais');
   // Filtro de usuário opcional
-  const [selectedUserFilter, setSelectedUserFilter] = useState(
-    currentUser?.role === 'premium_admin' ? 'all' : currentUser?.id || 'all'
-  );
+  const [selectedUserFilter, setSelectedUserFilter] = useState(() => {
+    return currentUser?.id || currentUser?.name || 'all';
+  });
+
+  useEffect(() => {
+    if (currentUser?.id || currentUser?.name) {
+      setSelectedUserFilter(currentUser.id || currentUser.name);
+    }
+  }, [currentUser]);
 
   // Estados da página de Cadastro de Produtos no Mobile
   const [productSearchMobile, setProductSearchMobile] = useState('');
@@ -100,7 +106,7 @@ export default function MobileAppView({
     // Se o backend gravou o ID técnico como 'user_master', trata como Administrador / JBC Eletro
     if (target === 'user_master' || target.includes('master') || target.includes('admin')) {
       const adminUser = users.find(u => u.role === 'premium_admin' || norm(u.name).includes('admin') || norm(u.name).includes('jbc'));
-      return adminUser || { id: userId, name: 'JBC Eletro (Admin)', avatar: '⚡' };
+      return adminUser || { id: userId, name: 'JBC Eletro (Admin)', avatar: '👤' };
     }
 
     // Se o ID for baseado em e-mail (ex: user_jeremiaseltroltda_40gmail_com), extrai um nome legível
@@ -1133,7 +1139,7 @@ export default function MobileAppView({
                       gap: '4px'
                     }}
                   >
-                    <span>{u.avatar || '👤'}</span>
+                    <span>{(!u.avatar || u.avatar === '⚡') ? '👤' : u.avatar}</span>
                     <span>{u.name}</span>
                   </button>
                 );

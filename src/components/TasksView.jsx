@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Eye, CheckCircle2, Clock, Calendar, User, Sparkles, Filter, Plus, ArrowUpRight, Edit2, Trash2, X, Check, Copy, Package } from 'lucide-react';
 
 // Helper para formatar qualquer string de data em dd/mm
@@ -55,9 +55,15 @@ export default function TasksView({
   products,
   setActiveTab
 }) {
-  const [filterUser, setFilterUser] = useState(
-    currentUser?.role === 'premium_admin' ? 'all' : (currentUser?.id || 'all')
-  );
+  const [filterUser, setFilterUser] = useState(() => {
+    return currentUser?.id || currentUser?.name || 'all';
+  });
+
+  useEffect(() => {
+    if (currentUser?.id || currentUser?.name) {
+      setFilterUser(currentUser.id || currentUser.name);
+    }
+  }, [currentUser]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -561,7 +567,7 @@ export default function TasksView({
                     }
                   }}
                 >
-                  <span style={{ fontSize: '13px' }}>{u.avatar || '👤'}</span>
+                  <span style={{ fontSize: '13px' }}>{(!u.avatar || u.avatar === '⚡') ? '👤' : u.avatar}</span>
                   <span>{u.name}</span>
                 </button>
               );

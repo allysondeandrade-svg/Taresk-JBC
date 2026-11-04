@@ -40,7 +40,7 @@ export default function UsersCatalogTab({
       email: newUser.email.trim(),
       password: newUser.password.trim() || '123',
       role: newUser.role,
-      avatar: newUser.role === 'premium_admin' ? '⚡' : '👤',
+      avatar: '👤',
       badge: newUser.role === 'premium_admin' ? 'Admin' : 'Operador',
       platforms: userPlatforms
     });

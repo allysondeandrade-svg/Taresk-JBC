@@ -631,7 +631,7 @@ function getUsersDataAsJson() {
 
     const isMaster = email.toLowerCase() === 'eletrojbc@gmail.com' || (idxCargo !== -1 && String(r[idxCargo]).includes('admin')) || index === 0;
     const role = isMaster ? 'premium_admin' : (idxCargo !== -1 && r[idxCargo] ? String(r[idxCargo]) : 'operator');
-    const avatar = (idxAvatar !== -1 && r[idxAvatar]) ? String(r[idxAvatar]) : (isMaster ? '⚡' : '👤');
+    const avatar = (idxAvatar !== -1 && r[idxAvatar]) ? String(r[idxAvatar]) : ('👤');
     const badge = (idxBadge !== -1 && r[idxBadge]) ? String(r[idxBadge]) : (isMaster ? 'Admin' : 'Operador');
     const id = rawId || (isMaster ? 'user_master' : 'user_' + encodeURIComponent(email).replace(/[^a-zA-Z0-9_]/g, '_'));
 

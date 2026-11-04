@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2, RotateCcw, Trash2, Edit2, Eye, Calendar, User, Search, Check, Plus } from 'lucide-react';
 
 export default function CompletedTasksView({
@@ -12,9 +12,15 @@ export default function CompletedTasksView({
   onOpenNewTaskModal,
   setActiveTab
 }) {
-  const [filterUser, setFilterUser] = useState(
-    currentUser?.role === 'premium_admin' ? 'all' : (currentUser?.id || 'all')
-  );
+  const [filterUser, setFilterUser] = useState(() => {
+    return currentUser?.id || currentUser?.name || 'all';
+  });
+
+  useEffect(() => {
+    if (currentUser?.id || currentUser?.name) {
+      setFilterUser(currentUser.id || currentUser.name);
+    }
+  }, [currentUser]);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -253,7 +259,7 @@ export default function CompletedTasksView({
                     }
                   }}
                 >
-                  <span style={{ fontSize: '13px' }}>{u.avatar || '👤'}</span>
+                  <span style={{ fontSize: '13px' }}>{(!u.avatar || u.avatar === '⚡') ? '👤' : u.avatar}</span>
                   <span>{u.name}</span>
                 </button>
               );

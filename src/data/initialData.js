@@ -23,7 +23,7 @@ export const INITIAL_USERS = [
     email: 'eletrojbc@gmail.com',
     password: 'Jbc29378125@',
     role: 'premium_admin',
-    avatar: '⚡',
+    avatar: '👤',
     badge: 'Administrador Premium',
     platforms: [
       { id: 'plat_shopee_1', name: 'Shopee Principal', color: '#f97316' },
