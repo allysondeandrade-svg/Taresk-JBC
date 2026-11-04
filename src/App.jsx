@@ -893,6 +893,7 @@ export default function App() {
           isOpen={isAnnotationModalOpen}
           onClose={() => setIsAnnotationModalOpen(false)}
           currentUser={currentUser}
+          platforms={platforms}
           onSave={handleSaveAnnotation}
         />
 
@@ -1136,6 +1137,7 @@ export default function App() {
         isOpen={isAnnotationModalOpen}
         onClose={() => setIsAnnotationModalOpen(false)}
         currentUser={currentUser}
+        platforms={platforms}
         onSave={handleSaveAnnotation}
       />
 

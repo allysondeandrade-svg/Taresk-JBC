@@ -25,8 +25,8 @@ const ANNOTATION_TYPES = [
     )
   },
   {
-    id: 'envio_proprio',
-    label: 'Envio Próprio',
+    id: 'entrega_direta',
+    label: 'Entrega Direta',
     // Caixa de encomenda em movimento
     svg: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -54,8 +54,8 @@ const ANNOTATION_TYPES = [
     )
   },
   {
-    id: 'gasto_manual',
-    label: 'Gasto Manual',
+    id: 'gasto_pontual',
+    label: 'Gasto Pontual',
     // Cifrão estilizado $
     svg: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -103,9 +103,11 @@ export default function AnnotationModal({
   isOpen,
   onClose,
   currentUser,
+  platforms = [],
   onSave
 }) {
   const [selectedType, setSelectedType] = useState('anotacao');
+  const [selectedPlatform, setSelectedPlatform] = useState('');
   const [valor, setValor] = useState('');
   const [pedido, setPedido] = useState('');
   const [observacao, setObservacao] = useState('');
@@ -125,6 +127,7 @@ export default function AnnotationModal({
 
     const payload = {
       tipo: tipoLabel,
+      plataforma: selectedPlatform.trim(),
       valor: valor.trim(),
       pedido: pedido.trim(),
       observacao: observacao.trim(),
@@ -141,6 +144,7 @@ export default function AnnotationModal({
         setSuccessToast(false);
         // Limpa formulário e fecha
         setValor('');
+        setSelectedPlatform('');
         setPedido('');
         setObservacao('');
         setSelectedType('anotacao');
@@ -300,7 +304,67 @@ export default function AnnotationModal({
         </div>
 
         {/* Campos do Formulário com retângulos de pontas moderadamente arredondadas (10px) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+          {/* Campo: Plataforma */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <label
+              style={{
+                fontSize: '17px',
+                fontWeight: '800',
+                color: '#0f172a',
+                letterSpacing: '-0.3px',
+                flexShrink: 0
+              }}
+            >
+              Plataforma
+            </label>
+            <select
+              value={selectedPlatform}
+              onChange={(e) => setSelectedPlatform(e.target.value)}
+              style={{
+                width: '60%',
+                height: '44px',
+                borderRadius: '10px',
+                border: '1.5px solid #cbd5e1',
+                padding: '0 12px',
+                fontSize: '14px',
+                fontWeight: '700',
+                color: selectedPlatform ? '#0f172a' : '#64748b',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.15s ease',
+                background: '#ffffff',
+                cursor: 'pointer'
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = '#6d28d9'; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
+            >
+              <option value="">Selecione a plataforma...</option>
+              {platforms && platforms.length > 0 ? (
+                platforms.map((p) => {
+                  const pName = typeof p === 'string' ? p : p.name;
+                  const pId = typeof p === 'string' ? p : (p.id || p.name);
+                  return (
+                    <option key={pId} value={pName}>
+                      {pName}
+                    </option>
+                  );
+                })
+              ) : (
+                <>
+                  <option value="Shopee JBC">Shopee JBC</option>
+                  <option value="Shopee Izabela">Shopee Izabela</option>
+                  <option value="Mercado Livre">Mercado Livre</option>
+                  <option value="Amazon">Amazon</option>
+                  <option value="Magalu">Magalu</option>
+                  <option value="Shein">Shein</option>
+                  <option value="TikTok Shop">TikTok Shop</option>
+                  <option value="Geral / Outros">Geral / Outros</option>
+                </>
+              )}
+            </select>
+          </div>
+
           {/* Campo: Valor com máscara de moeda R$ xx,yy */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <label
