@@ -19,6 +19,55 @@ function formatDueDateDisplay(val) {
 }
 
 // Converte prazo (ex: "21/10", "2026-10-21") em timestamp numérico para ordenação correta
+
+// Helper para calcular selo de status da data: Atrasado, Urgente, Prioridade ou null
+function getDueDateBadge(dueDateVal) {
+  if (!dueDateVal) return null;
+  const str = String(dueDateVal).trim();
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  let dueYear = currentYear;
+  let dueMonth = -1;
+  let dueDay = -1;
+
+  if (/^\d{1,2}\/\d{1,2}$/.test(str)) {
+    const [d, m] = str.split('/').map(Number);
+    dueDay = d;
+    dueMonth = m - 1;
+    // Se o mês for muito anterior ao mês atual (ex: virada de ano), ajusta
+    if (dueMonth < now.getMonth() - 2) {
+      dueYear += 1;
+    }
+  } else {
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+      dueYear = parsed.getFullYear();
+      dueMonth = parsed.getMonth();
+      dueDay = parsed.getDate();
+    }
+  }
+
+  if (dueMonth === -1 || dueDay === -1) return null;
+
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const dueDateStart = new Date(dueYear, dueMonth, dueDay, 0, 0, 0, 0);
+  const diffDays = Math.round((dueDateStart - todayStart) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return { label: 'Atrasado', color: '#dc2626', border: '#ef4444', bg: '#fef2f2' };
+  } else if (diffDays === 0) {
+    const currentHour = now.getHours();
+    if (currentHour >= 12) {
+      return { label: 'Urgente', color: '#ea580c', border: '#f97316', bg: '#fff7ed' };
+    } else {
+      return { label: 'Prioridade', color: '#2563eb', border: '#3b82f6', bg: '#eff6ff' };
+    }
+  } else if (diffDays === 1) {
+    return { label: 'Prioridade', color: '#2563eb', border: '#3b82f6', bg: '#eff6ff' };
+  }
+  return null;
+}
+
 function parseDueDateToTimestamp(val) {
   if (!val) return 9999999999999;
   const str = String(val).trim();
@@ -1304,15 +1353,44 @@ export default function TasksView({
                   {progressPercent}% Concluída
                 </div>
 
-                <div style={{
-                  fontSize: '17px',
-                  fontWeight: '900',
-                  color: '#0f172a',
-                  lineHeight: '1.2',
-                  marginTop: '2px'
-                }}>
-                  {formatDueDateDisplay(task.dueDate)}
-                </div>
+                {(() => {
+                  const badge = (progressPercent < 100) ? getDueDateBadge(task.dueDate) : null;
+                  return (
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginTop: '2px'
+                    }}>
+                      {badge && (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '1px 8px',
+                          borderRadius: '6px',
+                          border: `1.5px solid ${badge.border}`,
+                          background: badge.bg,
+                          color: badge.color,
+                          fontSize: '12px',
+                          fontWeight: '800',
+                          lineHeight: '1.2',
+                          letterSpacing: '-0.2px'
+                        }}>
+                          {badge.label}
+                        </span>
+                      )}
+                      <span style={{
+                        fontSize: '17px',
+                        fontWeight: '900',
+                        color: '#0f172a',
+                        lineHeight: '1.2'
+                      }}>
+                        {formatDueDateDisplay(task.dueDate)}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Se 100% ou se for Tarefa Especial sem subtarefas, botão Finalizar Tarefa */}
                 {(progressPercent === 100 || (isSpecial && totalChecks === 0)) && (
