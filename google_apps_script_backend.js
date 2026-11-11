@@ -187,15 +187,14 @@ function setupSheets() {
     ensureIdColumn(tmplSheet, 'ID');
   }
 
-  // 8. Aba Anotação: [ID, Data, Plataforma, Pedido, Cliente, Valor, Observação, Usuário]
+  // 8. Aba Anotação: [ID, Data, Tipo, Plataforma, Pedido, Valor, Observação, Usuário]
   let noteSheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
   if (!noteSheet) {
     noteSheet = ss.insertSheet(SHEETS.ANNOTATIONS);
     noteSheet.appendRow(['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Valor', 'Observação', 'Usuário']);
     styleHeader(noteSheet);
   } else {
-    ensureIdColumn(noteSheet, 'ID');
-    fixAnnotationSheetHeaders(noteSheet);
+    realignAndFixAnnotationRows(noteSheet);
   }
 
   // 9. Aba Disputas: [ID, Plataf, Data, Produto, Pedido, Descrição, Observação, Devolução, Situação]
@@ -217,24 +216,139 @@ function setupSheets() {
  */
 
 /**
- * Corrige e padroniza os cabeçalhos da aba Anotação para bater exatamente com as colunas do app:
- * [ID, Data, Plataforma, Pedido, Cliente, Valor, Observação, Usuário]
+ * Corrige, realinha e padroniza as colunas e dados existentes da aba Anotação.
+ * Garante que:
+ * 1. Cabeçalho seja estritamente: ['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Valor', 'Observação', 'Usuário']
+ * 2. Todos os IDs fiquem no formato 0001, 0002, 0003...
+ * 3. Valores financeiros (R$ xx,yy) fiquem na coluna Valor e nunca em Usuário
+ * 4. Plataformas (Shopee JBC, Amazon JBC...) fiquem na coluna Plataforma e nunca em Valor
  */
-function fixAnnotationSheetHeaders(sheet) {
-  const lastCol = Math.max(sheet.getLastColumn(), 1);
-  const currentHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').trim());
+function realignAndFixAnnotationRows(sheet) {
+  if (!sheet) return;
   const standardHeaders = ['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Valor', 'Observação', 'Usuário'];
-  
-  // Se a aba tem cabeçalhos antigos ou desalinhados (ex: Tipo de Anotação, DataHora, etc)
-  const isOld = currentHeaders.some(h => {
-    const l = h.toLowerCase();
-    return l.includes('datahora') || l.includes('tipo de anota') || l.includes('número do ped');
-  });
+  const lastRow = sheet.getLastRow();
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
 
-  if (isOld || currentHeaders.length < standardHeaders.length) {
+  if (lastRow <= 1) {
     sheet.getRange(1, 1, 1, standardHeaders.length).setValues([standardHeaders]);
     styleHeader(sheet);
+    return;
   }
+
+  const values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+  const rawHeaders = values[0].map(h => String(h || '').trim().toLowerCase());
+  const dataRows = values.slice(1);
+
+  // Mapeamento dinâmico dos índices originais da planilha
+  const idxId = rawHeaders.indexOf('id');
+  const idxData = rawHeaders.findIndex(h => h.includes('data'));
+  const idxTipo = rawHeaders.findIndex(h => h.includes('tipo'));
+  const idxPlat = rawHeaders.findIndex(h => h.includes('plat'));
+  const idxPedido = rawHeaders.findIndex(h => h.includes('ped'));
+  const idxValor = rawHeaders.findIndex(h => h.includes('val'));
+  const idxObs = rawHeaders.findIndex(h => h.includes('obs'));
+  const idxUser = rawHeaders.findIndex(h => h.includes('usu'));
+
+  const knownPlatforms = [
+    'shopee jbc', 'shopee izabela', 'shopee principal', 'shopee oficial', 'shopee',
+    'mercado livre jbc', 'mercado livre', 'mercado l', 'amazon jbc', 'amazon',
+    'magalu jbc', 'magalu', 'shein jbc', 'shein', 'geral / outros', 'geral', 'outros'
+  ];
+
+  const knownTypes = [
+    'entrega local', 'retirada fábrica', 'retirada fabrica', 'entrega direta',
+    'gasto pontual', 'gasto manual', 'prejuízo', 'prejuizo', 'anotação', 'anotacao', 'envio próprio', 'envio proprio'
+  ];
+
+  const cleanedRows = dataRows.map((r, i) => {
+    // 1. ID com 4 dígitos: 0001, 0002...
+    const seqNum = i + 1;
+    const formattedId = String(seqNum).padStart(4, '0');
+
+    // 2. Data no formato dd/mm
+    let rawDate = idxData !== -1 ? r[idxData] : '';
+    let dateStr = '';
+    if (rawDate instanceof Date) {
+      const dd = String(rawDate.getDate()).padStart(2, '0');
+      const mm = String(rawDate.getMonth() + 1).padStart(2, '0');
+      dateStr = `${dd}/${mm}`;
+    } else {
+      dateStr = String(rawDate || '').trim();
+      if (dateStr.includes('/') && dateStr.length > 5) {
+        const parts = dateStr.split(' ')[0].split('/');
+        if (parts.length >= 2) dateStr = parts[0].padStart(2, '0') + '/' + parts[1].padStart(2, '0');
+      }
+    }
+    if (!dateStr) dateStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM');
+
+    // Extração bruta dos demais campos
+    let rawTipo = idxTipo !== -1 ? String(r[idxTipo] || '').trim() : '';
+    let rawPlat = idxPlat !== -1 ? String(r[idxPlat] || '').trim() : '';
+    let rawPedido = idxPedido !== -1 ? String(r[idxPedido] || '').trim() : '';
+    let rawValor = idxValor !== -1 ? String(r[idxValor] || '').trim() : '';
+    let rawObs = idxObs !== -1 ? String(r[idxObs] || '').trim() : '';
+    let rawUser = idxUser !== -1 ? String(r[idxUser] || '').trim() : '';
+
+    // Detecção e desinversão caso Valor contenha plataforma e Usuário contenha Valor
+    // Ex: r[idxValor] = "Shopee JBC" e r[idxUser] = "R$ 75,00"
+    let platform = rawPlat;
+    let value = rawValor;
+    let user = rawUser;
+    let notes = rawObs;
+    let orderNumber = rawPedido;
+    let type = rawTipo;
+
+    // Se o campo Valor contém o nome de uma plataforma conhecida, transfere para plataforma
+    if (knownPlatforms.some(kp => value.toLowerCase().includes(kp))) {
+      if (!platform) platform = value;
+      value = '';
+    }
+
+    // Se o campo Usuário contém "R$" ou formato numérico de dinheiro, transfere para valor
+    if (user.includes('R$') || (value === '' && /\d+,\d{2}/.test(user))) {
+      value = user;
+      user = 'Allyson';
+    }
+
+    // Se o tipo contém indicação de tipo antigo
+    if (type.toLowerCase().includes('envio') || type.toLowerCase().includes('direta')) {
+      type = 'Entrega Direta';
+    } else if (type.toLowerCase().includes('manual') || type.toLowerCase().includes('pontual')) {
+      type = 'Gasto Pontual';
+    } else if (type.toLowerCase().includes('local')) {
+      type = 'Entrega Local';
+    } else if (type.toLowerCase().includes('retirada') || type.toLowerCase().includes('fabrica')) {
+      type = 'Retirada Fábrica';
+    } else if (type.toLowerCase().includes('preju')) {
+      type = 'Prejuízo';
+    } else if (!type || type.toLowerCase().includes('anota')) {
+      type = 'Anotação';
+    }
+
+    // Formata o valor financeiro R$ xx,yy
+    if (value && !value.startsWith('R$')) {
+      const num = parseFloat(value.replace(/[^0-9,-.]/g, '').replace(',', '.'));
+      if (!isNaN(num)) {
+        value = 'R$ ' + num.toFixed(2).replace('.', ',');
+      }
+    }
+
+    if (!user) user = 'Allyson';
+
+    return [formattedId, dateStr, type, platform, orderNumber, value, notes, user];
+  });
+
+  // Limpa o conteúdo e reescreve com a estrutura padrão alinhada
+  sheet.clear();
+  sheet.getRange(1, 1, 1, standardHeaders.length).setValues([standardHeaders]);
+  if (cleanedRows.length > 0) {
+    sheet.getRange(2, 1, cleanedRows.length, standardHeaders.length).setValues(cleanedRows);
+  }
+  styleHeader(sheet);
+}
+
+function fixAnnotationSheetHeaders(sheet) {
+  realignAndFixAnnotationRows(sheet);
 }
 
 function fixTaskSheetHeaders(sheet, dateHeaderName) {
@@ -1598,7 +1712,7 @@ function deleteChecklistTemplateRecord(templateData) {
  */
 /**
  * Retorna as anotações da aba "Anotação"
- * Cabeçalhos: [ID, Data, Plataforma, Pedido, Cliente, Valor, Observação, Usuário]
+ * Cabeçalhos: [ID, Data, Tipo, Plataforma, Pedido, Valor, Observação, Usuário]
  */
 function getAnnotationsDataAsJson() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1620,6 +1734,12 @@ function getAnnotationsDataAsJson() {
   const idxObs = headers.findIndex(h => h.includes('obs'));
   const idxUser = headers.findIndex(h => h.includes('usu'));
 
+  const knownPlatforms = [
+    'shopee jbc', 'shopee izabela', 'shopee principal', 'shopee oficial', 'shopee',
+    'mercado livre jbc', 'mercado livre', 'mercado l', 'amazon jbc', 'amazon',
+    'magalu jbc', 'magalu', 'shein jbc', 'shein', 'geral / outros', 'geral', 'outros'
+  ];
+
   return rows.map((r, index) => {
     let rawDate = idxData !== -1 ? r[idxData] : '';
     let formattedDate = '';
@@ -1640,6 +1760,23 @@ function getAnnotationsDataAsJson() {
 
     let typeVal = idxTipo !== -1 && r[idxTipo] ? String(r[idxTipo]).trim() : '';
     let platVal = idxPlat !== -1 && r[idxPlat] ? String(r[idxPlat]).trim() : '';
+    let orderVal = idxPedido !== -1 && r[idxPedido] ? String(r[idxPedido]).trim() : '';
+    let valStr = idxValor !== -1 && r[idxValor] !== '' && r[idxValor] !== undefined ? String(r[idxValor]).trim() : '';
+    let obsVal = idxObs !== -1 && r[idxObs] ? String(r[idxObs]).trim() : '';
+    let userVal = idxUser !== -1 && r[idxUser] ? String(r[idxUser]).trim() : '';
+
+    // Sanitização e autocorreção defensiva:
+    // Se o valor contiver plataforma conhecida (ex: 'Shopee JBC') e platVal estiver vazio
+    if (knownPlatforms.some(kp => valStr.toLowerCase().includes(kp))) {
+      if (!platVal) platVal = valStr;
+      valStr = '';
+    }
+
+    // Se a coluna usuário contiver valor monetário (ex: 'R$ 75,00')
+    if (userVal.includes('R$') || (valStr === '' && /\d+,\d{2}/.test(userVal))) {
+      if (!valStr) valStr = userVal;
+      userVal = 'Allyson';
+    }
 
     // Normalização dos 6 tipos solicitados pelo usuário:
     // Entrega Local, Retirada Fábrica, Entrega Direta, Gasto Pontual, Prejuízo, Anotação
@@ -1647,17 +1784,17 @@ function getAnnotationsDataAsJson() {
       typeVal = 'Entrega Direta';
     } else if (typeVal.toLowerCase().includes('manual') || typeVal.toLowerCase().includes('pontual')) {
       typeVal = 'Gasto Pontual';
+    } else if (typeVal.toLowerCase().includes('local')) {
+      typeVal = 'Entrega Local';
+    } else if (typeVal.toLowerCase().includes('retirada') || typeVal.toLowerCase().includes('fabrica')) {
+      typeVal = 'Retirada Fábrica';
+    } else if (typeVal.toLowerCase().includes('preju')) {
+      typeVal = 'Prejuízo';
+    } else if (!typeVal || typeVal.toLowerCase().includes('anota')) {
+      typeVal = 'Anotação';
     }
-
-    const knownTypes = ['Entrega Local', 'Retirada Fábrica', 'Entrega Direta', 'Gasto Pontual', 'Prejuízo', 'Anotação', 'Envio Próprio', 'Gasto Manual'];
-    if (!typeVal && knownTypes.includes(platVal)) {
-      typeVal = platVal;
-      platVal = '';
-    }
-    if (!typeVal) typeVal = 'Anotação';
 
     // Formata valor R$ xx,yy
-    let valStr = idxValor !== -1 && r[idxValor] !== '' && r[idxValor] !== undefined ? String(r[idxValor]).trim() : '';
     if (valStr && !valStr.startsWith('R$')) {
       const num = parseFloat(valStr.replace(/[^0-9,-.]/g, '').replace(',', '.'));
       if (!isNaN(num)) {
@@ -1665,15 +1802,17 @@ function getAnnotationsDataAsJson() {
       }
     }
 
+    if (!userVal) userVal = 'Allyson';
+
     return {
       id: formattedId,
       date: formattedDate,
       type: typeVal,
       platform: platVal,
-      orderNumber: idxPedido !== -1 && r[idxPedido] ? String(r[idxPedido]).trim() : '',
+      orderNumber: orderVal,
       value: valStr,
-      notes: idxObs !== -1 && r[idxObs] ? String(r[idxObs]).trim() : '',
-      usuario: idxUser !== -1 && r[idxUser] ? String(r[idxUser]).trim() : 'Allyson'
+      notes: obsVal,
+      usuario: userVal
     };
   });
 }

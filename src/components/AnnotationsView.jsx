@@ -313,12 +313,43 @@ export default function AnnotationsView({
   // Filtragem completa: Busca textual, Plataforma, Tipo, Mês e Período com calendário
   const filteredList = useMemo(() => {
     const currentYear = new Date().getFullYear();
+    const knownPlatformsList = [
+      'shopee jbc', 'shopee izabela', 'shopee principal', 'shopee oficial', 'shopee',
+      'mercado livre jbc', 'mercado livre', 'mercado l', 'amazon jbc', 'amazon',
+      'magalu jbc', 'magalu', 'shein jbc', 'shein', 'geral / outros', 'geral', 'outros'
+    ];
 
     return annotations.map(item => {
       // Normaliza id para formato 0001
       const rawNum = parseInt(String(item.id || '').replace(/\D/g, ''), 10);
       const formattedId = !isNaN(rawNum) && rawNum > 0 ? String(rawNum).padStart(4, '0') : item.id;
-      return { ...item, formattedId };
+
+      let plat = item.platform || '';
+      let val = item.value || item.valor || '';
+      let usr = item.usuario || '';
+
+      // Defensiva contra inversão antiga caso a planilha ainda não tenha sido rodada:
+      // Se val contém nome de plataforma e plat está vazio
+      if (!plat && val && knownPlatformsList.some(kp => String(val).toLowerCase().includes(kp))) {
+        plat = val;
+        val = '';
+      }
+      // Se usr contém R$ e val está vazio ou não tem R$
+      if (usr && (String(usr).includes('R$') || (val === '' && /\d+,\d{2}/.test(String(usr))))) {
+        if (!val || !String(val).includes('R$')) {
+          val = usr;
+        }
+        usr = 'Allyson';
+      }
+
+      return {
+        ...item,
+        formattedId,
+        platform: plat,
+        value: val,
+        valor: val,
+        usuario: usr || 'Allyson'
+      };
     }).filter(item => {
       // 1. Busca textual
       const matchSearch = (
@@ -656,7 +687,7 @@ export default function AnnotationsView({
       </div>
 
       {/* Tabela Interativa de Anotações com as colunas EXATAS:
-          ID | DATA | TIPO | PLATAFORMA | PEDIDO | VALOR | OBSERVAÇÃO | USUÁRIO | AÇÕES */}
+          DATA | TIPO | PLATAFORMA | PEDIDO | VALOR | OBSERVAÇÃO | USUÁRIO | AÇÕES */}
       <div style={{
         background: '#ffffff',
         borderRadius: '20px',
@@ -668,9 +699,6 @@ export default function AnnotationsView({
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  ID
-                </th>
                 <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   DATA
                 </th>
@@ -700,7 +728,7 @@ export default function AnnotationsView({
             <tbody>
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <td colSpan={8} style={{ padding: '60px 20px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '36px' }}>📋</span>
                       <h4 style={{ fontSize: '16px', fontWeight: '800', color: '#334155', margin: 0 }}>
@@ -721,11 +749,6 @@ export default function AnnotationsView({
                   if (isEditing) {
                     return (
                       <tr key={item.id} style={{ background: '#fdf4ff', borderBottom: '1px solid #f0abfc' }}>
-                        {/* ID (somente leitura ou editável) */}
-                        <td style={{ padding: '10px 14px', fontSize: '13px', fontWeight: '700', color: '#6d28d9', fontFamily: 'monospace' }}>
-                          {item.formattedId || item.id}
-                        </td>
-
                         {/* 1. Data com input dd/mm + botão de calendário */}
                         <td style={{ padding: '10px 14px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -989,11 +1012,6 @@ export default function AnnotationsView({
                       onMouseEnter={(e) => e.currentTarget.style.background = '#faf5ff'}
                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >
-                      {/* ID: 0001, 0002... */}
-                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#6d28d9', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
-                        {item.formattedId || item.id}
-                      </td>
-
                       {/* Data: dd/mm */}
                       <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
                         {item.date || '-'}
