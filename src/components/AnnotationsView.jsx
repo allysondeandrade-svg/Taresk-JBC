@@ -673,33 +673,6 @@ export default function AnnotationsView({
             Limpar Filtro
           </button>
 
-          {/* Botão de Ordenação: Do Último ao Primeiro / Do Primeiro ao Último */}
-          <button
-            type="button"
-            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-            title={sortOrder === 'desc' ? 'Ordenado: Do último ao primeiro (clique para inverter)' : 'Ordenado: Do primeiro ao último (clique para inverter)'}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              border: '1.5px solid #cbd5e1',
-              background: sortOrder === 'desc' ? '#f5f3ff' : '#ffffff',
-              fontSize: '12px',
-              fontWeight: '700',
-              color: sortOrder === 'desc' ? '#6d28d9' : '#334155',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#8b5cf6'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
-          >
-            <ArrowUpDown size={14} color={sortOrder === 'desc' ? '#6d28d9' : '#64748b'} />
-            <span>{sortOrder === 'desc' ? 'Último ao Primeiro' : 'Primeiro ao Último'}</span>
-          </button>
-
           {/* Valor Total de todas as linhas filtradas */}
           <div style={{
             fontSize: '14px',
