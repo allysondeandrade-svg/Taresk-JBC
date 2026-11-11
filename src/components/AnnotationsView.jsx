@@ -149,6 +149,9 @@ export default function AnnotationsView({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // Ordenação: 'desc' (mais recentes / último adicionado primeiro) ou 'asc' (primeiro adicionado / mais antigos primeiro)
+  const [sortOrder, setSortOrder] = useState('desc');
+
   // ID do item em edição inline
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -412,8 +415,32 @@ export default function AnnotationsView({
       }
 
       return true;
+    }).sort((a, b) => {
+      // Ordenação: 'desc' = do último ao primeiro (maior ID / mais novo no topo)
+      //            'asc'  = do primeiro ao último (menor ID / mais antigo no topo)
+      const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+
+      // Se ambos têm IDs numéricos válidos
+      if (numA && numB && numA !== numB) {
+        return sortOrder === 'asc' ? numA - numB : numB - numA;
+      }
+
+      // Fallback para comparação por data (dd/mm)
+      const parseDate = (dStr) => {
+        if (!dStr || !dStr.includes('/')) return 0;
+        const [d, m] = dStr.split('/').map(Number);
+        return (m || 0) * 100 + (d || 0);
+      };
+      const dateA = parseDate(a.date);
+      const dateB = parseDate(b.date);
+      if (dateA !== dateB) {
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+
+      return 0;
     });
-  }, [annotations, searchTerm, platformFilter, typeFilter, monthFilter, startDate, endDate]);
+  }, [annotations, searchTerm, platformFilter, typeFilter, monthFilter, startDate, endDate, sortOrder]);
 
   // Cálculo do Valor Total de todas as linhas filtradas
   const totalFilteredValue = useMemo(() => {
@@ -646,6 +673,33 @@ export default function AnnotationsView({
             Limpar Filtro
           </button>
 
+          {/* Botão de Ordenação: Do Último ao Primeiro / Do Primeiro ao Último */}
+          <button
+            type="button"
+            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+            title={sortOrder === 'desc' ? 'Ordenado: Do último ao primeiro (clique para inverter)' : 'Ordenado: Do primeiro ao último (clique para inverter)'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1.5px solid #cbd5e1',
+              background: sortOrder === 'desc' ? '#f5f3ff' : '#ffffff',
+              fontSize: '12px',
+              fontWeight: '700',
+              color: sortOrder === 'desc' ? '#6d28d9' : '#334155',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#8b5cf6'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
+          >
+            <ArrowUpDown size={14} color={sortOrder === 'desc' ? '#6d28d9' : '#64748b'} />
+            <span>{sortOrder === 'desc' ? 'Último ao Primeiro' : 'Primeiro ao Último'}</span>
+          </button>
+
           {/* Valor Total de todas as linhas filtradas */}
           <div style={{
             fontSize: '14px',
@@ -699,8 +753,24 @@ export default function AnnotationsView({
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  DATA
+                <th
+                  onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                  title="Clique para alternar a ordenação (Último ao primeiro / Primeiro ao último)"
+                  style={{
+                    padding: '14px 16px',
+                    fontSize: '12px',
+                    fontWeight: '800',
+                    color: '#475569',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span>DATA</span>
+                    <ArrowUpDown size={13} color="#8b5cf6" />
+                  </div>
                 </th>
                 <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   TIPO
