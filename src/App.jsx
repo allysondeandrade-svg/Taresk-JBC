@@ -861,6 +861,7 @@ export default function App() {
           platforms={platforms}
           currentUser={currentUser}
           products={products}
+          annotations={annotations}
           appTheme={appTheme}
           onOpenChecklistModal={(task) => setActiveChecklistTask(task)}
           onToggleMarketplace={handleToggleMarketplace}
@@ -875,6 +876,9 @@ export default function App() {
           onAddProduct={handleAddProduct}
           onUpdateProduct={handleUpdateProduct}
           onDeleteProduct={handleDeleteProduct}
+          onAddAnnotation={handleAddAnnotation}
+          onUpdateAnnotation={handleUpdateAnnotation}
+          onDeleteAnnotation={handleDeleteAnnotation}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           onSync={refreshFromSheets}
           isSyncing={isSyncing}

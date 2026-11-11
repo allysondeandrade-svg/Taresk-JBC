@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check, Search, Package, DollarSign, Settings } from 'lucide-react';
+import AnnotationsView from './AnnotationsView';
 
 // Helper para formatar dd/mm
 function formatDueDateDisplay(val) {
@@ -74,6 +75,7 @@ export default function MobileAppView({
   platforms = [],
   currentUser,
   products,
+  annotations = [],
   onOpenChecklistModal,
   onToggleMarketplace,
   onOpenNewTaskModal,
@@ -87,6 +89,9 @@ export default function MobileAppView({
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
+  onAddAnnotation,
+  onUpdateAnnotation,
+  onDeleteAnnotation,
   onOpenSettings,
   onSync,
   isSyncing,
@@ -95,7 +100,7 @@ export default function MobileAppView({
   onOpenAnnotationModal
 }) {
   const isDark = appTheme === 'dark';
-  // Abas do topo: 'tarefas', 'cadastro', 'precificadora'
+  // Abas do topo: 'tarefas', 'cadastro', 'anotacoes'
   const [activeMainTab, setActiveMainTab] = useState('tarefas');
   // Sub-abas de tarefas: 'atuais' ou 'concluidas'
   const [taskSubTab, setTaskSubTab] = useState('atuais');
@@ -416,14 +421,14 @@ export default function MobileAppView({
         </button>
 
         <button
-          onClick={() => setActiveMainTab('precificadora')}
+          onClick={() => setActiveMainTab('anotacoes')}
           style={{
             flex: 1,
             padding: '7px 8px',
             borderRadius: '9999px',
-            border: activeMainTab === 'precificadora' ? '1.5px solid #d8b4fe' : 'none',
-            background: activeMainTab === 'precificadora' ? '#f3e8ff' : 'transparent',
-            color: activeMainTab === 'precificadora' ? '#6b21a8' : '#64748b',
+            border: activeMainTab === 'anotacoes' ? '1.5px solid #d8b4fe' : 'none',
+            background: activeMainTab === 'anotacoes' ? '#f3e8ff' : 'transparent',
+            color: activeMainTab === 'anotacoes' ? '#6b21a8' : '#64748b',
             fontWeight: '700',
             fontSize: '14px',
             textAlign: 'center',
@@ -431,7 +436,7 @@ export default function MobileAppView({
             transition: 'all 0.15s ease'
           }}
         >
-          Precificadora
+          Anotações
         </button>
       </div>
 
@@ -1008,35 +1013,23 @@ export default function MobileAppView({
         </div>
       )}
 
-      {/* ABA PRECIFICAÇÃO */}
-      {activeMainTab === 'precificadora' && (
-        <div style={{ padding: '30px 16px', textAlign: 'center', color: '#64748b' }}>
-          <div style={{ fontSize: '36px', marginBottom: '8px' }}>
-            🏷️
-          </div>
-          <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>
-            Calculadora de Preço
-          </h3>
-          <p style={{ fontSize: '13px', lineHeight: '1.5', maxWidth: '300px', margin: '0 auto 16px auto' }}>
-            Acesse a calculadora completa de margem e markup no computador.
-          </p>
-          {onSwitchToDesktop && (
-            <button
-              onClick={onSwitchToDesktop}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '9999px',
-                background: '#5925dc',
-                color: '#ffffff',
-                border: 'none',
-                fontWeight: '700',
-                fontSize: '13px',
-                cursor: 'pointer'
-              }}
-            >
-              Abrir no Desktop
-            </button>
-          )}
+      {/* ABA ANOTAÇÕES */}
+      {activeMainTab === 'anotacoes' && (
+        <div style={{
+          padding: '0 8px 60px 8px',
+          boxSizing: 'border-box',
+          width: '100%',
+          overflowX: 'hidden'
+        }}>
+          <AnnotationsView
+            annotations={annotations}
+            currentUser={currentUser}
+            platforms={platforms}
+            users={users}
+            onAddAnnotation={onAddAnnotation}
+            onUpdateAnnotation={onUpdateAnnotation}
+            onDeleteAnnotation={onDeleteAnnotation}
+          />
         </div>
       )}
 
