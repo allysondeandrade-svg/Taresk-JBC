@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Crown, User, BarChart2, CheckSquare, Layers, DollarSign, Settings, RefreshCw, CheckCircle2, FileText } from 'lucide-react';
+import { LogOut, Crown, User, BarChart2, CheckSquare, Layers, DollarSign, Settings, RefreshCw, CheckCircle2, FileText, CheckCircle, Package, Tag, AlertTriangle } from 'lucide-react';
 
 export default function Header({
   activeTab,
@@ -97,6 +97,10 @@ export default function Header({
                     cursor: 'pointer'
                   }}
                 >
+                  {tab.id === 'tarefas' && <CheckCircle size={16} />}
+                  {tab.id === 'cadastro' && <Package size={16} />}
+                  {tab.id === 'precificadora' && <DollarSign size={16} />}
+                  {tab.id === 'disputas' && <AlertTriangle size={16} />}
                   {tab.id === 'relatorio' && <BarChart2 size={16} />}
                   {tab.id === 'anotacoes' && <FileText size={16} />}
                   {tab.id === 'conciliacao' && <CheckSquare size={16} />}
