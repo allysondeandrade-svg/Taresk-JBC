@@ -39,6 +39,16 @@ const SHEETS = {
 };
 
 /**
+ * Cria o menu Taresk na planilha ao abrir
+ */
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('🚀 Taresk')
+    .addItem('⚡ Atualizar Colunas e Estrutura', 'setupSheets')
+    .addToUi();
+}
+
+/**
  * Função para inicializar ou atualizar a estrutura das abas da planilha com coluna ID
  */
 function setupSheets() {
@@ -1189,6 +1199,8 @@ function upsertProduct(prod) {
   if (!sheet) {
     setupSheets();
     sheet = ss.getSheetByName(SHEETS.PRODUCTS);
+  } else {
+    ensureProductHeaders(sheet);
   }
 
   const values = sheet.getDataRange().getValues();
