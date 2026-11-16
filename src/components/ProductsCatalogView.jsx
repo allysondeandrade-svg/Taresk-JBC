@@ -50,6 +50,7 @@ export default function ProductsCatalogView({
       id: 'prod_' + Date.now(),
       sku: newProduct.sku.toUpperCase(),
       title: newProduct.title || newProduct.sku,
+      product: newProduct.title || newProduct.sku,
       cost: parseFloat(newProduct.cost) || 0,
       width: parseFloat(newProduct.width) || 0,
       length: parseFloat(newProduct.length) || 0,
@@ -77,6 +78,8 @@ export default function ProductsCatalogView({
   const handleSaveEdit = (id) => {
     onUpdateProduct(id, {
       ...editForm,
+      title: editForm.title || editForm.product || editForm.sku,
+      product: editForm.product || editForm.title || editForm.sku,
       cost: parseFloat(editForm.cost) || 0,
       width: parseFloat(editForm.width) || 0,
       length: parseFloat(editForm.length) || 0,
@@ -407,7 +410,7 @@ export default function ProductsCatalogView({
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>
-              Nome / Descrição
+              Produto (Nome / Descrição)
             </label>
             <input
               type="text"
@@ -572,6 +575,9 @@ export default function ProductsCatalogView({
                 SKU
               </th>
               <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                Produto
+              </th>
+              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Custo
               </th>
               <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
@@ -625,7 +631,7 @@ export default function ProductsCatalogView({
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
                   {/* Coluna SKU */}
-                  <td style={{ padding: '16px 24px' }}>
+                  <td style={{ padding: '16px 24px', whiteSpace: 'nowrap' }}>
                     {isEditing ? (
                       <input
                         type="text"
@@ -634,16 +640,25 @@ export default function ProductsCatalogView({
                         style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: '700' }}
                       />
                     ) : (
-                      <div>
-                        <div style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b' }}>
-                          {prod.sku}
-                        </div>
-                        {prod.title && prod.title !== prod.sku && (
-                          <div style={{ fontSize: '12px', color: '#64748b' }}>
-                            {prod.title}
-                          </div>
-                        )}
-                      </div>
+                      <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b' }}>
+                        {prod.sku}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Coluna Produto */}
+                  <td style={{ padding: '16px 20px', minWidth: '180px' }}>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editForm.title !== undefined ? editForm.title : (editForm.product || '')}
+                        onChange={(e) => setEditForm({ ...editForm, title: e.target.value, product: e.target.value })}
+                        style={{ width: '100%', minWidth: '160px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
+                        {prod.title || prod.product || '-'}
+                      </span>
                     )}
                   </td>
 

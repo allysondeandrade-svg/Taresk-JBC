@@ -537,10 +537,12 @@ export default function MobileAppView({
                   return;
                 }
                 if (onAddProduct) {
+                  const prodNome = newProdMobile.title.trim() || newProdMobile.sku.toUpperCase().trim();
                   onAddProduct({
                     id: 'prod_' + Date.now(),
                     sku: newProdMobile.sku.toUpperCase().trim(),
-                    title: newProdMobile.title.trim() || newProdMobile.sku.toUpperCase().trim(),
+                    title: prodNome,
+                    product: prodNome,
                     cost: parseFloat(newProdMobile.cost) || 0,
                     width: parseFloat(newProdMobile.width) || 0,
                     length: parseFloat(newProdMobile.length) || 0,
@@ -846,9 +848,11 @@ export default function MobileAppView({
                                   type="button"
                                   onClick={() => {
                                     if (onUpdateProduct) {
+                                      const prodNome = (editingProdFormMobile.title || editingProdFormMobile.product || prod.title || prod.product || '').trim();
                                       onUpdateProduct(prod.id, {
                                         sku: (editingProdFormMobile.sku || prod.sku).toUpperCase().trim(),
-                                        title: (editingProdFormMobile.title || prod.title).trim(),
+                                        title: prodNome,
+                                        product: prodNome,
                                         cost: parseFloat(editingProdFormMobile.cost) || 0,
                                         width: parseFloat(editingProdFormMobile.width) || 0,
                                         length: parseFloat(editingProdFormMobile.length) || 0,
@@ -925,7 +929,7 @@ export default function MobileAppView({
 
                           {/* Produto / Título */}
                           <td style={{ padding: '10px 12px', fontWeight: '600', color: '#1e293b' }}>
-                            {prod.title}
+                            {prod.title || prod.product || '-'}
                           </td>
 
                           {/* Custo */}

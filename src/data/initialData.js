@@ -70,6 +70,7 @@ export const INITIAL_PRODUCTS = [
     id: 'p1',
     sku: 'FOG-02-BOC',
     title: 'Fogão 2 Bocas Alta Pressão Inox',
+    product: 'Fogão 2 Bocas Alta Pressão Inox',
     cost: 145.00,
     width: 32, // cm
     length: 54, // cm
@@ -80,6 +81,7 @@ export const INITIAL_PRODUCTS = [
     id: 'p2',
     sku: 'PAN-ELE-05L',
     title: 'Panela Elétrica Multifunção 5L Inox',
+    product: 'Panela Elétrica Multifunção 5L Inox',
     cost: 120.00,
     width: 30,
     length: 30,
@@ -90,6 +92,7 @@ export const INITIAL_PRODUCTS = [
     id: 'p3',
     sku: 'VENT-COL-40',
     title: 'Ventilador Coluna 40cm Turbo Silencioso',
+    product: 'Ventilador Coluna 40cm Turbo Silencioso',
     cost: 89.90,
     width: 45,
     length: 45,
@@ -100,6 +103,7 @@ export const INITIAL_PRODUCTS = [
     id: 'p4',
     sku: 'FRIT-AIR-4L',
     title: 'Fritadeira Air Fryer 4L Digital Preto',
+    product: 'Fritadeira Air Fryer 4L Digital Preto',
     cost: 185.00,
     width: 33,
     length: 33,

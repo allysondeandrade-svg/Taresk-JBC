@@ -7,7 +7,7 @@
  * 
  * ESTRUTURA COM SUPORTE A ID FORMATADO (00001, 00002, ...):
  * - Tarefas / Tarefas_Finalizadas: [ID, Tipo, SKU, AtribuidoPara, AtribuidoPor, CriadoPor, Prazo, Status, Marketplaces_JSON, Checklist_JSON, Observacoes, AtualizadoEm]
- * - Produtos: [ID, SKU, Custo, Largura, Comprimento, Altura, Peso]
+ * - Produtos: [ID, SKU, Produto, Foto, Custo, Largura, Comprimento, Altura, Peso]
  * - Plataformas: [ID, Nome, Cor]
  * - Usuários: [ID, Nome, Email, Senha, Plataformas_JSON]
  * 
@@ -73,15 +73,15 @@ function setupSheets() {
     ensureIdColumn(userSheet, 'ID');
   }
 
-  // 2. Aba Produtos: [ID, SKU, Foto, Custo, Largura, Comprimento, Altura, Peso]
+  // 2. Aba Produtos: [ID, SKU, Produto, Foto, Custo, Largura, Comprimento, Altura, Peso]
   let prodSheet = ss.getSheetByName(SHEETS.PRODUCTS);
   if (!prodSheet) {
     prodSheet = ss.insertSheet(SHEETS.PRODUCTS);
-    prodSheet.appendRow(['ID', 'SKU', 'Foto', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
-    prodSheet.appendRow(['00001', 'FOG-02-BOC', '', 145.00, 32, 54, 18, 4.80]);
-    prodSheet.appendRow(['00002', 'PAN-ELE-05L', '', 120.00, 30, 30, 35, 3.50]);
-    prodSheet.appendRow(['00003', 'VENT-COL-40', '', 89.90, 45, 45, 130, 5.20]);
-    prodSheet.appendRow(['00004', 'FRIT-AIR-4L', '', 185.00, 33, 33, 38, 4.60]);
+    prodSheet.appendRow(['ID', 'SKU', 'Produto', 'Foto', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
+    prodSheet.appendRow(['00001', 'FOG-02-BOC', 'Fogão 2 Bocas Alta Pressão Inox', '', 145.00, 32, 54, 18, 4.80]);
+    prodSheet.appendRow(['00002', 'PAN-ELE-05L', 'Panela Elétrica Multifunção 5L Inox', '', 120.00, 30, 30, 35, 3.50]);
+    prodSheet.appendRow(['00003', 'VENT-COL-40', 'Ventilador Coluna 40cm Turbo Silencioso', '', 89.90, 45, 45, 130, 5.20]);
+    prodSheet.appendRow(['00004', 'FRIT-AIR-4L', 'Fritadeira Air Fryer 4L Digital Preto', '', 185.00, 33, 33, 38, 4.60]);
     styleHeader(prodSheet);
   } else {
     ensureIdColumn(prodSheet, 'ID');
@@ -381,21 +381,34 @@ function fixTaskSheetHeaders(sheet, dateHeaderName) {
 }
 
 /**
- * Garante que a aba Produtos tenha coluna 'Foto'
+ * Garante que a aba Produtos tenha coluna 'Produto' e coluna 'Foto'
  */
 function ensureProductHeaders(sheet) {
-  const lastCol = Math.max(sheet.getLastColumn(), 1);
-  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').toLowerCase().trim());
+  let lastCol = Math.max(sheet.getLastColumn(), 1);
+  let headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').toLowerCase().trim());
+
+  // 1. Garante coluna 'Produto' logo após SKU
+  const hasProduto = headers.some(h => h === 'produto' || h === 'titulo' || h === 'título' || h === 'nome' || h === 'descricao' || h === 'descrição');
+  if (!hasProduto) {
+    const idxSku = headers.indexOf('sku');
+    const insertIndex = idxSku !== -1 ? (idxSku + 2) : 2;
+    sheet.insertColumnAfter(insertIndex - 1);
+    sheet.getRange(1, insertIndex).setValue('Produto');
+    lastCol = Math.max(sheet.getLastColumn(), 1);
+    headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').toLowerCase().trim());
+  }
   
+  // 2. Garante coluna 'Foto'
   const hasFoto = headers.some(h => h.includes('foto') || h.includes('imagem') || h.includes('img') || h.includes('url'));
   if (!hasFoto) {
-    // Insere coluna 'Foto' após SKU (Coluna 3)
+    const idxProd = headers.findIndex(h => h === 'produto' || h === 'titulo' || h === 'título' || h === 'nome');
     const idxSku = headers.indexOf('sku');
-    const insertIndex = idxSku !== -1 ? (idxSku + 2) : 3;
+    const insertIndex = idxProd !== -1 ? (idxProd + 2) : (idxSku !== -1 ? (idxSku + 2) : 3);
     sheet.insertColumnAfter(insertIndex - 1);
     sheet.getRange(1, insertIndex).setValue('Foto');
-    styleHeader(sheet);
   }
+
+  styleHeader(sheet);
 }
 
 /**
@@ -779,7 +792,7 @@ function getProductsDataAsJson() {
   const idxId = headers.indexOf('id');
   const idxSku = headers.indexOf('sku');
   const idxFoto = headers.findIndex(h => h.includes('foto') || h.includes('imagem') || h.includes('img') || h.includes('url'));
-  const idxTitulo = headers.findIndex(h => h.includes('titulo') || h.includes('nome'));
+  const idxTitulo = headers.findIndex(h => h === 'produto' || h.includes('produto') || h.includes('titulo') || h.includes('título') || h.includes('nome'));
   const idxCusto = headers.indexOf('custo');
   const idxLargura = headers.indexOf('largura');
   const idxComp = headers.findIndex(h => h.includes('comp'));
@@ -796,6 +809,7 @@ function getProductsDataAsJson() {
       id: rawId || sku || ('prod_' + (i + 1)),
       sku: sku,
       title: titulo,
+      product: titulo,
       imageUrl: rawFoto,
       cost: idxCusto !== -1 ? parseBrazilianNumber(r[idxCusto]) : 0,
       width: idxLargura !== -1 ? parseBrazilianNumber(r[idxLargura]) : 0,
@@ -1217,22 +1231,52 @@ function upsertProduct(prod) {
   const hasFotoCol = headers.some(h => h.includes('foto') || h.includes('imagem') || h.includes('img') || h.includes('url'));
   const fotoVal = prod.imageUrl || prod.foto || prod.image || '';
 
-  const baseData = hasFotoCol ? [
-    prod.sku || prod.id || '',
-    fotoVal,
-    parseBrazilianNumber(prod.cost),
-    parseBrazilianNumber(prod.width),
-    parseBrazilianNumber(prod.length),
-    parseBrazilianNumber(prod.height),
-    parseBrazilianNumber(prod.weight)
-  ] : [
-    prod.sku || prod.id || '',
-    parseBrazilianNumber(prod.cost),
-    parseBrazilianNumber(prod.width),
-    parseBrazilianNumber(prod.length),
-    parseBrazilianNumber(prod.height),
-    parseBrazilianNumber(prod.weight)
-  ];
+  const hasProdutoCol = headers.some(h => h === 'produto' || h.includes('produto') || h.includes('titulo') || h.includes('título') || h.includes('nome'));
+  const prodNomeVal = prod.product || prod.title || prod.nome || prod.descricao || prod.sku || '';
+
+  // Se houver as colunas Produto e Foto, monta a estrutura completa de forma dinâmica e segura
+  let baseData = [];
+  if (hasProdutoCol && hasFotoCol) {
+    baseData = [
+      prod.sku || prod.id || '',
+      prodNomeVal,
+      fotoVal,
+      parseBrazilianNumber(prod.cost),
+      parseBrazilianNumber(prod.width),
+      parseBrazilianNumber(prod.length),
+      parseBrazilianNumber(prod.height),
+      parseBrazilianNumber(prod.weight)
+    ];
+  } else if (hasProdutoCol && !hasFotoCol) {
+    baseData = [
+      prod.sku || prod.id || '',
+      prodNomeVal,
+      parseBrazilianNumber(prod.cost),
+      parseBrazilianNumber(prod.width),
+      parseBrazilianNumber(prod.length),
+      parseBrazilianNumber(prod.height),
+      parseBrazilianNumber(prod.weight)
+    ];
+  } else if (hasFotoCol) {
+    baseData = [
+      prod.sku || prod.id || '',
+      fotoVal,
+      parseBrazilianNumber(prod.cost),
+      parseBrazilianNumber(prod.width),
+      parseBrazilianNumber(prod.length),
+      parseBrazilianNumber(prod.height),
+      parseBrazilianNumber(prod.weight)
+    ];
+  } else {
+    baseData = [
+      prod.sku || prod.id || '',
+      parseBrazilianNumber(prod.cost),
+      parseBrazilianNumber(prod.width),
+      parseBrazilianNumber(prod.length),
+      parseBrazilianNumber(prod.height),
+      parseBrazilianNumber(prod.weight)
+    ];
+  }
 
   const rowData = hasIdCol ? [finalId, ...baseData] : baseData;
 
