@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Plus,
   Trash2,
@@ -10,7 +10,9 @@ import {
   Calendar,
   Filter,
   ArrowUpDown,
-  ChevronDown
+  ChevronDown,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 // Helper de formatação de moeda R$ xx,yy
@@ -141,6 +143,36 @@ export default function AnnotationsView({
   users = []
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Detecção de modo mobile (tela pequena ou prop/hash)
+  const [isMobileScreen, setIsMobileScreen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 900 || window.location.hash.toLowerCase().includes('mobile') || localStorage.getItem('taresk_view_mode') === 'mobile';
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isMob = window.innerWidth <= 900 || window.location.hash.toLowerCase().includes('mobile') || localStorage.getItem('taresk_view_mode') === 'mobile';
+      setIsMobileScreen(isMob);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // IDs das linhas com detalhes expandidos (olho aberto)
+  const [expandedRowIds, setExpandedRowIds] = useState(new Set());
+
+  const toggleExpandRow = (id) => {
+    setExpandedRowIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
   
   // Filtros
   const [platformFilter, setPlatformFilter] = useState('all');
@@ -730,7 +762,7 @@ export default function AnnotationsView({
                   onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
                   title="Clique para alternar a ordenação (Último ao primeiro / Primeiro ao último)"
                   style={{
-                    padding: '14px 16px',
+                    padding: isMobileScreen ? '12px 10px' : '14px 16px',
                     fontSize: '12px',
                     fontWeight: '800',
                     color: '#475569',
@@ -745,25 +777,33 @@ export default function AnnotationsView({
                     <ArrowUpDown size={13} color="#8b5cf6" />
                   </div>
                 </th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   TIPO
                 </th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  PLATAFORMA
-                </th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  PEDIDO
-                </th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {!isMobileScreen && (
+                  <>
+                    <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      PLATAFORMA
+                    </th>
+                    <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      PEDIDO
+                    </th>
+                  </>
+                )}
+                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   VALOR
                 </th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  OBSERVAÇÃO
-                </th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  USUÁRIO
-                </th>
-                <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' }}>
+                {!isMobileScreen && (
+                  <>
+                    <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      OBSERVAÇÃO
+                    </th>
+                    <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      USUÁRIO
+                    </th>
+                  </>
+                )}
+                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' }}>
                   AÇÕES
                 </th>
               </tr>
@@ -771,7 +811,7 @@ export default function AnnotationsView({
             <tbody>
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <td colSpan={isMobileScreen ? 4 : 8} style={{ padding: '60px 20px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '36px' }}>📋</span>
                       <h4 style={{ fontSize: '16px', fontWeight: '800', color: '#334155', margin: 0 }}>
@@ -786,6 +826,7 @@ export default function AnnotationsView({
               ) : (
                 filteredList.map((item) => {
                   const isEditing = editingId === item.id;
+                  const isExpanded = expandedRowIds.has(item.id);
                   const typeObj = getTypeObj(item.type || item.tipo);
 
                   // Linha em modo de edição direta
@@ -793,7 +834,7 @@ export default function AnnotationsView({
                     return (
                       <tr key={item.id} style={{ background: '#fdf4ff', borderBottom: '1px solid #f0abfc' }}>
                         {/* 1. Data com input dd/mm + botão de calendário */}
-                        <td style={{ padding: '10px 14px' }}>
+                        <td style={{ padding: isMobileScreen ? '8px 10px' : '10px 14px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <input
                               type="text"
@@ -874,7 +915,7 @@ export default function AnnotationsView({
                         </td>
 
                         {/* 2. Tipo (Seletor com os 6 tipos oficiais) */}
-                        <td style={{ padding: '10px 14px' }}>
+                        <td style={{ padding: isMobileScreen ? '8px 10px' : '10px 14px' }}>
                           <select
                             value={editForm.type}
                             onChange={(e) => setEditForm(prev => ({ ...prev, type: e.target.value }))}
@@ -886,7 +927,8 @@ export default function AnnotationsView({
                               fontWeight: '700',
                               color: '#334155',
                               background: '#ffffff',
-                              outline: 'none'
+                              outline: 'none',
+                              maxWidth: isMobileScreen ? '130px' : 'none'
                             }}
                           >
                             {ANNOTATION_TYPES.map(t => (
@@ -895,50 +937,54 @@ export default function AnnotationsView({
                           </select>
                         </td>
 
-                        {/* 3. Plataforma (Shopee JBC, Shopee Izabela...) */}
-                        <td style={{ padding: '10px 14px' }}>
-                          <select
-                            value={editForm.platform}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, platform: e.target.value }))}
-                            style={{
-                              padding: '6px 10px',
-                              borderRadius: '8px',
-                              border: '1.5px solid #a855f7',
-                              fontSize: '13px',
-                              fontWeight: '700',
-                              color: '#334155',
-                              background: '#ffffff',
-                              outline: 'none'
-                            }}
-                          >
-                            {allPlatformNames.map(p => (
-                              <option key={p} value={p}>{p}</option>
-                            ))}
-                          </select>
-                        </td>
+                        {!isMobileScreen && (
+                          <>
+                            {/* 3. Plataforma (Shopee JBC, Shopee Izabela...) */}
+                            <td style={{ padding: '10px 14px' }}>
+                              <select
+                                value={editForm.platform}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, platform: e.target.value }))}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: '8px',
+                                  border: '1.5px solid #a855f7',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#334155',
+                                  background: '#ffffff',
+                                  outline: 'none'
+                                }}
+                              >
+                                {allPlatformNames.map(p => (
+                                  <option key={p} value={p}>{p}</option>
+                                ))}
+                              </select>
+                            </td>
 
-                        {/* 4. Pedido */}
-                        <td style={{ padding: '10px 14px' }}>
-                          <input
-                            type="text"
-                            placeholder="Ex: 261104..."
-                            value={editForm.orderNumber}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, orderNumber: e.target.value }))}
-                            style={{
-                              width: '100%',
-                              padding: '6px 8px',
-                              borderRadius: '8px',
-                              border: '1.5px solid #a855f7',
-                              fontSize: '13px',
-                              fontWeight: '700',
-                              color: '#334155',
-                              outline: 'none'
-                            }}
-                          />
-                        </td>
+                            {/* 4. Pedido */}
+                            <td style={{ padding: '10px 14px' }}>
+                              <input
+                                type="text"
+                                placeholder="Ex: 261104..."
+                                value={editForm.orderNumber}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, orderNumber: e.target.value }))}
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 8px',
+                                  borderRadius: '8px',
+                                  border: '1.5px solid #a855f7',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#334155',
+                                  outline: 'none'
+                                }}
+                              />
+                            </td>
+                          </>
+                        )}
 
                         {/* 5. Valor com formatação de moeda R$ xx,yy */}
-                        <td style={{ padding: '10px 14px' }}>
+                        <td style={{ padding: isMobileScreen ? '8px 10px' : '10px 14px' }}>
                           <input
                             type="text"
                             placeholder="R$ 0,00"
@@ -957,50 +1003,54 @@ export default function AnnotationsView({
                           />
                         </td>
 
-                        {/* 6. Observação */}
-                        <td style={{ padding: '10px 14px' }}>
-                          <input
-                            type="text"
-                            placeholder="Observação..."
-                            value={editForm.notes}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                            style={{
-                              width: '100%',
-                              padding: '6px 8px',
-                              borderRadius: '8px',
-                              border: '1.5px solid #a855f7',
-                              fontSize: '13px',
-                              fontWeight: '700',
-                              color: '#334155',
-                              outline: 'none'
-                            }}
-                          />
-                        </td>
+                        {!isMobileScreen && (
+                          <>
+                            {/* 6. Observação */}
+                            <td style={{ padding: '10px 14px' }}>
+                              <input
+                                type="text"
+                                placeholder="Observação..."
+                                value={editForm.notes}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 8px',
+                                  borderRadius: '8px',
+                                  border: '1.5px solid #a855f7',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#334155',
+                                  outline: 'none'
+                                }}
+                              />
+                            </td>
 
-                        {/* 7. Usuário */}
-                        <td style={{ padding: '10px 14px' }}>
-                          <select
-                            value={editForm.usuario}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, usuario: e.target.value }))}
-                            style={{
-                              padding: '6px 10px',
-                              borderRadius: '8px',
-                              border: '1.5px solid #a855f7',
-                              fontSize: '13px',
-                              fontWeight: '700',
-                              color: '#334155',
-                              background: '#ffffff',
-                              outline: 'none'
-                            }}
-                          >
-                            {availableUserNames.map(u => (
-                              <option key={u} value={u}>{u}</option>
-                            ))}
-                          </select>
-                        </td>
+                            {/* 7. Usuário */}
+                            <td style={{ padding: '10px 14px' }}>
+                              <select
+                                value={editForm.usuario}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, usuario: e.target.value }))}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: '8px',
+                                  border: '1.5px solid #a855f7',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#334155',
+                                  background: '#ffffff',
+                                  outline: 'none'
+                                }}
+                              >
+                                {availableUserNames.map(u => (
+                                  <option key={u} value={u}>{u}</option>
+                                ))}
+                              </select>
+                            </td>
+                          </>
+                        )}
 
                         {/* 8. Ações: Salvar / Cancelar */}
-                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        <td style={{ padding: isMobileScreen ? '8px 10px' : '10px 14px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                             <button
                               onClick={handleSaveEdit}
@@ -1044,156 +1094,266 @@ export default function AnnotationsView({
                     );
                   }
 
-                  // Linha normal: mesma fonte e cor simples da coluna Data (#334155, 13px, 700)
+                  // Linha normal
                   return (
-                    <tr
-                      key={item.id}
-                      style={{
-                        borderBottom: '1px solid #f1f5f9',
-                        transition: 'background 0.15s ease'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#faf5ff'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      {/* Data: dd/mm */}
-                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {item.date || '-'}
-                      </td>
+                    <React.Fragment key={item.id}>
+                      <tr
+                        style={{
+                          borderBottom: isMobileScreen && isExpanded ? 'none' : '1px solid #f1f5f9',
+                          background: isExpanded ? '#fbf8ff' : 'transparent',
+                          transition: 'background 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => { if (!isExpanded) e.currentTarget.style.background = '#faf5ff'; }}
+                        onMouseLeave={(e) => { if (!isExpanded) e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        {/* Data: dd/mm */}
+                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
+                          {item.date || '-'}
+                        </td>
 
-                      {/* Tipo: Entrega Local, Retirada Fábrica, Entrega Direta, Gasto Pontual, Prejuízo, Anotação */}
-                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
-                          <span style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '50%',
-                            background: typeObj.bg,
-                            color: typeObj.color,
-                            border: `1px solid ${typeObj.border}`
-                          }}>
-                            {typeObj.svg}
-                          </span>
-                          <span>{item.type || item.tipo || 'Anotação'}</span>
-                        </div>
-                      </td>
-
-                      {/* Plataforma: Shopee JBC, Shopee Izabela... */}
-                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {item.platform || '-'}
-                      </td>
-
-                      {/* Pedido */}
-                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {item.orderNumber || item.pedido || '-'}
-                      </td>
-
-                      {/* Valor: R$ xx,yy */}
-                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {item.value || item.valor || '-'}
-                      </td>
-
-                      {/* Observação */}
-                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', maxWidth: '300px', wordBreak: 'break-word' }}>
-                        {item.notes || item.observacao || '-'}
-                      </td>
-
-                      {/* Usuário: Allyson, Jeremias, etc */}
-                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {item.usuario || 'Allyson'}
-                      </td>
-
-                      {/* Ações: Duplicar, Editar e Excluir */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                          <button
-                            onClick={() => handleDuplicate(item)}
-                            title="Duplicar anotação"
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '8px',
-                              border: '1px solid #d1fae5',
-                              background: '#ecfdf5',
-                              color: '#059669',
-                              cursor: 'pointer',
+                        {/* Tipo: Entrega Local, Retirada Fábrica, Entrega Direta, Gasto Pontual, Prejuízo, Anotação */}
+                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
+                            <span style={{
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = '#059669';
-                              e.currentTarget.style.color = '#ffffff';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = '#ecfdf5';
-                              e.currentTarget.style.color = '#059669';
-                            }}
-                          >
-                            <Copy size={14} />
-                          </button>
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '50%',
+                              background: typeObj.bg,
+                              color: typeObj.color,
+                              border: `1px solid ${typeObj.border}`
+                            }}>
+                              {typeObj.svg}
+                            </span>
+                            <span>{item.type || item.tipo || 'Anotação'}</span>
+                          </div>
+                        </td>
 
-                          <button
-                            onClick={() => handleStartEdit(item)}
-                            title="Editar diretamente nesta linha"
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '8px',
-                              border: '1px solid #e2e8f0',
+                        {!isMobileScreen && (
+                          <>
+                            {/* Plataforma: Shopee JBC, Shopee Izabela... */}
+                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
+                              {item.platform || '-'}
+                            </td>
+
+                            {/* Pedido */}
+                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
+                              {item.orderNumber || item.pedido || '-'}
+                            </td>
+                          </>
+                        )}
+
+                        {/* Valor: R$ xx,yy */}
+                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
+                          {item.value || item.valor || '-'}
+                        </td>
+
+                        {!isMobileScreen && (
+                          <>
+                            {/* Observação */}
+                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', maxWidth: '300px', wordBreak: 'break-word' }}>
+                              {item.notes || item.observacao || '-'}
+                            </td>
+
+                            {/* Usuário: Allyson, Jeremias, etc */}
+                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
+                              {item.usuario || 'Allyson'}
+                            </td>
+                          </>
+                        )}
+
+                        {/* Ações: Olho (Mobile), Duplicar, Editar e Excluir */}
+                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobileScreen ? '4px' : '8px' }}>
+                            {/* Botão Olho para ver / esconder o restante das informações no mobile */}
+                            {isMobileScreen && (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpandRow(item.id)}
+                                title={isExpanded ? "Esconder detalhes" : "Ver mais informações"}
+                                style={{
+                                  width: '30px',
+                                  height: '30px',
+                                  borderRadius: '8px',
+                                  border: isExpanded ? '1px solid #c084fc' : '1px solid #e2e8f0',
+                                  background: isExpanded ? '#f3e8ff' : '#ffffff',
+                                  color: isExpanded ? '#7e22ce' : '#64748b',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                {isExpanded ? <EyeOff size={15} /> : <Eye size={15} />}
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => handleDuplicate(item)}
+                              title="Duplicar anotação"
+                              style={{
+                                width: isMobileScreen ? '30px' : '32px',
+                                height: isMobileScreen ? '30px' : '32px',
+                                borderRadius: '8px',
+                                border: '1px solid #d1fae5',
+                                background: '#ecfdf5',
+                                color: '#059669',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#059669';
+                                e.currentTarget.style.color = '#ffffff';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#ecfdf5';
+                                e.currentTarget.style.color = '#059669';
+                              }}
+                            >
+                              <Copy size={14} />
+                            </button>
+
+                            <button
+                              onClick={() => handleStartEdit(item)}
+                              title="Editar diretamente nesta linha"
+                              style={{
+                                width: isMobileScreen ? '30px' : '32px',
+                                height: isMobileScreen ? '30px' : '32px',
+                                borderRadius: '8px',
+                                border: '1px solid #e2e8f0',
+                                background: '#ffffff',
+                                color: '#64748b',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#ede9fe';
+                                e.currentTarget.style.color = '#6d28d9';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#ffffff';
+                                e.currentTarget.style.color = '#64748b';
+                              }}
+                            >
+                              <Edit2 size={14} />
+                            </button>
+
+                            <button
+                              onClick={() => handleDelete(item.id, item.orderNumber || item.notes)}
+                              title="Excluir anotação"
+                              style={{
+                                width: isMobileScreen ? '30px' : '32px',
+                                height: isMobileScreen ? '30px' : '32px',
+                                borderRadius: '8px',
+                                border: '1px solid #fee2e2',
+                                background: '#fff5f5',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#ef4444';
+                                e.currentTarget.style.color = '#ffffff';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#fff5f5';
+                                e.currentTarget.style.color = '#ef4444';
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Linha expansível com o restante das informações (Plataforma, Pedido, Observação, Usuário) no Mobile */}
+                      {isMobileScreen && isExpanded && (
+                        <tr style={{ background: '#fbf8ff', borderBottom: '1.5px solid #e9d5ff' }}>
+                          <td colSpan={4} style={{ padding: '8px 12px 14px 12px' }}>
+                            <div style={{
                               background: '#ffffff',
-                              color: '#64748b',
-                              cursor: 'pointer',
+                              border: '1px solid #e9d5ff',
+                              borderRadius: '12px',
+                              padding: '12px',
                               display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = '#ede9fe';
-                              e.currentTarget.style.color = '#6d28d9';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = '#ffffff';
-                              e.currentTarget.style.color = '#64748b';
-                            }}
-                          >
-                            <Edit2 size={14} />
-                          </button>
+                              flexDirection: 'column',
+                              gap: '8px',
+                              fontSize: '12px',
+                              boxShadow: '0 2px 8px rgba(126, 34, 206, 0.05)'
+                            }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                <div>
+                                  <span style={{ fontSize: '10px', fontWeight: '800', color: '#7e22ce', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
+                                    Plataforma
+                                  </span>
+                                  <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                                    {item.platform || '-'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span style={{ fontSize: '10px', fontWeight: '800', color: '#7e22ce', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
+                                    Pedido
+                                  </span>
+                                  <span style={{ fontWeight: '700', color: '#1e293b', wordBreak: 'break-all' }}>
+                                    {item.orderNumber || item.pedido || '-'}
+                                  </span>
+                                </div>
+                              </div>
 
-                          <button
-                            onClick={() => handleDelete(item.id, item.orderNumber || item.notes)}
-                            title="Excluir anotação"
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '8px',
-                              border: '1px solid #fee2e2',
-                              background: '#fff5f5',
-                              color: '#ef4444',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = '#ef4444';
-                              e.currentTarget.style.color = '#ffffff';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = '#fff5f5';
-                              e.currentTarget.style.color = '#ef4444';
-                            }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                              <div>
+                                <span style={{ fontSize: '10px', fontWeight: '800', color: '#7e22ce', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
+                                  Observação
+                                </span>
+                                <span style={{ fontWeight: '600', color: '#334155', wordBreak: 'break-word' }}>
+                                  {item.notes || item.observacao || 'Nenhuma observação'}
+                                </span>
+                              </div>
+
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px', borderTop: '1px dashed #f1f5f9' }}>
+                                <div>
+                                  <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginRight: '6px' }}>
+                                    Usuário:
+                                  </span>
+                                  <span style={{ fontWeight: '700', color: '#475569' }}>
+                                    {item.usuario || 'Allyson'}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpandRow(item.id)}
+                                  style={{
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: '#7e22ce',
+                                    fontSize: '11px',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    padding: '2px 4px'
+                                  }}
+                                >
+                                  <EyeOff size={12} /> Esconder
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })
               )}
