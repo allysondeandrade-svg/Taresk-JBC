@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check, Search, Package, DollarSign, Settings } from 'lucide-react';
+import { Eye, EyeOff, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check, Search, Package, DollarSign, Settings } from 'lucide-react';
 import AnnotationsView from './AnnotationsView';
 
 // Helper para formatar dd/mm
@@ -129,6 +129,19 @@ export default function MobileAppView({
   });
   const [editingProductIdMobile, setEditingProductIdMobile] = useState(null);
   const [editingProdFormMobile, setEditingProdFormMobile] = useState({});
+  const [expandedProductIdsMobile, setExpandedProductIdsMobile] = useState(new Set());
+
+  const toggleExpandProductMobile = (id) => {
+    setExpandedProductIdsMobile(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   // Edição rápida de tarefa no mobile
   const [editingTask, setEditingTask] = useState(null);
@@ -717,12 +730,9 @@ export default function MobileAppView({
             <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>
               Catálogo de Produtos ({products ? products.length : 0})
             </span>
-            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-              Role para o lado para ver dimensões ➡️
-            </span>
           </div>
 
-          {/* TABELA / LISTA RESPONSIVA EM LINHA ÚNICA (SEM QUEBRA DE LINHA, SEM ÍCONES DE PLATAFORMAS) */}
+          {/* TABELA RESPONSIVA: SKU | VALOR | AÇÕES */}
           <div style={{
             background: '#ffffff',
             borderRadius: '16px',
@@ -735,9 +745,7 @@ export default function MobileAppView({
           }}>
             <table style={{
               width: '100%',
-              minWidth: '680px',
               borderCollapse: 'collapse',
-              fontSize: '12px',
               textAlign: 'left',
               whiteSpace: 'nowrap'
             }}>
@@ -751,20 +759,15 @@ export default function MobileAppView({
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px'
                 }}>
-                  <th style={{ padding: '10px 12px', width: '130px' }}>SKU</th>
-                  <th style={{ padding: '10px 12px', minWidth: '180px' }}>Produto</th>
-                  <th style={{ padding: '10px 12px', width: '90px', textAlign: 'right' }}>Custo</th>
-                  <th style={{ padding: '10px 12px', width: '70px', textAlign: 'center' }}>Larg</th>
-                  <th style={{ padding: '10px 12px', width: '70px', textAlign: 'center' }}>Comp</th>
-                  <th style={{ padding: '10px 12px', width: '70px', textAlign: 'center' }}>Alt</th>
-                  <th style={{ padding: '10px 12px', width: '80px', textAlign: 'center' }}>Peso</th>
-                  <th style={{ padding: '10px 12px', width: '80px', textAlign: 'center' }}>Ações</th>
+                  <th style={{ padding: '12px 14px' }}>SKU</th>
+                  <th style={{ padding: '12px 14px' }}>VALOR</th>
+                  <th style={{ padding: '12px 14px', width: '90px', textAlign: 'center' }}>AÇÕES</th>
                 </tr>
               </thead>
               <tbody>
                 {(!products || products.length === 0) ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                    <td colSpan={3} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
                       Nenhum produto cadastrado no sistema.
                     </td>
                   </tr>
@@ -777,6 +780,7 @@ export default function MobileAppView({
                     })
                     .map((prod) => {
                       const isEditing = editingProductIdMobile === prod.id;
+                      const isExpanded = expandedProductIdsMobile.has(prod.id);
 
                       if (isEditing) {
                         return (
@@ -786,15 +790,7 @@ export default function MobileAppView({
                                 type="text"
                                 value={editingProdFormMobile.sku || ''}
                                 onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, sku: e.target.value })}
-                                style={{ width: '100%', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', fontWeight: '700' }}
-                              />
-                            </td>
-                            <td style={{ padding: '8px 10px' }}>
-                              <input
-                                type="text"
-                                value={editingProdFormMobile.title || ''}
-                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, title: e.target.value })}
-                                style={{ width: '100%', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px' }}
+                                style={{ width: '100px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #7c3aed', fontSize: '14px', fontWeight: '600' }}
                               />
                             </td>
                             <td style={{ padding: '8px 10px' }}>
@@ -803,43 +799,7 @@ export default function MobileAppView({
                                 step="0.01"
                                 value={editingProdFormMobile.cost || ''}
                                 onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, cost: e.target.value })}
-                                style={{ width: '70px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', textAlign: 'right' }}
-                              />
-                            </td>
-                            <td style={{ padding: '8px 10px' }}>
-                              <input
-                                type="number"
-                                step="0.1"
-                                value={editingProdFormMobile.width || ''}
-                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, width: e.target.value })}
-                                style={{ width: '50px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', textAlign: 'center' }}
-                              />
-                            </td>
-                            <td style={{ padding: '8px 10px' }}>
-                              <input
-                                type="number"
-                                step="0.1"
-                                value={editingProdFormMobile.length || ''}
-                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, length: e.target.value })}
-                                style={{ width: '50px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', textAlign: 'center' }}
-                              />
-                            </td>
-                            <td style={{ padding: '8px 10px' }}>
-                              <input
-                                type="number"
-                                step="0.1"
-                                value={editingProdFormMobile.height || ''}
-                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, height: e.target.value })}
-                                style={{ width: '50px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', textAlign: 'center' }}
-                              />
-                            </td>
-                            <td style={{ padding: '8px 10px' }}>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={editingProdFormMobile.weight || ''}
-                                onChange={(e) => setEditingProdFormMobile({ ...editingProdFormMobile, weight: e.target.value })}
-                                style={{ width: '60px', padding: '4px 6px', borderRadius: '4px', border: '1px solid #7c3aed', fontSize: '11px', textAlign: 'center' }}
+                                style={{ width: '90px', padding: '6px 8px', borderRadius: '6px', border: '1px solid #7c3aed', fontSize: '14px', fontWeight: '600' }}
                               />
                             </td>
                             <td style={{ padding: '8px 10px', textAlign: 'center' }}>
@@ -864,8 +824,8 @@ export default function MobileAppView({
                                   }}
                                   title="Salvar"
                                   style={{
-                                    width: '26px',
-                                    height: '26px',
+                                    width: '28px',
+                                    height: '28px',
                                     borderRadius: '6px',
                                     border: 'none',
                                     background: '#16a34a',
@@ -876,15 +836,15 @@ export default function MobileAppView({
                                     cursor: 'pointer'
                                   }}
                                 >
-                                  <Check size={13} />
+                                  <Check size={14} />
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setEditingProductIdMobile(null)}
                                   title="Cancelar"
                                   style={{
-                                    width: '26px',
-                                    height: '26px',
+                                    width: '28px',
+                                    height: '28px',
                                     borderRadius: '6px',
                                     border: '1px solid #cbd5e1',
                                     background: '#ffffff',
@@ -895,7 +855,7 @@ export default function MobileAppView({
                                     cursor: 'pointer'
                                   }}
                                 >
-                                  <X size={13} />
+                                  <X size={14} />
                                 </button>
                               </div>
                             </td>
@@ -904,110 +864,194 @@ export default function MobileAppView({
                       }
 
                       return (
-                        <tr
-                          key={prod.id}
-                          style={{
-                            borderBottom: '1px solid #f1f5f9',
-                            transition: 'background 0.15s ease'
-                          }}
-                        >
-                          {/* SKU */}
-                          <td style={{ padding: '10px 12px' }}>
-                            <span style={{
-                              fontFamily: 'JetBrains Mono, monospace',
-                              fontWeight: '700',
-                              color: '#6b21a8',
-                              background: '#f3e8ff',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              display: 'inline-block'
-                            }}>
-                              {prod.sku}
-                            </span>
-                          </td>
+                        <React.Fragment key={prod.id}>
+                          <tr
+                            style={{
+                              borderBottom: isExpanded ? 'none' : '1px solid #f1f5f9',
+                              background: isExpanded ? '#fbf8ff' : 'transparent',
+                              transition: 'background 0.15s ease'
+                            }}
+                          >
+                            {/* SKU */}
+                            <td style={{ padding: '12px 14px' }}>
+                              <span style={{
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                color: '#334155'
+                              }}>
+                                {prod.sku}
+                              </span>
+                            </td>
 
-                          {/* Produto / Título */}
-                          <td style={{ padding: '10px 12px', fontWeight: '600', color: '#1e293b' }}>
-                            {prod.title || prod.product || '-'}
-                          </td>
+                            {/* Valor / Custo */}
+                            <td style={{ padding: '12px 14px' }}>
+                              <span style={{
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                color: '#334155'
+                              }}>
+                                R$&nbsp;{(typeof prod.cost === 'number' && !isNaN(prod.cost) ? prod.cost : parseFloat(String(prod.cost || 0).replace(',', '.')) || 0).toFixed(2).replace('.', ',')}
+                              </span>
+                            </td>
 
-                          {/* Custo */}
-                          <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '700', color: '#059669' }}>
-                            R$ {Number(prod.cost || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
+                            {/* Ações (Olho, Editar, Excluir) */}
+                            <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                {/* Botão Olho para ver / esconder o restante das informações */}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpandProductMobile(prod.id)}
+                                  title={isExpanded ? "Esconder detalhes" : "Ver mais informações"}
+                                  style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '6px',
+                                    border: isExpanded ? '1px solid #c084fc' : '1px solid #e2e8f0',
+                                    background: isExpanded ? '#f3e8ff' : '#ffffff',
+                                    color: isExpanded ? '#7e22ce' : '#64748b',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  {isExpanded ? <EyeOff size={14} /> : <Eye size={14} />}
+                                </button>
 
-                          {/* Largura */}
-                          <td style={{ padding: '10px 12px', textAlign: 'center', color: '#64748b' }}>
-                            {prod.width || 0} cm
-                          </td>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingProductIdMobile(prod.id);
+                                    setEditingProdFormMobile({ ...prod });
+                                  }}
+                                  title="Editar Produto"
+                                  style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e2e8f0',
+                                    background: '#f8fafc',
+                                    color: '#64748b',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`Excluir o produto "${prod.sku}"?`)) {
+                                      if (onDeleteProduct) onDeleteProduct(prod.id);
+                                    }
+                                  }}
+                                  title="Excluir Produto"
+                                  style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #fecaca',
+                                    background: '#fef2f2',
+                                    color: '#ef4444',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
 
-                          {/* Comprimento */}
-                          <td style={{ padding: '10px 12px', textAlign: 'center', color: '#64748b' }}>
-                            {prod.length || 0} cm
-                          </td>
-
-                          {/* Altura */}
-                          <td style={{ padding: '10px 12px', textAlign: 'center', color: '#64748b' }}>
-                            {prod.height || 0} cm
-                          </td>
-
-                          {/* Peso */}
-                          <td style={{ padding: '10px 12px', textAlign: 'center', color: '#64748b' }}>
-                            {prod.weight || 0} kg
-                          </td>
-
-                          {/* Ações (Editar / Excluir) */}
-                          <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingProductIdMobile(prod.id);
-                                  setEditingProdFormMobile({ ...prod });
-                                }}
-                                title="Editar Produto"
-                                style={{
-                                  width: '26px',
-                                  height: '26px',
-                                  borderRadius: '6px',
-                                  border: '1px solid #e2e8f0',
-                                  background: '#f8fafc',
-                                  color: '#64748b',
+                          {/* Gaveta expansível com as informações adicionais do produto */}
+                          {isExpanded && (
+                            <tr style={{ background: '#fbf8ff', borderBottom: '1.5px solid #e9d5ff' }}>
+                              <td colSpan={3} style={{ padding: '8px 12px 14px 12px' }}>
+                                <div style={{
+                                  background: '#ffffff',
+                                  border: '1px solid #e9d5ff',
+                                  borderRadius: '12px',
+                                  padding: '12px',
                                   display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                <Edit2 size={12} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (confirm(`Excluir o produto "${prod.sku}"?`)) {
-                                    if (onDeleteProduct) onDeleteProduct(prod.id);
-                                  }
-                                }}
-                                title="Excluir Produto"
-                                style={{
-                                  width: '26px',
-                                  height: '26px',
-                                  borderRadius: '6px',
-                                  border: '1px solid #fecaca',
-                                  background: '#fef2f2',
-                                  color: '#ef4444',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                                  flexDirection: 'column',
+                                  gap: '8px',
+                                  fontSize: '12px',
+                                  boxShadow: '0 2px 8px rgba(126, 34, 206, 0.05)'
+                                }}>
+                                  <div>
+                                    <span style={{ fontSize: '10px', fontWeight: '800', color: '#7e22ce', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
+                                      Produto (Nome / Descrição)
+                                    </span>
+                                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155', wordBreak: 'break-word' }}>
+                                      {prod.title || prod.product || '-'}
+                                    </span>
+                                  </div>
+
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', paddingTop: '4px', borderTop: '1px dashed #f1f5f9' }}>
+                                    <div>
+                                      <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>
+                                        Largura
+                                      </span>
+                                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                                        {prod.width || 0} cm
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>
+                                        Comp
+                                      </span>
+                                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                                        {prod.length || 0} cm
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>
+                                        Altura
+                                      </span>
+                                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                                        {prod.height || 0} cm
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>
+                                        Peso
+                                      </span>
+                                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                                        {prod.weight || 0} kg
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px', borderTop: '1px dashed #f1f5f9' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleExpandProductMobile(prod.id)}
+                                      style={{
+                                        border: 'none',
+                                        background: 'transparent',
+                                        color: '#7e22ce',
+                                        fontSize: '11px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                        padding: '2px 4px'
+                                      }}
+                                    >
+                                      <EyeOff size={12} /> Esconder
+                                    </button>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })
                 )}
