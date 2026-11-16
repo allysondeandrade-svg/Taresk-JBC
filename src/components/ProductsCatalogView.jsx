@@ -291,20 +291,11 @@ export default function ProductsCatalogView({
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
             flexWrap: 'wrap',
             gap: '16px',
             marginBottom: '20px'
           }}>
-            <div>
-              <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#1e293b' }}>
-                Catálogo de Produtos & Status de Cadastro
-              </h2>
-              <p style={{ fontSize: '13px', color: '#64748b' }}>
-                Acompanhe os produtos que você já cadastrou nos marketplaces ou que ainda estão pendentes
-              </p>
-            </div>
-
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               {/* Campo de Busca Rápida por SKU ou Nome */}
               <div style={{ position: 'relative' }}>
@@ -637,10 +628,10 @@ export default function ProductsCatalogView({
                         type="text"
                         value={editForm.sku}
                         onChange={(e) => setEditForm({ ...editForm, sku: e.target.value })}
-                        style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: '700' }}
+                        style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
                         {prod.sku}
                       </span>
                     )}
@@ -653,7 +644,7 @@ export default function ProductsCatalogView({
                         type="text"
                         value={editForm.title !== undefined ? editForm.title : (editForm.product || '')}
                         onChange={(e) => setEditForm({ ...editForm, title: e.target.value, product: e.target.value })}
-                        style={{ width: '100%', minWidth: '160px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                        style={{ width: '100%', minWidth: '160px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
                       />
                     ) : (
                       <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
@@ -670,10 +661,10 @@ export default function ProductsCatalogView({
                         step="0.01"
                         value={editForm.cost}
                         onChange={(e) => setEditForm({ ...editForm, cost: e.target.value })}
-                        style={{ width: '90px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                        style={{ width: '90px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
                         R$&nbsp;{(typeof prod.cost === 'number' && !isNaN(prod.cost) ? prod.cost : parseFloat(String(prod.cost || 0).replace(',', '.')) || 0).toFixed(2).replace('.', ',')}
                       </span>
                     )}
@@ -687,10 +678,10 @@ export default function ProductsCatalogView({
                         step="0.1"
                         value={editForm.width}
                         onChange={(e) => setEditForm({ ...editForm, width: e.target.value })}
-                        style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                        style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', color: '#334155', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
                         {prod.width}&nbsp;cm
                       </span>
                     )}
@@ -704,10 +695,10 @@ export default function ProductsCatalogView({
                         step="0.1"
                         value={editForm.length}
                         onChange={(e) => setEditForm({ ...editForm, length: e.target.value })}
-                        style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                        style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', color: '#334155', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
                         {prod.length}&nbsp;cm
                       </span>
                     )}
@@ -721,10 +712,10 @@ export default function ProductsCatalogView({
                         step="0.1"
                         value={editForm.height}
                         onChange={(e) => setEditForm({ ...editForm, height: e.target.value })}
-                        style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                        style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', color: '#334155', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
                         {prod.height}&nbsp;cm
                       </span>
                     )}
@@ -738,10 +729,10 @@ export default function ProductsCatalogView({
                         step="0.01"
                         value={editForm.weight}
                         onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
-                        style={{ width: '80px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                        style={{ width: '80px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
                       />
                     ) : (
-                      <span style={{ fontSize: '15px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
                         {prod.weight}&nbsp;kg
                       </span>
                     )}
