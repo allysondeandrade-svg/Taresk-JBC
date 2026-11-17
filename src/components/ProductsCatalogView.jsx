@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Check, Package, Sparkles, Users, Globe, Layers, Search } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Package, Sparkles, Users, Globe, Layers, Search, Eye, EyeOff } from 'lucide-react';
 import UsersCatalogTab from './UsersCatalogTab';
 import PlatformsCatalogTab from './PlatformsCatalogTab';
 
@@ -26,6 +26,19 @@ export default function ProductsCatalogView({
   const [isAdding, setIsAdding] = useState(false);
   const [filterCatalogStatus, setFilterCatalogStatus] = useState('all'); // 'all', 'cataloged', 'pending'
   const [productSearch, setProductSearch] = useState('');
+  const [visiblePlatformsProductIds, setVisiblePlatformsProductIds] = useState(new Set());
+
+  const toggleProductPlatformsVisibility = (id) => {
+    setVisiblePlatformsProductIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
   const [newProduct, setNewProduct] = useState({
     sku: '',
     title: '',
@@ -593,6 +606,12 @@ export default function ProductsCatalogView({
           </thead>
           <tbody>
             {products
+              .slice()
+              .sort((a, b) => {
+                const skuA = (a.sku || '').toUpperCase();
+                const skuB = (b.sku || '').toUpperCase();
+                return skuA.localeCompare(skuB, 'pt-BR', { numeric: true, sensitivity: 'base' });
+              })
               .filter(prod => {
                 if (productSearch.trim()) {
                   const q = productSearch.toLowerCase().trim();
@@ -740,78 +759,84 @@ export default function ProductsCatalogView({
 
                   {/* Coluna Status nos Marketplaces: Ícones das plataformas em cinza, se clicado fica na cor da plataforma */}
                   <td style={{ padding: '16px 20px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        flexWrap: 'wrap'
-                      }}>
-                        {platforms.map((plat) => {
-                          const isActive = isProductPlatformActive(prod, plat);
-                          const platColor = plat.color || '#5925dc';
+                    {visiblePlatformsProductIds.has(prod.id) ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          flexWrap: 'wrap'
+                        }}>
+                          {platforms.map((plat) => {
+                            const isActive = isProductPlatformActive(prod, plat);
+                            const platColor = plat.color || '#5925dc';
 
-                          // Abreviatura/Iniciais ou nome curto
-                          const shortName = plat.name?.length <= 8 ? plat.name : (
-                            plat.name.includes(' ')
-                              ? plat.name.split(' ').map(w => w[0]).join('').slice(0, 3)
-                              : plat.name.slice(0, 4)
-                          );
+                            // Abreviatura/Iniciais ou nome curto
+                            const shortName = plat.name?.length <= 8 ? plat.name : (
+                              plat.name.includes(' ')
+                                ? plat.name.split(' ').map(w => w[0]).join('').slice(0, 3)
+                                : plat.name.slice(0, 4)
+                            );
 
-                          return (
-                            <button
-                              key={plat.id}
-                              type="button"
-                              onClick={() => handleToggleProductPlatform(prod, plat.id)}
-                              title={isActive ? `${plat.name}: Já cadastrado (Clique para desmarcar)` : `${plat.name}: Não cadastrado (Clique para marcar)`}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '4px 8px',
-                                borderRadius: '8px',
-                                border: isActive ? `1.5px solid ${platColor}` : '1.5px solid #cbd5e1',
-                                background: isActive ? platColor : '#f1f5f9',
-                                color: isActive ? '#ffffff' : '#64748b',
-                                fontSize: '11px',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                                outline: 'none',
-                                boxShadow: isActive ? `0 2px 6px ${platColor}40` : 'none'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!isActive) {
-                                  e.currentTarget.style.borderColor = '#94a3b8';
-                                  e.currentTarget.style.color = '#334155';
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!isActive) {
-                                  e.currentTarget.style.borderColor = '#cbd5e1';
-                                  e.currentTarget.style.color = '#64748b';
-                                }
-                              }}
-                            >
-                              <span style={{
-                                width: '7px',
-                                height: '7px',
-                                borderRadius: '50%',
-                                background: isActive ? '#ffffff' : '#94a3b8',
-                                display: 'inline-block'
-                              }} />
-                              <span>{shortName}</span>
-                            </button>
-                          );
-                        })}
+                            return (
+                              <button
+                                key={plat.id}
+                                type="button"
+                                onClick={() => handleToggleProductPlatform(prod, plat.id)}
+                                title={isActive ? `${plat.name}: Já cadastrado (Clique para desmarcar)` : `${plat.name}: Não cadastrado (Clique para marcar)`}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '4px 8px',
+                                  borderRadius: '8px',
+                                  border: isActive ? `1.5px solid ${platColor}` : '1.5px solid #cbd5e1',
+                                  background: isActive ? platColor : '#f1f5f9',
+                                  color: isActive ? '#ffffff' : '#64748b',
+                                  fontSize: '11px',
+                                  fontWeight: '700',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                  outline: 'none',
+                                  boxShadow: isActive ? `0 2px 6px ${platColor}40` : 'none'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isActive) {
+                                    e.currentTarget.style.borderColor = '#94a3b8';
+                                    e.currentTarget.style.color = '#334155';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isActive) {
+                                    e.currentTarget.style.borderColor = '#cbd5e1';
+                                    e.currentTarget.style.color = '#64748b';
+                                  }
+                                }}
+                              >
+                                <span style={{
+                                  width: '7px',
+                                  height: '7px',
+                                  borderRadius: '50%',
+                                  background: isActive ? '#ffffff' : '#94a3b8',
+                                  display: 'inline-block'
+                                }} />
+                                <span>{shortName}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {latestTask?.dueDate && (
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>
+                            Prazo: {latestTask.dueDate}
+                          </span>
+                        )}
                       </div>
-
-                      {latestTask?.dueDate && (
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>
-                          Prazo: {latestTask.dueDate}
-                        </span>
-                      )}
-                    </div>
+                    ) : (
+                      <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        Oculto (clique no olho para ver)
+                      </span>
+                    )}
                   </td>
 
                   {/* Ações */}
@@ -836,13 +861,31 @@ export default function ProductsCatalogView({
                     ) : (
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                         <button
+                          onClick={() => toggleProductPlatformsVisibility(prod.id)}
+                          title={visiblePlatformsProductIds.has(prod.id) ? "Ocultar plataformas" : "Ver plataformas cadastradas"}
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            background: visiblePlatformsProductIds.has(prod.id) ? '#ede9fe' : '#f1f5f9',
+                            color: visiblePlatformsProductIds.has(prod.id) ? '#6d28d9' : '#475569',
+                            border: visiblePlatformsProductIds.has(prod.id) ? '1px solid #c4b5fd' : 'none',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {visiblePlatformsProductIds.has(prod.id) ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                        <button
                           onClick={() => startEdit(prod)}
                           title="Editar"
                           style={{
                             padding: '6px 10px',
                             borderRadius: '6px',
                             background: '#f1f5f9',
-                            color: '#475569'
+                            color: '#475569',
+                            cursor: 'pointer'
                           }}
                         >
                           <Edit2 size={14} />
@@ -856,7 +899,8 @@ export default function ProductsCatalogView({
                             padding: '6px 10px',
                             borderRadius: '6px',
                             background: '#fef2f2',
-                            color: '#ef4444'
+                            color: '#ef4444',
+                            cursor: 'pointer'
                           }}
                         >
                           <Trash2 size={14} />

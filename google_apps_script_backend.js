@@ -1298,6 +1298,18 @@ function upsertProduct(prod) {
     sheet.appendRow(rowData);
   }
 
+  // Ordena a aba de Produtos em ordem alfabética pela coluna do SKU (linha 2 em diante)
+  try {
+    const lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+    if (lastRow > 2) {
+      const colSkuIndex = idxSku !== -1 ? (idxSku + 1) : (hasIdCol ? 2 : 1);
+      sheet.getRange(2, 1, lastRow - 1, lastCol).sort({ column: colSkuIndex, ascending: true });
+    }
+  } catch (errSort) {
+    Logger.log('Erro ao ordenar produtos: ' + errSort);
+  }
+
   return { id: finalId, sku: prod.sku, updated: true };
 }
 

@@ -773,6 +773,12 @@ export default function MobileAppView({
                   </tr>
                 ) : (
                   products
+                    .slice()
+                    .sort((a, b) => {
+                      const skuA = (a.sku || '').toUpperCase();
+                      const skuB = (b.sku || '').toUpperCase();
+                      return skuA.localeCompare(skuB, 'pt-BR', { numeric: true, sensitivity: 'base' });
+                    })
                     .filter(p => {
                       if (!productSearchMobile) return true;
                       const q = productSearchMobile.toLowerCase();
