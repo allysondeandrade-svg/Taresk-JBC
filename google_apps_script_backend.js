@@ -2023,8 +2023,8 @@ function deleteAnnotationRecord(data) {
   const targetId = data && data.id ? String(data.id).trim() : String(data || '').trim();
 
   for (let i = 1; i < values.length; i++) {
-    const rowId = idxId !== -1 ? String(values[i][idxId]).trim() : '';
-    if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+    const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';
+    if (rowId && (rowId === targetId || (rowId.match(/^\d+$/) && targetId.match(/^\d+$/) && formatToFiveDigits(rowId) === formatToFiveDigits(targetId)))) {
       sheet.deleteRow(i + 1);
       return { deleted: true, id: targetId };
     }
@@ -2099,7 +2099,8 @@ function upsertDisputeRecord(dispute) {
   let rowIndex = -1;
   if (idxId !== -1 && targetId) {
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][idxId]).trim() === targetId || formatToFiveDigits(values[i][idxId]) === formatToFiveDigits(targetId)) {
+      const rowId = String(values[i][idxId] || '').trim();
+      if (rowId && (rowId === targetId || (rowId.match(/^\d+$/) && targetId.match(/^\d+$/) && formatToFiveDigits(rowId) === formatToFiveDigits(targetId)))) {
         rowIndex = i + 1;
         break;
       }
@@ -2147,8 +2148,8 @@ function deleteDisputeRecord(disputeData) {
   const targetId = disputeData && disputeData.id ? String(disputeData.id).trim() : String(disputeData || '').trim();
 
   for (let i = 1; i < values.length; i++) {
-    const rowId = idxId !== -1 ? String(values[i][idxId]).trim() : '';
-    if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+    const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';
+    if (rowId && (rowId === targetId || (rowId.match(/^\d+$/) && targetId.match(/^\d+$/) && formatToFiveDigits(rowId) === formatToFiveDigits(targetId)))) {
       sheet.deleteRow(i + 1);
       return { deleted: true, id: targetId };
     }
