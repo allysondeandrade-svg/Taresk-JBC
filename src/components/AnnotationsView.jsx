@@ -263,7 +263,7 @@ export default function AnnotationsView({
     const newId = String(maxId + 1).padStart(4, '0');
 
     const today = getTodayFormatted();
-    const defaultPlat = 'Nenhuma';
+    const defaultPlat = '-';
     const defaultType = 'Entrega Local';
     const defaultUser = '';
 
@@ -290,11 +290,12 @@ export default function AnnotationsView({
 
   const handleStartEdit = (item) => {
     setEditingId(item.id);
+    const itemPlat = item.platform || '';
     setEditForm({
       id: item.id,
       date: item.date || getTodayFormatted(),
       type: item.type || item.tipo || 'Anotação',
-      platform: item.platform || 'Nenhuma',
+      platform: (itemPlat === '-' || !itemPlat) ? 'Nenhuma' : itemPlat,
       orderNumber: item.orderNumber || item.pedido || '',
       value: item.value || item.valor || '',
       notes: item.notes || item.observacao || item.obs || '',
@@ -304,8 +305,16 @@ export default function AnnotationsView({
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
+    const cleanPlat = (editForm.platform || '').trim();
+    const platValue = (cleanPlat === 'Nenhuma' || cleanPlat === '-' || !cleanPlat) ? '-' : cleanPlat;
+
+    const payload = {
+      ...editForm,
+      platform: platValue
+    };
+
     if (onUpdateAnnotation) {
-      await onUpdateAnnotation(editingId, editForm);
+      await onUpdateAnnotation(editingId, payload);
     }
     setEditingId(null);
   };
@@ -405,7 +414,11 @@ export default function AnnotationsView({
       if (platformFilter !== 'all') {
         const p1 = String(item.platform || '').trim().toLowerCase();
         const p2 = String(platformFilter).trim().toLowerCase();
-        if (p1 !== p2) return false;
+        if (p2 === 'nenhuma' || p2 === '-') {
+          if (p1 !== 'nenhuma' && p1 !== '-' && p1 !== '') return false;
+        } else {
+          if (p1 !== p2) return false;
+        }
       }
 
       // 3. Filtro de Tipo
@@ -915,7 +928,16 @@ export default function AnnotationsView({
                         <td style={{ padding: isMobileScreen ? '8px 10px' : '10px 14px' }}>
                           <select
                             value={editForm.type}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, type: e.target.value }))}
+                            onChange={(e) => {
+                              const newType = e.target.value;
+                              setEditForm(prev => {
+                                const next = { ...prev, type: newType };
+                                if (newType === 'Entrega Local') {
+                                  next.platform = 'Nenhuma';
+                                }
+                                return next;
+                              });
+                            }}
                             style={{
                               padding: '6px 10px',
                               borderRadius: '8px',
@@ -1108,7 +1130,7 @@ export default function AnnotationsView({
                           <>
                             {/* Plataforma: Shopee JBC, Shopee Izabela... */}
                             <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
-                              {item.platform || '-'}
+                              {(item.platform && item.platform !== 'Nenhuma') ? item.platform : '-'}
                             </td>
 
                             {/* Pedido */}
@@ -1265,7 +1287,7 @@ export default function AnnotationsView({
                                     Plataforma
                                   </span>
                                   <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                                    {item.platform || '-'}
+                                    {(item.platform && item.platform !== 'Nenhuma') ? item.platform : '-'}
                                   </span>
                                 </div>
                                 <div>

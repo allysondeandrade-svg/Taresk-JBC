@@ -118,6 +118,9 @@ export default function AnnotationModal({
 
   const handleSelectType = (id) => {
     setSelectedType(id);
+    if (id === 'entrega_local') {
+      setSelectedPlatform('Nenhuma');
+    }
   };
 
   const handleSave = async () => {
@@ -125,9 +128,12 @@ export default function AnnotationModal({
     const chosenType = ANNOTATION_TYPES.find(t => t.id === selectedType);
     const tipoLabel = chosenType ? chosenType.label : 'Anotação';
 
+    const cleanPlatform = selectedPlatform.trim();
+    const platValue = (cleanPlatform === 'Nenhuma' || cleanPlatform === '-') ? '-' : cleanPlatform;
+
     const payload = {
       tipo: tipoLabel,
-      plataforma: selectedPlatform.trim(),
+      plataforma: platValue,
       valor: valor.trim(),
       pedido: pedido.trim(),
       observacao: observacao.trim(),

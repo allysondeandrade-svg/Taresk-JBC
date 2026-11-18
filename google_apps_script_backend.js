@@ -355,6 +355,11 @@ function realignAndFixAnnotationRows(sheet) {
       }
     }
 
+    // Se a plataforma for vazia, "nenhuma" ou hífen
+    if (!platform || platform.toLowerCase() === 'nenhuma' || platform.trim() === '-') {
+      platform = '-';
+    }
+
     if (!user) user = 'Allyson';
 
     return [formattedId, dateStr, type, platform, orderNumber, value, notes, user];
@@ -376,7 +381,7 @@ function fixAnnotationSheetHeaders(sheet) {
 function fixTaskSheetHeaders(sheet, dateHeaderName) {
   const lastCol = Math.max(sheet.getLastColumn(), 1);
   const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').trim());
-  
+
   // Se a coluna 2 estiver com 'x', vazia ou minúscula, renomeia explicitamente para 'Tipo'
   if (headers.length >= 2) {
     const col2 = headers[1].toLowerCase();
@@ -387,7 +392,7 @@ function fixTaskSheetHeaders(sheet, dateHeaderName) {
 
   // Garante os nomes corretos nos primeiros cabeçalhos
   const expected = [
-    'ID', 'Tipo', 'SKU', 'AtribuidoPara', 'AtribuidoPor', 'CriadoPor', 
+    'ID', 'Tipo', 'SKU', 'AtribuidoPara', 'AtribuidoPor', 'CriadoPor',
     'Prazo', 'Status', 'Marketplaces_JSON', 'Checklist_JSON', 'Observacoes', dateHeaderName || 'AtualizadoEm'
   ];
 
@@ -419,7 +424,7 @@ function ensureProductHeaders(sheet) {
     lastCol = Math.max(sheet.getLastColumn(), 1);
     headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').toLowerCase().trim());
   }
-  
+
   // 2. Garante coluna 'Foto'
   const hasFoto = headers.some(h => h.includes('foto') || h.includes('imagem') || h.includes('img') || h.includes('url'));
   if (!hasFoto) {
@@ -1723,7 +1728,7 @@ function upsertChecklistTemplate(templateData) {
     const rowName = idxName !== -1 ? String(values[i][idxName] || '').trim().toLowerCase() : '';
 
     const isMatch = (idToMatch && (rowId === idToMatch || formatToFiveDigits(rowId) === formatToFiveDigits(idToMatch))) ||
-                    (rowName && rowName === nameToMatch);
+      (rowName && rowName === nameToMatch);
 
     if (isMatch) {
       // Atualiza a linha existente
@@ -1775,7 +1780,7 @@ function deleteChecklistTemplateRecord(templateData) {
     const rowName = idxName !== -1 ? String(values[i][idxName] || '').trim().toLowerCase() : '';
 
     const isMatch = (id && (rowId === id || formatToFiveDigits(rowId) === formatToFiveDigits(id))) ||
-                    (name && rowName === name);
+      (name && rowName === name);
 
     if (isMatch) {
       sheet.deleteRow(i + 1);
@@ -1970,7 +1975,10 @@ function saveAnnotationRecord(annotationData) {
     type = 'Gasto Pontual';
   }
 
-  const platform = String(annotationData.platform || '').trim();
+  let platform = String(annotationData.platform || '').trim();
+  if (!platform || platform.toLowerCase() === 'nenhuma' || platform === '-') {
+    platform = '-';
+  }
   const orderNumber = String(annotationData.orderNumber || annotationData.pedido || '').trim();
 
   // Valor com formatação R$ xx,yy
@@ -1986,7 +1994,7 @@ function saveAnnotationRecord(annotationData) {
   const user = String(annotationData.usuario || annotationData.userName || annotationData.user || 'Allyson').trim();
 
   // Colunas estritas: [ID, Data, Tipo, Plataforma, Pedido, Valor, Observação, Usuário]
-  const finalRow = hasIdCol 
+  const finalRow = hasIdCol
     ? [finalId, dateStr, type, platform, orderNumber, value, notes, user]
     : [dateStr, type, platform, orderNumber, value, notes, user];
 
