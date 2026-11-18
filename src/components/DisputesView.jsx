@@ -12,9 +12,35 @@ export default function DisputesView({
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [monthFilter, setMonthFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDispute, setEditingDispute] = useState(null);
   const dateInputModalRef = useRef(null);
+
+  const availableMonths = [
+    { value: '01', label: 'Janeiro (01)' },
+    { value: '02', label: 'Fevereiro (02)' },
+    { value: '03', label: 'Março (03)' },
+    { value: '04', label: 'Abril (04)' },
+    { value: '05', label: 'Maio (05)' },
+    { value: '06', label: 'Junho (06)' },
+    { value: '07', label: 'Julho (07)' },
+    { value: '08', label: 'Agosto (08)' },
+    { value: '09', label: 'Setembro (09)' },
+    { value: '10', label: 'Outubro (10)' },
+    { value: '11', label: 'Novembro (11)' },
+    { value: '12', label: 'Dezembro (12)' }
+  ];
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setMonthFilter('all');
+    setStartDate('');
+    setEndDate('');
+  };
 
   // Lista dinâmica de plataformas unificadas (Shopee Allyson, Shopee Jeremias, Shopee JBC, Mercado Livre, etc)
   const availablePlatforms = useMemo(() => {
@@ -95,7 +121,7 @@ export default function DisputesView({
     date: getTodayFormatted(),
     product: '',
     orderNumber: '',
-    description: '',
+    description: 'Avaria',
     notes: '',
     returnCode: '',
     status: 'Em Disputa'
@@ -108,7 +134,7 @@ export default function DisputesView({
       date: getTodayFormatted(),
       product: '',
       orderNumber: '',
-      description: '',
+      description: 'Avaria',
       notes: '',
       returnCode: '',
       status: 'Em Disputa'
@@ -123,7 +149,7 @@ export default function DisputesView({
       date: dispute.date || getTodayFormatted(),
       product: dispute.product || '',
       orderNumber: dispute.orderNumber || '',
-      description: dispute.description || '',
+      description: dispute.description || 'Avaria',
       notes: dispute.notes || '',
       returnCode: dispute.returnCode || '',
       status: dispute.status || 'Em Disputa'
@@ -237,9 +263,48 @@ export default function DisputesView({
         if (statusFilter === 'ganha' && !normStatus.includes('ganh')) return false;
         if (statusFilter === 'perdida' && !normStatus.includes('perd')) return false;
       }
+
+      // Filtro de tempo (Mês e Período de Data com Calendário)
+      const rawDateStr = String(d.date || '').trim();
+      const currentYear = new Date().getFullYear();
+      let itemMonth = null;
+      let itemDateObj = null;
+
+      if (/^\d{1,2}\/\d{1,2}$/.test(rawDateStr)) {
+        const [day, m] = rawDateStr.split('/').map(Number);
+        if (!isNaN(day) && !isNaN(m)) {
+          itemMonth = String(m).padStart(2, '0');
+          itemDateObj = new Date(currentYear, m - 1, day);
+        }
+      } else if (rawDateStr) {
+        const parsed = new Date(rawDateStr);
+        if (!isNaN(parsed.getTime())) {
+          itemMonth = String(parsed.getMonth() + 1).padStart(2, '0');
+          itemDateObj = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+        }
+      }
+
+      // Filtro por Mês
+      if (monthFilter !== 'all') {
+        if (itemMonth !== monthFilter) return false;
+      }
+
+      // Filtro por Período de Data (Início / Fim)
+      if (startDate && itemDateObj) {
+        const [sY, sM, sD] = startDate.split('-').map(Number);
+        const startObj = new Date(sY, sM - 1, sD);
+        if (itemDateObj < startObj) return false;
+      }
+
+      if (endDate && itemDateObj) {
+        const [eY, eM, eD] = endDate.split('-').map(Number);
+        const endObj = new Date(eY, eM - 1, eD, 23, 59, 59);
+        if (itemDateObj > endObj) return false;
+      }
+
       return true;
     });
-  }, [disputes, searchTerm, statusFilter]);
+  }, [disputes, searchTerm, statusFilter, monthFilter, startDate, endDate]);
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', minHeight: '80vh' }}>
@@ -344,8 +409,105 @@ export default function DisputesView({
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: '700', color: '#475569' }}>Status:</span>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          {/* Filtro por Mês */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>Mês:</label>
+            <select
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '8px',
+                border: '1.5px solid #cbd5e1',
+                background: '#ffffff',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#334155',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="all">Todos os Meses</option>
+              {availableMonths.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro por Período de Data com Calendário */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: '#ffffff',
+            padding: '3px 8px',
+            borderRadius: '8px',
+            border: '1px solid #cbd5e1'
+          }}>
+            <Calendar size={14} color="#64748b" />
+            <input
+              type="date"
+              title="Data inicial"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#334155',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>até</span>
+            <input
+              type="date"
+              title="Data final"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#334155',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
+            {(startDate || endDate) && (
+              <X
+                size={14}
+                color="#ef4444"
+                title="Limpar período"
+                style={{ cursor: 'pointer', marginLeft: '4px' }}
+                onClick={() => { setStartDate(''); setEndDate(''); }}
+              />
+            )}
+          </div>
+
+          {/* Botão Limpar Filtro */}
+          {(searchTerm || statusFilter !== 'all' || monthFilter !== 'all' || startDate || endDate) && (
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '8px',
+                border: '1.5px solid #e2e8f0',
+                background: '#ffffff',
+                fontSize: '12px',
+                fontWeight: '700',
+                color: '#334155',
+                cursor: 'pointer'
+              }}
+            >
+              Limpar Filtro
+            </button>
+          )}
+
+          <span style={{ fontSize: '13px', fontWeight: '700', color: '#475569', marginLeft: '4px' }}>Status:</span>
           {['all', 'em_disputa', 'ganha', 'perdida'].map((st) => {
             const labels = {
               all: 'Todos',
@@ -790,9 +952,7 @@ export default function DisputesView({
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
                     Descrição do Motivo
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Vidro Quebrado, Avariado..."
+                  <select
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     style={{
@@ -801,10 +961,16 @@ export default function DisputesView({
                       borderRadius: '8px',
                       border: '1.5px solid #cbd5e1',
                       fontSize: '13px',
+                      fontWeight: '700',
                       outline: 'none',
+                      background: '#ffffff',
                       boxSizing: 'border-box'
                     }}
-                  />
+                  >
+                    <option value="Avaria">Avaria</option>
+                    <option value="Perdido">Perdido</option>
+                    <option value="Usado">Usado</option>
+                  </select>
                 </div>
 
                 <div>
