@@ -319,7 +319,7 @@ export default function App() {
         if (Array.isArray(data.checklistTemplates) && data.checklistTemplates.length > 0) {
           setChecklistTemplates(data.checklistTemplates);
         }
-        if (Array.isArray(data.disputes) && data.disputes.length > 0) {
+        if (Array.isArray(data.disputes)) {
           setDisputes(data.disputes);
         }
         if (Array.isArray(data.annotations)) {
