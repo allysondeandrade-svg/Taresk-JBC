@@ -717,26 +717,24 @@ export default function App() {
   };
 
   // Handlers de Disputas (Aba Disputas)
-  const handleAddDispute = (newDispute) => {
+  const handleAddDispute = async (newDispute) => {
     setDisputes(prev => [newDispute, ...prev]);
-    SheetsApi.syncDispute(newDispute);
+    await SheetsApi.syncDispute(newDispute);
   };
 
-  const handleUpdateDispute = (id, updatedFields) => {
-    setDisputes(prev => prev.map(d => {
-      if (d.id === id) {
-        const updated = { ...d, ...updatedFields };
-        SheetsApi.syncDispute(updated);
-        return updated;
-      }
-      return d;
-    }));
+  const handleUpdateDispute = async (id, updatedFields) => {
+    setDisputes(prev => {
+      const updated = prev.map(d => d.id === id ? { ...d, ...updatedFields } : d);
+      const target = updated.find(d => d.id === id);
+      if (target) SheetsApi.syncDispute(target);
+      return updated;
+    });
   };
 
-  const handleDeleteDispute = (disputeOrId) => {
+  const handleDeleteDispute = async (disputeOrId) => {
     const id = typeof disputeOrId === 'object' ? disputeOrId.id : disputeOrId;
     setDisputes(prev => prev.filter(d => d.id !== id));
-    SheetsApi.deleteDispute(disputeOrId);
+    await SheetsApi.deleteDispute(disputeOrId);
   };
 
   // Handlers de Produtos
