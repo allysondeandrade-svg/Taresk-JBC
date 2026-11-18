@@ -657,12 +657,26 @@ export default function DisputesView({
                     </td>
 
                     {/* Data (ex: 06/10) */}
-                    <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: '700', color: '#1e293b', borderRight: '1px solid #f1f5f9' }}>
+                    <td style={{
+                      padding: '10px 12px',
+                      fontSize: '13px',
+                      fontWeight: '400',
+                      color: '#000000',
+                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      borderRight: '1px solid #f1f5f9'
+                    }}>
                       {item.date}
                     </td>
 
                     {/* Produto (ex: ET 4 Band Dupla) */}
-                    <td style={{ padding: '10px 14px', fontSize: '13px', fontWeight: '700', color: '#0f172a', borderRight: '1px solid #f1f5f9' }}>
+                    <td style={{
+                      padding: '10px 14px',
+                      fontSize: '13px',
+                      fontWeight: '400',
+                      color: '#000000',
+                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      borderRight: '1px solid #f1f5f9'
+                    }}>
                       {item.product}
                     </td>
 
@@ -711,17 +725,38 @@ export default function DisputesView({
                     </td>
 
                     {/* Descrição (ex: Vidro Quebrado) */}
-                    <td style={{ padding: '10px 14px', fontSize: '13px', fontWeight: '600', color: '#1e293b', borderRight: '1px solid #f1f5f9' }}>
+                    <td style={{
+                      padding: '10px 14px',
+                      fontSize: '13px',
+                      fontWeight: '400',
+                      color: '#000000',
+                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      borderRight: '1px solid #f1f5f9'
+                    }}>
                       {item.description}
                     </td>
 
                     {/* Observação (ex: Shopee Izabela) */}
-                    <td style={{ padding: '10px 14px', fontSize: '13px', color: '#475569', borderRight: '1px solid #f1f5f9' }}>
+                    <td style={{
+                      padding: '10px 14px',
+                      fontSize: '13px',
+                      fontWeight: '400',
+                      color: '#000000',
+                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      borderRight: '1px solid #f1f5f9'
+                    }}>
                       {item.notes}
                     </td>
 
                     {/* Devolução (código de devolução) */}
-                    <td style={{ padding: '10px 14px', fontSize: '13px', fontWeight: '600', color: '#334155', fontFamily: 'monospace', borderRight: '1px solid #f1f5f9' }}>
+                    <td style={{
+                      padding: '10px 14px',
+                      fontSize: '13px',
+                      fontWeight: '400',
+                      color: '#000000',
+                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      borderRight: '1px solid #f1f5f9'
+                    }}>
                       {item.returnCode}
                     </td>
 
