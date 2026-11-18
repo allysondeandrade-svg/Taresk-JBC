@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Search, Filter, AlertTriangle, ArrowUpDown, ChevronDown, Calendar } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Search, Filter, AlertTriangle, ArrowUpDown, ChevronDown, Calendar, Copy } from 'lucide-react';
 
 export default function DisputesView({
   disputes = [],
@@ -17,7 +17,17 @@ export default function DisputesView({
   const [endDate, setEndDate] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDispute, setEditingDispute] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
   const dateInputModalRef = useRef(null);
+
+  const handleCopyOrderNumber = (text, id) => {
+    if (!text) return;
+    navigator.clipboard.writeText(String(text).trim());
+    setCopiedId(id);
+    setTimeout(() => {
+      setCopiedId(null);
+    }, 1500);
+  };
 
   const availableMonths = [
     { value: '01', label: 'Janeiro (01)' },
@@ -656,9 +666,48 @@ export default function DisputesView({
                       {item.product}
                     </td>
 
-                    {/* Pedido (ex: 260910NPVMRD39) */}
-                    <td style={{ padding: '10px 14px', fontSize: '13px', fontWeight: '600', color: '#334155', fontFamily: 'monospace', borderRight: '1px solid #f1f5f9' }}>
-                      {item.orderNumber}
+                    {/* Pedido (ex: 260910NPVMRD39) com opção de copiar e fonte preta regular */}
+                    <td style={{
+                      padding: '10px 14px',
+                      fontSize: '13px',
+                      fontWeight: '400',
+                      color: '#000000',
+                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      borderRight: '1px solid #f1f5f9'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>{item.orderNumber}</span>
+                        {item.orderNumber && (
+                          <button
+                            type="button"
+                            title={copiedId === (item.id || idx) ? 'Copiado!' : 'Copiar Pedido'}
+                            onClick={() => handleCopyOrderNumber(item.orderNumber, item.id || idx)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '2px 4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: copiedId === (item.id || idx) ? '#16a34a' : '#94a3b8',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (copiedId !== (item.id || idx)) e.currentTarget.style.color = '#5925dc';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (copiedId !== (item.id || idx)) e.currentTarget.style.color = '#94a3b8';
+                            }}
+                          >
+                            {copiedId === (item.id || idx) ? (
+                              <Check size={14} color="#16a34a" strokeWidth={2.5} />
+                            ) : (
+                              <Copy size={14} />
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </td>
 
                     {/* Descrição (ex: Vidro Quebrado) */}
