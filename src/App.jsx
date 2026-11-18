@@ -1041,6 +1041,9 @@ export default function App() {
         {activeTab === 'disputas' && (
           <DisputesView
             disputes={disputes}
+            platforms={platforms}
+            products={products}
+            users={users}
             onAddDispute={handleAddDispute}
             onUpdateDispute={handleUpdateDispute}
             onDeleteDispute={handleDeleteDispute}

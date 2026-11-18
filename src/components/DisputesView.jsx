@@ -1,8 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Search, Filter, AlertTriangle, ArrowUpDown, ChevronDown } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Plus, Trash2, Edit2, Check, X, Search, Filter, AlertTriangle, ArrowUpDown, ChevronDown, Calendar } from 'lucide-react';
 
 export default function DisputesView({
   disputes = [],
+  platforms = [],
+  products = [],
+  users = [],
   onAddDispute,
   onUpdateDispute,
   onDeleteDispute
@@ -11,14 +14,85 @@ export default function DisputesView({
   const [statusFilter, setStatusFilter] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDispute, setEditingDispute] = useState(null);
+  const dateInputModalRef = useRef(null);
+
+  // Lista dinâmica de plataformas unificadas (Shopee Allyson, Shopee Jeremias, Shopee JBC, Mercado Livre, etc)
+  const availablePlatforms = useMemo(() => {
+    const namesSet = new Set();
+
+    // 1. Plataformas dos usuários cadastrados
+    (users || []).forEach(u => {
+      if (Array.isArray(u.platforms)) {
+        u.platforms.forEach(p => {
+          const n = typeof p === 'string' ? p : (p?.name || p?.label);
+          if (n && n.trim()) namesSet.add(n.trim());
+        });
+      }
+    });
+
+    // 2. Plataformas globais
+    (platforms || []).forEach(p => {
+      const n = typeof p === 'string' ? p : (p?.name || p?.label);
+      if (n && n.trim()) namesSet.add(n.trim());
+    });
+
+    // 3. Plataformas já usadas em disputas
+    (disputes || []).forEach(d => {
+      if (d.platform && d.platform.trim()) namesSet.add(d.platform.trim());
+    });
+
+    // 4. Padrões comuns
+    const defaults = ['Shopee JBC', 'Mercado Livre', 'Amazon', 'Magalu', 'Shopee Izabela', 'Shopee Allyson', 'Shopee Jeremias', 'Shopee Johnathan', 'Nuvemshop', 'SHEIN'];
+    defaults.forEach(d => namesSet.add(d));
+
+    return Array.from(namesSet).filter(Boolean);
+  }, [users, platforms, disputes]);
+
+  // Lista dinâmica e ordenada de SKUs e Produtos
+  const productsList = useMemo(() => {
+    const list = [];
+    const seen = new Set();
+
+    (products || []).forEach(p => {
+      const sku = (p.sku || p.id || '').trim();
+      const title = (p.title || p.name || '').trim();
+      const val = sku || title;
+      if (val && !seen.has(val)) {
+        seen.add(val);
+        list.push({
+          sku: sku || title,
+          title: title || sku,
+          display: sku && title && sku !== title ? `${sku} - ${title}` : (sku || title)
+        });
+      }
+    });
+
+    // Se houver produtos em disputas que não estão no cadastro
+    (disputes || []).forEach(d => {
+      const prod = (d.product || '').trim();
+      if (prod && !seen.has(prod)) {
+        seen.add(prod);
+        list.push({
+          sku: prod,
+          title: prod,
+          display: prod
+        });
+      }
+    });
+
+    return list.sort((a, b) => a.sku.localeCompare(b.sku, 'pt-BR', { sensitivity: 'base' }));
+  }, [products, disputes]);
+
+  // Data de hoje padrão formatada como dd/mm
+  const getTodayFormatted = () => {
+    const d = new Date();
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
 
   // Formulário de nova disputa / edição
   const [formData, setFormData] = useState({
-    platform: 'SH',
-    date: (() => {
-      const d = new Date();
-      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-    })(),
+    platform: 'Shopee JBC',
+    date: getTodayFormatted(),
     product: '',
     orderNumber: '',
     description: '',
@@ -28,10 +102,10 @@ export default function DisputesView({
   });
 
   const handleOpenAdd = () => {
-    const d = new Date();
+    const defaultPlat = availablePlatforms[0] || 'Shopee JBC';
     setFormData({
-      platform: 'SH',
-      date: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+      platform: defaultPlat,
+      date: getTodayFormatted(),
       product: '',
       orderNumber: '',
       description: '',
@@ -45,8 +119,8 @@ export default function DisputesView({
   const handleOpenEdit = (dispute) => {
     setEditingDispute(dispute);
     setFormData({
-      platform: dispute.platform || 'SH',
-      date: dispute.date || '',
+      platform: dispute.platform || availablePlatforms[0] || 'Shopee JBC',
+      date: dispute.date || getTodayFormatted(),
       product: dispute.product || '',
       orderNumber: dispute.orderNumber || '',
       description: dispute.description || '',
@@ -390,7 +464,7 @@ export default function DisputesView({
                     {/* Plataf com seletor/badge com setinha dropdown */}
                     <td style={{ padding: '10px 12px', borderRight: '1px solid #f1f5f9' }}>
                       <select
-                        value={item.platform || 'SH'}
+                        value={item.platform || (availablePlatforms[0] || 'Shopee JBC')}
                         onChange={(e) => handleInlinePlatformChange(item, e.target.value)}
                         style={{
                           ...platStyle,
@@ -400,14 +474,13 @@ export default function DisputesView({
                           fontWeight: '800',
                           cursor: 'pointer',
                           outline: 'none',
-                          border: platStyle.border
+                          border: platStyle.border,
+                          maxWidth: '130px'
                         }}
                       >
-                        <option value="SH">SH</option>
-                        <option value="ML">ML</option>
-                        <option value="AMZ">AMZ</option>
-                        <option value="MAG">MAG</option>
-                        <option value="SHEIN">SHEIN</option>
+                        {availablePlatforms.map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
                       </select>
                     </td>
 
@@ -574,11 +647,9 @@ export default function DisputesView({
                       background: '#ffffff'
                     }}
                   >
-                    <option value="SH">Shopee (SH)</option>
-                    <option value="ML">Mercado Livre (ML)</option>
-                    <option value="AMZ">Amazon (AMZ)</option>
-                    <option value="MAG">Magalu (MAG)</option>
-                    <option value="SHEIN">SHEIN</option>
+                    {availablePlatforms.map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -586,22 +657,79 @@ export default function DisputesView({
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
                     Data (dd/mm)
                   </label>
-                  <input
-                    type="text"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    placeholder="dd/mm"
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '13px',
-                      fontWeight: '700',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      value={formData.date}
+                      onChange={(e) => {
+                        let val = e.target.value.replace(/[^\d/]/g, '');
+                        if (val.length === 2 && !val.includes('/') && formData.date.length < 2) {
+                          val = val + '/';
+                        }
+                        if (val.length > 5) val = val.substring(0, 5);
+                        setFormData({ ...formData, date: val });
+                      }}
+                      placeholder="dd/mm"
+                      style={{
+                        width: '100%',
+                        padding: '9px 38px 9px 12px',
+                        borderRadius: '8px',
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <input
+                      type="date"
+                      ref={dateInputModalRef}
+                      style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: 0,
+                        width: '36px',
+                        height: '100%',
+                        opacity: 0,
+                        pointerEvents: 'none'
+                      }}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          const [y, m, d] = val.split('-');
+                          setFormData({ ...formData, date: `${d}/${m}` });
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      title="Selecionar data no calendário"
+                      onClick={() => {
+                        if (dateInputModalRef.current) {
+                          if (typeof dateInputModalRef.current.showPicker === 'function') {
+                            dateInputModalRef.current.showPicker();
+                          } else {
+                            dateInputModalRef.current.focus();
+                            dateInputModalRef.current.click();
+                          }
+                        }
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#6d28d9',
+                        padding: '4px'
+                      }}
+                    >
+                      <Calendar size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -612,7 +740,8 @@ export default function DisputesView({
                 <input
                   type="text"
                   required
-                  placeholder="Ex: ET 4 Band Dupla, CH 40X80..."
+                  list="disputes-products-list"
+                  placeholder="Selecione ou digite o SKU / Produto..."
                   value={formData.product}
                   onChange={(e) => setFormData({ ...formData, product: e.target.value })}
                   style={{
@@ -626,6 +755,13 @@ export default function DisputesView({
                     boxSizing: 'border-box'
                   }}
                 />
+                <datalist id="disputes-products-list">
+                  {productsList.map((p, idx) => (
+                    <option key={idx} value={p.sku}>
+                      {p.display}
+                    </option>
+                  ))}
+                </datalist>
               </div>
 
               <div>

@@ -116,6 +116,35 @@ export default function TasksView({
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Filtros de tempo (Mês e Período de Data com Calendário)
+  const [monthFilter, setMonthFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const availableMonths = [
+    { value: '01', label: 'Janeiro (01)' },
+    { value: '02', label: 'Fevereiro (02)' },
+    { value: '03', label: 'Março (03)' },
+    { value: '04', label: 'Abril (04)' },
+    { value: '05', label: 'Maio (05)' },
+    { value: '06', label: 'Junho (06)' },
+    { value: '07', label: 'Julho (07)' },
+    { value: '08', label: 'Agosto (08)' },
+    { value: '09', label: 'Setembro (09)' },
+    { value: '10', label: 'Outubro (10)' },
+    { value: '11', label: 'Novembro (11)' },
+    { value: '12', label: 'Dezembro (12)' }
+  ];
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setFilterStatus('all');
+    setFilterUser('all');
+    setMonthFilter('all');
+    setStartDate('');
+    setEndDate('');
+  };
+
   // Estado para Edição de Tarefas
   const [editingTask, setEditingTask] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -445,6 +474,44 @@ export default function TasksView({
         if (!matchTitle && !matchProduct && !matchNotes) return false;
       }
 
+      // Extração de data do prazo (dueDate) para filtros de tempo
+      const rawDateStr = String(task.dueDate || '').trim();
+      const currentYear = new Date().getFullYear();
+      let taskMonth = null;
+      let taskDateObj = null;
+
+      if (/^\d{1,2}\/\d{1,2}$/.test(rawDateStr)) {
+        const [d, m] = rawDateStr.split('/').map(Number);
+        if (!isNaN(d) && !isNaN(m)) {
+          taskMonth = String(m).padStart(2, '0');
+          taskDateObj = new Date(currentYear, m - 1, d);
+        }
+      } else if (rawDateStr) {
+        const parsed = new Date(rawDateStr);
+        if (!isNaN(parsed.getTime())) {
+          taskMonth = String(parsed.getMonth() + 1).padStart(2, '0');
+          taskDateObj = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+        }
+      }
+
+      // Filtro por Mês
+      if (monthFilter !== 'all') {
+        if (taskMonth !== monthFilter) return false;
+      }
+
+      // Filtro por Período de Data (Início / Fim)
+      if (startDate && taskDateObj) {
+        const [sY, sM, sD] = startDate.split('-').map(Number);
+        const startObj = new Date(sY, sM - 1, sD);
+        if (taskDateObj < startObj) return false;
+      }
+
+      if (endDate && taskDateObj) {
+        const [eY, eM, eD] = endDate.split('-').map(Number);
+        const endObj = new Date(eY, eM - 1, eD, 23, 59, 59);
+        if (taskDateObj > endObj) return false;
+      }
+
       return true;
     })
     .sort((a, b) => {
@@ -648,6 +715,179 @@ export default function TasksView({
         >
           <Plus size={16} /> Nova Tarefa
         </button>
+      </div>
+
+      {/* Barra de Filtros de Tempo e Busca (semelhante a Anotações) */}
+      <div style={{
+        background: '#ffffff',
+        borderRadius: '16px',
+        padding: '14px 18px',
+        border: '1px solid #e2e8f0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        marginBottom: '20px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+      }}>
+        {/* Campo de Busca Textual */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 240px', minWidth: '200px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: '#f8fafc',
+            border: '1.5px solid #cbd5e1',
+            borderRadius: '10px',
+            padding: '7px 12px',
+            width: '100%'
+          }}>
+            <Eye size={16} color="#64748b" />
+            <input
+              type="text"
+              placeholder="Buscar por título, produto, observação..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                outline: 'none',
+                fontSize: '13px',
+                width: '100%',
+                color: '#1e293b'
+              }}
+            />
+            {searchQuery && (
+              <X size={14} color="#94a3b8" style={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />
+            )}
+          </div>
+        </div>
+
+        {/* Controles de Filtro: Status, Mês, Período de Data com Calendário e Limpar */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          {/* Filtro de Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>Status:</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '8px',
+                border: '1.5px solid #cbd5e1',
+                background: '#ffffff',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#334155',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="all">Todos</option>
+              <option value="in_progress">Em Andamento</option>
+              <option value="completed">Concluídas</option>
+            </select>
+          </div>
+
+          {/* Filtro por Mês */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>Mês:</label>
+            <select
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '8px',
+                border: '1.5px solid #cbd5e1',
+                background: '#ffffff',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#334155',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="all">Todos os Meses</option>
+              {availableMonths.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro por Período de Data com Calendário */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: '#f8fafc',
+            padding: '4px 8px',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <Calendar size={14} color="#64748b" />
+            <input
+              type="date"
+              title="Data inicial"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#334155',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>até</span>
+            <input
+              type="date"
+              title="Data final"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#334155',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
+            {(startDate || endDate) && (
+              <X
+                size={14}
+                color="#ef4444"
+                title="Limpar período"
+                style={{ cursor: 'pointer', marginLeft: '4px' }}
+                onClick={() => { setStartDate(''); setEndDate(''); }}
+              />
+            )}
+          </div>
+
+          {/* Botão Limpar Filtro */}
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: '1.5px solid #e2e8f0',
+              background: '#ffffff',
+              fontSize: '12px',
+              fontWeight: '700',
+              color: '#334155',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+          >
+            Limpar Filtro
+          </button>
+        </div>
       </div>
 
       {/* Lista de Tarefas */}
