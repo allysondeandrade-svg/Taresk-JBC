@@ -340,6 +340,7 @@ export default function AnnotationModal({
               onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
             >
               <option value="">Selecione a plataforma...</option>
+              <option value="Nenhuma">Nenhuma</option>
               {platforms && platforms.length > 0 ? (
                 platforms.map((p) => {
                   const pName = typeof p === 'string' ? p : p.name;

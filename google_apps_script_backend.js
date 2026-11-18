@@ -299,8 +299,7 @@ function realignAndFixAnnotationRows(sheet) {
     let rawObs = idxObs !== -1 ? String(r[idxObs] || '').trim() : '';
     let rawUser = idxUser !== -1 ? String(r[idxUser] || '').trim() : '';
 
-    // Detecção e desinversão caso Valor contenha plataforma e Usuário contenha Valor
-    // Ex: r[idxValor] = "Shopee JBC" e r[idxUser] = "R$ 75,00"
+    // Detecção e desinversão caso Valor contenha plataforma, Observação contenha Valor ou Usuário contenha Valor
     let platform = rawPlat;
     let value = rawValor;
     let user = rawUser;
@@ -314,10 +313,23 @@ function realignAndFixAnnotationRows(sheet) {
       value = '';
     }
 
+    // Se o valor estiver vazio ou '-' e o campo Observação começar com "R$" ou for numérico monetário
+    if ((!value || value === '-') && (notes.includes('R$') || /^\s*R?\$?\s*\d+([.,]\d{2})?\s*$/.test(notes))) {
+      value = notes;
+      notes = '';
+    }
+
+    // Se a Observação contém "R$" e o Valor já tem texto não monetário
+    if (notes.includes('R$') && (!value.includes('R$') && !/\d+,\d{2}/.test(value))) {
+      const temp = value;
+      value = notes;
+      notes = temp;
+    }
+
     // Se o campo Usuário contém "R$" ou formato numérico de dinheiro, transfere para valor
-    if (user.includes('R$') || (value === '' && /\d+,\d{2}/.test(user))) {
+    if (user.includes('R$') || ((!value || value === '-') && /\d+,\d{2}/.test(user))) {
       value = user;
-      user = 'Allyson';
+      user = '';
     }
 
     // Se o tipo contém indicação de tipo antigo
@@ -1840,10 +1852,23 @@ function getAnnotationsDataAsJson() {
       valStr = '';
     }
 
+    // Se o valor estiver vazio ou '-' e o campo Observação começar com "R$" ou for numérico monetário
+    if ((!valStr || valStr === '-') && (obsVal.includes('R$') || /^\s*R?\$?\s*\d+([.,]\d{2})?\s*$/.test(obsVal))) {
+      valStr = obsVal;
+      obsVal = '';
+    }
+
+    // Se a Observação contém "R$" e o Valor já tem texto não monetário
+    if (obsVal.includes('R$') && (!valStr.includes('R$') && !/\d+,\d{2}/.test(valStr))) {
+      const temp = valStr;
+      valStr = obsVal;
+      obsVal = temp;
+    }
+
     // Se a coluna usuário contiver valor monetário (ex: 'R$ 75,00')
-    if (userVal.includes('R$') || (valStr === '' && /\d+,\d{2}/.test(userVal))) {
-      if (!valStr) valStr = userVal;
-      userVal = 'Allyson';
+    if (userVal.includes('R$') || ((!valStr || valStr === '-') && /\d+,\d{2}/.test(userVal))) {
+      valStr = userVal;
+      userVal = '';
     }
 
     // Normalização dos 6 tipos solicitados pelo usuário:
