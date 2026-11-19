@@ -497,5 +497,53 @@ export const SheetsApi = {
       console.error('Erro ao excluir disputa no Sheets:', err);
       return false;
     }
+  },
+
+  /**
+   * Salva ou atualiza uma Conta a Pagar na planilha
+   */
+  async syncBill(bill) {
+    const url = this.getUrl();
+    if (!url) return false;
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'saveBill',
+          data: bill
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error('Erro ao salvar conta no Sheets:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Exclui uma Conta a Pagar da planilha
+   */
+  async deleteBill(billOrId) {
+    const url = this.getUrl();
+    if (!url) return false;
+
+    const payload = typeof billOrId === 'object' ? billOrId : { id: billOrId };
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'deleteBill',
+          data: payload
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error('Erro ao excluir conta no Sheets:', err);
+      return false;
+    }
   }
 };

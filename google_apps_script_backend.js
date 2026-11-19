@@ -35,7 +35,8 @@ const SHEETS = {
   PRICING: 'Precificadora',
   CHECKLIST_TEMPLATES: 'Modelos_Checklist',
   ANNOTATIONS: 'Anotação',
-  DISPUTES: 'Disputas'
+  DISPUTES: 'Disputas',
+  BILLS: 'Contas'
 };
 
 /**
@@ -215,6 +216,18 @@ function setupSheets() {
     styleHeader(disputeSheet);
   } else {
     ensureIdColumn(disputeSheet, 'ID');
+  }
+
+  // 10. Aba Contas (Contas a Pagar): [ID, Dia, Mês, Ano, Descrição, Valor, Status]
+  let billSheet = ss.getSheetByName(SHEETS.BILLS) || ss.getSheetByName('Contas a Pagar');
+  if (!billSheet) {
+    billSheet = ss.insertSheet(SHEETS.BILLS);
+    billSheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status']);
+    billSheet.appendRow(['bill_1', 5, 11, 2026, 'Boleto Grenada', '', 'pending']);
+    billSheet.appendRow(['bill_2', 16, 11, 2026, 'Conta de Água', '', 'pending']);
+    styleHeader(billSheet);
+  } else {
+    ensureIdColumn(billSheet, 'ID');
   }
 
   Logger.log('Todas as abas do Taresk foram configuradas e corrigidas com sucesso!');
@@ -546,8 +559,11 @@ function doGet(e) {
         pricing: getSheetDataAsJson(SHEETS.PRICING),
         checklistTemplates: getChecklistTemplatesDataAsJson(),
         disputes: getDisputesDataAsJson(),
-        annotations: getAnnotationsDataAsJson()
+        annotations: getAnnotationsDataAsJson(),
+        bills: getBillsDataAsJson()
       };
+    } else if (action === 'getBills') {
+      responseData = getBillsDataAsJson();
     } else if (action === 'getAnnotations') {
       responseData = getAnnotationsDataAsJson();
     } else if (action === 'getDisputes') {
@@ -666,6 +682,14 @@ function doPost(e) {
 
       case 'deleteDispute':
         result = deleteDisputeRecord(data);
+        break;
+
+      case 'saveBill':
+        result = upsertBillRecord(data);
+        break;
+
+      case 'deleteBill':
+        result = deleteBillRecord(data);
         break;
 
       default:
@@ -2146,6 +2170,124 @@ function deleteDisputeRecord(disputeData) {
   const headers = values[0].map(h => String(h).toLowerCase().trim());
   const idxId = headers.indexOf('id');
   const targetId = disputeData && disputeData.id ? String(disputeData.id).trim() : String(disputeData || '').trim();
+
+  for (let i = 1; i < values.length; i++) {
+    const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';
+    if (rowId && (rowId === targetId || (rowId.match(/^\d+$/) && targetId.match(/^\d+$/) && formatToFiveDigits(rowId) === formatToFiveDigits(targetId)))) {
+      sheet.deleteRow(i + 1);
+      return { deleted: true, id: targetId };
+    }
+  }
+
+  return { deleted: false };
+}
+
+/**
+ * Lê todas as Contas a Pagar cadastradas na aba Contas
+ */
+function getBillsDataAsJson() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.BILLS) || ss.getSheetByName('Contas a Pagar');
+  if (!sheet) return [];
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const idxDia = headers.findIndex(h => h === 'dia' || h === 'day');
+  const idxMes = headers.findIndex(h => h === 'mês' || h === 'mes' || h === 'month');
+  const idxAno = headers.findIndex(h => h === 'ano' || h === 'year');
+  const idxDesc = headers.findIndex(h => h === 'descrição' || h === 'descricao' || h === 'description');
+  const idxValor = headers.findIndex(h => h === 'valor' || h === 'value');
+  const idxStatus = headers.findIndex(h => h === 'status' || h === 'situação' || h === 'situacao');
+
+  const bills = [];
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const desc = idxDesc !== -1 ? String(row[idxDesc] || '').trim() : '';
+    const day = idxDia !== -1 ? parseInt(row[idxDia], 10) : 1;
+    if (!desc && isNaN(day)) continue;
+
+    bills.push({
+      id: idxId !== -1 && row[idxId] ? String(row[idxId]).trim() : ('bill_' + i),
+      day: isNaN(day) ? 1 : day,
+      month: idxMes !== -1 ? (parseInt(row[idxMes], 10) || 1) : 1,
+      year: idxAno !== -1 ? (parseInt(row[idxAno], 10) || new Date().getFullYear()) : new Date().getFullYear(),
+      description: desc,
+      value: idxValor !== -1 ? (row[idxValor] !== '' && row[idxValor] !== null ? row[idxValor] : '') : '',
+      status: idxStatus !== -1 && row[idxStatus] ? String(row[idxStatus]).trim() : 'pending'
+    });
+  }
+
+  return bills;
+}
+
+/**
+ * Cria ou atualiza uma Conta a Pagar na aba Contas
+ */
+function upsertBillRecord(bill) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.BILLS) || ss.getSheetByName('Contas a Pagar');
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.BILLS);
+    sheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status']);
+    styleHeader(sheet);
+  }
+
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const targetId = bill && bill.id ? String(bill.id).trim() : '';
+
+  let rowIndex = -1;
+  if (idxId !== -1 && targetId) {
+    for (let i = 1; i < values.length; i++) {
+      const rowId = String(values[i][idxId] || '').trim();
+      if (rowId && (rowId === targetId || (rowId.match(/^\d+$/) && targetId.match(/^\d+$/) && formatToFiveDigits(rowId) === formatToFiveDigits(targetId)))) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+  }
+
+  const hasIdCol = idxId !== -1;
+  const finalId = targetId || (hasIdCol ? ('bill_' + Date.now()) : '');
+
+  const rowData = [
+    bill.day || 1,
+    bill.month || 1,
+    bill.year || new Date().getFullYear(),
+    bill.description || '',
+    bill.value || '',
+    bill.status || 'pending'
+  ];
+
+  const fullRow = hasIdCol ? [finalId, ...rowData] : rowData;
+
+  if (rowIndex > 0) {
+    sheet.getRange(rowIndex, 1, 1, fullRow.length).setValues([fullRow]);
+  } else {
+    sheet.appendRow(fullRow);
+  }
+
+  return { status: 'success', id: finalId };
+}
+
+/**
+ * Exclui uma Conta a Pagar da aba Contas
+ */
+function deleteBillRecord(billData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.BILLS) || ss.getSheetByName('Contas a Pagar');
+  if (!sheet) return { deleted: false };
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return { deleted: false };
+
+  const headers = values[0].map(h => String(h).toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const targetId = billData && billData.id ? String(billData.id).trim() : String(billData || '').trim();
 
   for (let i = 1; i < values.length; i++) {
     const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';

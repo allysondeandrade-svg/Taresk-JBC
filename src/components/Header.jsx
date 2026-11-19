@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Crown, User, BarChart2, CheckSquare, Layers, DollarSign, Settings, RefreshCw, CheckCircle2, FileText, CheckCircle, Package, Tag, AlertTriangle } from 'lucide-react';
+import { LogOut, Crown, User, BarChart2, CheckSquare, Layers, DollarSign, Settings, RefreshCw, CheckCircle2, FileText, CheckCircle, Package, Tag, AlertTriangle, Calendar } from 'lucide-react';
 
 export default function Header({
   activeTab,
@@ -22,7 +22,7 @@ export default function Header({
     { id: 'cadastro', label: 'Cadastro' },
     { id: 'precificadora', label: 'Precificadora' },
     { id: 'disputas', label: 'Disputa' },
-    ...(currentUser.role === 'premium_admin' ? [{ id: 'relatorio', label: 'Relatório Geral' }] : []),
+    { id: 'contas', label: 'Contas' },
     { id: 'anotacoes', label: 'Anotações' },
     ...(isAllyson ? [{ id: 'conciliacao', label: 'Conciliação' }] : [])
   ];
@@ -101,7 +101,7 @@ export default function Header({
                   {tab.id === 'cadastro' && <Package size={16} />}
                   {tab.id === 'precificadora' && <DollarSign size={16} />}
                   {tab.id === 'disputas' && <AlertTriangle size={16} />}
-                  {tab.id === 'relatorio' && <BarChart2 size={16} />}
+                  {tab.id === 'contas' && <Calendar size={16} />}
                   {tab.id === 'anotacoes' && <FileText size={16} />}
                   {tab.id === 'conciliacao' && <CheckSquare size={16} />}
                   {tab.label}

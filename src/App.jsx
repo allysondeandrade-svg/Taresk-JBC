@@ -4,7 +4,7 @@ import LoginScreen from './components/LoginScreen';
 import TasksView from './components/TasksView';
 import ProductsCatalogView from './components/ProductsCatalogView';
 import PricingView from './components/PricingView';
-import GeneralReportView from './components/GeneralReportView';
+import ContasView from './components/ContasView';
 import NewTaskModal from './components/NewTaskModal';
 import ChecklistModal from './components/ChecklistModal';
 import DopamineCelebrationModal from './components/DopamineCelebrationModal';
@@ -164,6 +164,18 @@ export default function App() {
     ];
   });
 
+  // Contas a Pagar (Aba Contas)
+  const [bills, setBills] = useState(() => {
+    const saved = localStorage.getItem('taresk_bills');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return []; }
+    }
+    return [
+      { id: 'bill_1', day: 5, month: 11, year: 2026, description: 'Boleto Grenada', value: '', status: 'pending' },
+      { id: 'bill_2', day: 16, month: 11, year: 2026, description: 'Conta de Água', value: '', status: 'pending' }
+    ];
+  });
+
   const [appTheme, setAppTheme] = useState(() => {
     const saved = localStorage.getItem('taresk_app_theme');
     if (saved === 'dark') return 'dark';
@@ -242,6 +254,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('taresk_annotations', JSON.stringify(annotations));
   }, [annotations]);
+
+  useEffect(() => {
+    localStorage.setItem('taresk_bills', JSON.stringify(bills));
+  }, [bills]);
 
   // Rastreia timestamps das tarefas modificadas localmente recentemente para o polling não sobrescrever com dados antigos do Sheets
   const localTaskUpdatesRef = useRef({});
@@ -324,6 +340,9 @@ export default function App() {
         }
         if (Array.isArray(data.annotations)) {
           setAnnotations(data.annotations);
+        }
+        if (Array.isArray(data.bills)) {
+          setBills(data.bills);
         }
         setLastSyncTime(new Date());
       }
@@ -737,6 +756,27 @@ export default function App() {
     await SheetsApi.deleteDispute(disputeOrId);
   };
 
+  // Handlers de Contas a Pagar (Aba Contas)
+  const handleAddBill = async (newBill) => {
+    setBills(prev => [...prev, newBill]);
+    await SheetsApi.syncBill(newBill);
+  };
+
+  const handleUpdateBill = async (id, updatedFields) => {
+    setBills(prev => {
+      const updated = prev.map(b => b.id === id ? { ...b, ...updatedFields } : b);
+      const target = updated.find(b => b.id === id);
+      if (target) SheetsApi.syncBill(target);
+      return updated;
+    });
+  };
+
+  const handleDeleteBill = async (billOrId) => {
+    const id = typeof billOrId === 'object' ? billOrId.id : billOrId;
+    setBills(prev => prev.filter(b => b.id !== id));
+    await SheetsApi.deleteBill(billOrId);
+  };
+
   // Handlers de Produtos
   const handleAddProduct = (newProd) => {
     setProducts([...products, newProd]);
@@ -1048,13 +1088,12 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'relatorio' && currentUser.role === 'premium_admin' && (
-          <GeneralReportView
-            tasks={tasks}
-            users={users}
-            onOpenChecklistModal={(task) => setActiveChecklistTask(task)}
-            onReassignTask={handleReassignTask}
-            setActiveTab={setActiveTab}
+        {activeTab === 'contas' && (
+          <ContasView
+            bills={bills}
+            onAddBill={handleAddBill}
+            onUpdateBill={handleUpdateBill}
+            onDeleteBill={handleDeleteBill}
           />
         )}
 
