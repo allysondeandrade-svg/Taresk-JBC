@@ -532,203 +532,11 @@ export default function TasksView({
         </h1>
       </div>
 
-      {/* Barra de Sub-abas Superior: [ Atuais | Concluídas ] e no canto direito [ Nova Tarefa + ] */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '16px',
-        marginBottom: '20px'
-      }}>
-        {/* Sub-abas Atuais | Concluídas */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: '#ffffff',
-          padding: '6px',
-          borderRadius: '14px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-        }}>
-          <button
-            onClick={() => setActiveTab && setActiveTab('tarefas')}
-            style={{
-              padding: '8px 20px',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: '800',
-              color: '#5925dc',
-              backgroundColor: '#ecebfa',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <span>Atuais</span>
-            <span style={{
-              fontSize: '11px',
-              padding: '2px 7px',
-              borderRadius: '10px',
-              background: '#5925dc',
-              color: '#ffffff',
-              fontWeight: '800'
-            }}>
-              {tasks.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab && setActiveTab('tarefas_concluidas')}
-            style={{
-              padding: '8px 20px',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#64748b',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#5925dc';
-              e.currentTarget.style.backgroundColor = '#f8fafc';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#64748b';
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <span>Concluídas</span>
-          </button>
-        </div>
-
-        {/* Seletor de Perfil / Filtro Rápido por Usuário (Idêntico ao Mobile) */}
-        {users && users.length > 1 && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            overflowX: 'auto',
-            padding: '4px 2px',
-            maxWidth: '100%'
-          }}>
-            <button
-              onClick={() => setFilterUser('all')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '9999px',
-                fontSize: '12px',
-                fontWeight: '700',
-                border: filterUser === 'all' ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
-                background: filterUser === 'all' ? '#ede9fe' : '#ffffff',
-                color: filterUser === 'all' ? '#6d28d9' : '#64748b',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-                boxShadow: filterUser === 'all' ? '0 1px 3px rgba(124, 58, 237, 0.15)' : 'none'
-              }}
-              onMouseEnter={(e) => {
-                if (filterUser !== 'all') {
-                  e.currentTarget.style.backgroundColor = '#f8fafc';
-                  e.currentTarget.style.borderColor = '#cbd5e1';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (filterUser !== 'all') {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                  e.currentTarget.style.borderColor = '#e2e8f0';
-                }
-              }}
-            >
-              Todos
-            </button>
-            {users.map(u => {
-              const norm = (s) => String(s || '').toLowerCase().trim();
-              const isSelected = 
-                norm(filterUser) === norm(u.id) || 
-                norm(filterUser) === norm(u.name);
-
-              return (
-                <button
-                  key={u.id}
-                  onClick={() => setFilterUser(u.id)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '9999px',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
-                    background: isSelected ? '#ede9fe' : '#ffffff',
-                    color: isSelected ? '#6d28d9' : '#64748b',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
-                    boxShadow: isSelected ? '0 1px 3px rgba(124, 58, 237, 0.15)' : 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                      e.currentTarget.style.borderColor = '#cbd5e1';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = '#ffffff';
-                      e.currentTarget.style.borderColor = '#e2e8f0';
-                    }
-                  }}
-                >
-                  <span style={{ fontSize: '13px' }}>{(!u.avatar || u.avatar === '⚡') ? '👤' : u.avatar}</span>
-                  <span>{u.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* No canto direito: Botão Nova Tarefa */}
-        <button
-          onClick={onOpenNewTaskModal}
-          style={{
-            background: 'linear-gradient(135deg, #5b21b6 0%, #4338ca 100%)',
-            color: '#ffffff',
-            border: 'none',
-            padding: '10px 22px',
-            borderRadius: '9999px',
-            fontSize: '14px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(91, 33, 182, 0.35)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.15s ease',
-            marginLeft: 'auto'
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-        >
-          <Plus size={16} /> Nova Tarefa
-        </button>
-      </div>
-
-      {/* Barra de Filtros de Tempo e Busca (semelhante a Anotações) */}
+      {/* Barra Única de Filtros: Usuários + Status + Mês + Período + Limpar + Botão Nova Tarefa (+) */}
       <div style={{
         background: '#ffffff',
         borderRadius: '16px',
-        padding: '14px 18px',
+        padding: '12px 18px',
         border: '1px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
@@ -738,41 +546,68 @@ export default function TasksView({
         marginBottom: '20px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
       }}>
-        {/* Campo de Busca Textual */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 240px', minWidth: '200px' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: '#f8fafc',
-            border: '1.5px solid #cbd5e1',
-            borderRadius: '10px',
-            padding: '7px 12px',
-            width: '100%'
-          }}>
-            <Eye size={16} color="#64748b" />
-            <input
-              type="text"
-              placeholder="Buscar por título, produto, observação..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                outline: 'none',
-                fontSize: '13px',
-                width: '100%',
-                color: '#1e293b'
-              }}
-            />
-            {searchQuery && (
-              <X size={14} color="#94a3b8" style={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />
-            )}
-          </div>
-        </div>
+        {/* Lado Esquerdo: Filtro por Usuários + Filtros de Status, Mês e Período */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', flex: 1 }}>
+          {/* Seletor de Perfil / Usuários */}
+          {users && users.length > 1 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              overflowX: 'auto',
+              padding: '2px 0'
+            }}>
+              <button
+                onClick={() => setFilterUser('all')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '9999px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  border: filterUser === 'all' ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
+                  background: filterUser === 'all' ? '#ede9fe' : '#ffffff',
+                  color: filterUser === 'all' ? '#6d28d9' : '#64748b',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Todos
+              </button>
+              {users.map(u => {
+                const norm = (s) => String(s || '').toLowerCase().trim();
+                const isSelected = 
+                  norm(filterUser) === norm(u.id) || 
+                  norm(filterUser) === norm(u.name);
 
-        {/* Controles de Filtro: Status, Mês, Período de Data com Calendário e Limpar */}
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => setFilterUser(u.id)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '9999px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
+                      background: isSelected ? '#ede9fe' : '#ffffff',
+                      color: isSelected ? '#6d28d9' : '#64748b',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '12px' }}>{(!u.avatar || u.avatar === '⚡') ? '👤' : u.avatar}</span>
+                    <span>{u.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Filtro de Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>Status:</label>
@@ -895,6 +730,33 @@ export default function TasksView({
             Limpar Filtro
           </button>
         </div>
+
+        {/* Canto Direito: Botão circular roxo com + (Nova Tarefa) */}
+        <button
+          onClick={onOpenNewTaskModal}
+          title="Nova Tarefa"
+          style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            backgroundColor: '#a855f7',
+            backgroundImage: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
+            color: '#ffffff',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4)',
+            transition: 'all 0.15s ease',
+            flexShrink: 0,
+            marginLeft: 'auto'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+        >
+          <Plus size={20} strokeWidth={2.5} />
+        </button>
       </div>
 
       {/* Lista de Tarefas */}
@@ -946,7 +808,7 @@ export default function TasksView({
               style={{
                 background: '#ffffff',
                 borderRadius: '16px',
-                padding: '24px 20px 14px 20px',
+                padding: '36px 20px 16px 20px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '14px',
@@ -959,79 +821,28 @@ export default function TasksView({
                 overflowX: 'auto'
               }}
             >
-              {/* Badges superiores: Responsável + Tipo de Tarefa */}
+              {/* Badge superior: Apenas o Responsável (sem tipo de tarefa) */}
               <div style={{
                 position: 'absolute',
-                top: '6px',
+                top: '10px',
                 left: '20px',
                 display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px'
+                alignItems: 'center'
               }}>
                 <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
+                  gap: '5px',
                   background: '#f1f5f9',
-                  padding: '2px 8px',
+                  padding: '3px 10px',
                   borderRadius: '9999px',
                   fontSize: '11px',
                   fontWeight: '700',
                   color: '#475569'
                 }}>
-                  <User size={11} color="#475569" />
+                  <User size={12} color="#64748b" />
                   <span>{assignee.name || task.assignedByName || 'Colaborador'}</span>
                 </div>
-
-                {isRecurrent && (
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: '#ede9fe',
-                    color: '#6d28d9',
-                    padding: '2px 8px',
-                    borderRadius: '9999px',
-                    fontSize: '11px',
-                    fontWeight: '800',
-                    border: '1px solid #c4b5fd'
-                  }}>
-                    🔄 {recurrenceBadge}
-                  </span>
-                )}
-
-                {isSpecial && (
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: '#fef3c7',
-                    color: '#b45309',
-                    padding: '2px 8px',
-                    borderRadius: '9999px',
-                    fontSize: '11px',
-                    fontWeight: '800'
-                  }}>
-                    ⭐ Especial
-                  </span>
-                )}
-
-                {isSimple && (
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: '#f1f5f9',
-                    color: '#334155',
-                    padding: '2px 8px',
-                    borderRadius: '9999px',
-                    fontSize: '11px',
-                    fontWeight: '800',
-                    border: '1px solid #cbd5e1'
-                  }}>
-                    📝 Simples
-                  </span>
-                )}
               </div>
 
               {/* Coluna 1: Bloco do Produto (Modelo com Foto, Nome/SKU, Barra e Olho), Tarefa Especial ou Tarefa Recorrente (Não exibido em Tarefa Simples) */}
