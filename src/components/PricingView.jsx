@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calculator, DollarSign, ArrowRight, Info, AlertTriangle, TrendingUp, Box, Scale } from 'lucide-react';
+import { Search, Calculator, DollarSign, ArrowRight, Info, AlertTriangle, TrendingUp, Box, Scale, Layers } from 'lucide-react';
+import ShopeeKitsModal from './ShopeeKitsModal';
 import { DEFAULT_PRICING_CONFIGS } from '../data/initialData';
 import {
   getConsideredWeight,
@@ -45,6 +46,7 @@ export default function PricingView({ products }) {
 
   // Tipo de anúncio no Mercado Livre: 'classico' ou 'premium'
   const [mlListingType, setMlListingType] = useState('premium');
+  const [isKitsModalOpen, setIsKitsModalOpen] = useState(false);
 
   const selectedProduct = products.find(p => p.id === selectedProductId) || products[0] || {
     title: 'Produto de Teste',
@@ -262,6 +264,34 @@ export default function PricingView({ products }) {
               {consideredWeight.toFixed(2)} kg
             </span>
           </div>
+
+          <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
+
+          {/* Botão Precificadora de Kits Shopee ao lado do peso */}
+          <button
+            type="button"
+            onClick={() => setIsKitsModalOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '10px',
+              border: 'none',
+              background: '#ff5722',
+              color: '#ffffff',
+              fontWeight: '800',
+              fontSize: '12px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(255, 87, 34, 0.25)',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.background = '#f4511e'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#ff5722'; }}
+          >
+            <Layers size={15} />
+            Precificadora de Kits Shopee
+          </button>
         </div>
       </div>
 
@@ -340,6 +370,13 @@ export default function PricingView({ products }) {
           onResetChannel={handleResetChannel}
         />
       </div>
+
+      {/* Modal da Precificadora de Kits Shopee */}
+      <ShopeeKitsModal
+        isOpen={isKitsModalOpen}
+        onClose={() => setIsKitsModalOpen(false)}
+        product={selectedProduct}
+      />
     </div>
   );
 }
