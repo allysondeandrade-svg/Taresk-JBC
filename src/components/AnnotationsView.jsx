@@ -755,8 +755,8 @@ export default function AnnotationsView({
                   title="Clique para alternar a ordenação (Último ao primeiro / Primeiro ao último)"
                   style={{
                     padding: isMobileScreen ? '12px 10px' : '14px 16px',
-                    fontSize: '12px',
-                    fontWeight: '800',
+                    fontSize: '13px',
+                    fontWeight: '700',
                     color: '#475569',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
@@ -769,28 +769,28 @@ export default function AnnotationsView({
                     <ArrowUpDown size={13} color="#8b5cf6" />
                   </div>
                 </th>
-                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   TIPO
                 </th>
                 {!isMobileScreen && (
                   <>
-                    <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       PLATAFORMA
                     </th>
-                    <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       PEDIDO
                     </th>
                   </>
                 )}
-                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   VALOR
                 </th>
                 {!isMobileScreen && (
-                  <th style={{ padding: '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     OBSERVAÇÃO
                   </th>
                 )}
-                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' }}>
+                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' }}>
                   AÇÕES
                 </th>
               </tr>
@@ -1079,13 +1079,13 @@ export default function AnnotationsView({
                         onMouseLeave={(e) => { if (!isExpanded) e.currentTarget.style.background = 'transparent'; }}
                       >
                         {/* Data: dd/mm */}
-                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '500', color: '#334155', whiteSpace: 'nowrap' }}>
                           {item.date || '-'}
                         </td>
 
                         {/* Tipo: Entrega Local, Retirada Fábrica, Entrega Direta, Gasto Pontual, Prejuízo, Anotação */}
                         <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '500', color: '#334155' }}>
                             <span style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -1106,25 +1106,25 @@ export default function AnnotationsView({
                         {!isMobileScreen && (
                           <>
                             {/* Plataforma: Shopee JBC, Shopee Izabela... */}
-                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '500', color: '#334155', whiteSpace: 'nowrap' }}>
                               {(item.platform && item.platform !== 'Nenhuma') ? item.platform : '-'}
                             </td>
 
-                            {/* Pedido */}
-                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
+                            {/* Pedido com JetBrains Mono para códigos/pedidos longos */}
+                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '500', color: '#334155', whiteSpace: 'nowrap', fontFamily: "'JetBrains Mono', monospace" }}>
                               {item.orderNumber || item.pedido || '-'}
                             </td>
                           </>
                         )}
 
                         {/* Valor: R$ xx,yy */}
-                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '500', color: '#334155', whiteSpace: 'nowrap' }}>
                           {item.value || item.valor || '-'}
                         </td>
 
                         {!isMobileScreen && (
                           /* Observação */
-                          <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#334155', maxWidth: '300px', wordBreak: 'break-word' }}>
+                          <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '500', color: '#334155', maxWidth: '300px', wordBreak: 'break-word' }}>
                             {item.notes || item.observacao || '-'}
                           </td>
                         )}

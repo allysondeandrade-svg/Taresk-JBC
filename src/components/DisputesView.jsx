@@ -557,28 +557,28 @@ export default function DisputesView({
           <thead>
             {/* Cabeçalho preto com texto branco conforme imagem de referência */}
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Plataf
               </th>
-              <th style={{ padding: '14px 14px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '14px 14px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Data
               </th>
-              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Produto
               </th>
-              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Pedido
               </th>
-              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Descrição
               </th>
-              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Observação
               </th>
-              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Devolução
               </th>
-              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Situação
               </th>
               <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#64748b', textAlign: 'center', whiteSpace: 'nowrap' }}>
@@ -636,9 +636,9 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 12px',
                       fontSize: '13px',
-                      fontWeight: '400',
+                      fontWeight: '500',
                       color: '#000000',
-                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
                       borderRight: '1px solid #f1f5f9'
                     }}>
                       {item.date}
@@ -648,21 +648,21 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 14px',
                       fontSize: '13px',
-                      fontWeight: '400',
+                      fontWeight: '500',
                       color: '#000000',
-                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
                       borderRight: '1px solid #f1f5f9'
                     }}>
                       {item.product}
                     </td>
 
-                    {/* Pedido (ex: 260910NPVMRD39) com opção de copiar e fonte preta regular */}
+                    {/* Pedido (ex: 260910NPVMRD39) com opção de copiar e fonte mono legível */}
                     <td style={{
                       padding: '10px 14px',
                       fontSize: '13px',
-                      fontWeight: '400',
+                      fontWeight: '500',
                       color: '#000000',
-                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      fontFamily: "'JetBrains Mono', monospace",
                       borderRight: '1px solid #f1f5f9'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -704,9 +704,9 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 14px',
                       fontSize: '13px',
-                      fontWeight: '400',
+                      fontWeight: '500',
                       color: '#000000',
-                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
                       borderRight: '1px solid #f1f5f9'
                     }}>
                       {item.description}
@@ -716,9 +716,9 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 14px',
                       fontSize: '13px',
-                      fontWeight: '400',
+                      fontWeight: '500',
                       color: '#000000',
-                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
                       borderRight: '1px solid #f1f5f9'
                     }}>
                       {item.notes}
@@ -728,9 +728,9 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 14px',
                       fontSize: '13px',
-                      fontWeight: '400',
+                      fontWeight: '500',
                       color: '#000000',
-                      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      fontFamily: "'JetBrains Mono', monospace",
                       borderRight: '1px solid #f1f5f9'
                     }}>
                       {item.returnCode}

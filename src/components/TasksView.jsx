@@ -1053,7 +1053,7 @@ export default function TasksView({
 
                         <span style={{
                           fontSize: '15px',
-                          fontWeight: '800',
+                          fontWeight: '600',
                           color: task.checklist.every(c => c.completed) ? '#64748b' : '#0f172a',
                           textDecoration: task.checklist.every(c => c.completed) ? 'line-through' : 'none',
                           wordBreak: 'break-word',
@@ -1105,7 +1105,7 @@ export default function TasksView({
 
                               <span style={{
                                 fontSize: '14px',
-                                fontWeight: '700',
+                                fontWeight: '500',
                                 color: isItemDone ? '#64748b' : '#0f172a',
                                 textDecoration: isItemDone ? 'line-through' : 'none',
                                 wordBreak: 'break-word',
@@ -1151,8 +1151,8 @@ export default function TasksView({
                           </div>
 
                           <span style={{
-                            fontSize: '16px',
-                            fontWeight: '800',
+                            fontSize: '15px',
+                            fontWeight: '600',
                             color: isItemDone ? '#64748b' : '#0f172a',
                             textDecoration: isItemDone ? 'line-through' : 'none',
                             wordBreak: 'break-word',
@@ -1174,8 +1174,8 @@ export default function TasksView({
                     gap: '12px'
                   }}>
                     <span style={{
-                      fontSize: '18px',
-                      fontWeight: '800',
+                      fontSize: '16px',
+                      fontWeight: '600',
                       color: '#0f172a',
                       letterSpacing: '-0.3px'
                     }}>
@@ -1299,7 +1299,7 @@ export default function TasksView({
                               height: '13px'
                             }}
                           />
-                          <span style={{ fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <span style={{ fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {item.label}
                           </span>
                         </div>
