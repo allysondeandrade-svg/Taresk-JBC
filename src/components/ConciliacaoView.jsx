@@ -98,7 +98,7 @@ export default function ConciliacaoView({
             color: '#1e293b',
             letterSpacing: '-0.5px'
           }}>
-            Conciliação
+            Financeiro
           </h1>
           <span style={{
             fontSize: '13px',

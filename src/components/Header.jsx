@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Crown, User, BarChart2, CheckSquare, Layers, DollarSign, Calculator, Settings, RefreshCw, CheckCircle2, FileText, CheckCircle, Package, Tag, AlertTriangle, Calendar } from 'lucide-react';
+import { LogOut, Crown, User, BarChart2, CheckSquare, Layers, DollarSign, Calculator, Settings, RefreshCw, CheckCircle2, FileText, CheckCircle, Package, Tag, AlertTriangle, Calendar, TrendingUp } from 'lucide-react';
 
 export default function Header({
   activeTab,
@@ -20,11 +20,11 @@ export default function Header({
   const tabs = [
     { id: 'tarefas', label: 'Tarefas' },
     { id: 'produtos', label: 'Produtos' },
-    { id: 'precificadora', label: 'Precificadora' },
-    { id: 'disputas', label: 'Disputa' },
-    { id: 'contas', label: 'Contas' },
     { id: 'anotacoes', label: 'Anotações' },
-    ...(isAllyson ? [{ id: 'conciliacao', label: 'Conciliação' }] : [])
+    { id: 'disputas', label: 'Disputas' },
+    { id: 'precificadora', label: 'Precificadora' },
+    { id: 'contas', label: 'Contas' },
+    ...(isAllyson ? [{ id: 'conciliacao', label: 'Financeiro' }] : [])
   ];
 
   return (
@@ -99,11 +99,11 @@ export default function Header({
                 >
                   {tab.id === 'tarefas' && <CheckCircle size={16} />}
                   {tab.id === 'produtos' && <Package size={16} />}
-                  {tab.id === 'precificadora' && <Calculator size={16} />}
-                  {tab.id === 'disputas' && <AlertTriangle size={16} />}
-                  {tab.id === 'contas' && <Calendar size={16} />}
                   {tab.id === 'anotacoes' && <FileText size={16} />}
-                  {tab.id === 'conciliacao' && <CheckSquare size={16} />}
+                  {tab.id === 'disputas' && <AlertTriangle size={16} />}
+                  {tab.id === 'precificadora' && <Calculator size={16} />}
+                  {tab.id === 'contas' && <Calendar size={16} />}
+                  {tab.id === 'conciliacao' && <BarChart2 size={16} />}
                   {tab.label}
                 </button>
               );
