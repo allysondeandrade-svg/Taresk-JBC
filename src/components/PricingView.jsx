@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calculator, DollarSign, ArrowRight, Info, AlertTriangle, TrendingUp, Box, Scale, Layers } from 'lucide-react';
+import { Search, Calculator, DollarSign, ArrowRight, Info, AlertTriangle, TrendingUp, Box, Scale, Layers, Truck } from 'lucide-react';
 import ShopeeKitsModal from './ShopeeKitsModal';
+import FreteProprioModal from './FreteProprioModal';
 import ProductSearchAutocomplete from './ProductSearchAutocomplete';
 import { DEFAULT_PRICING_CONFIGS } from '../data/initialData';
 import {
@@ -49,6 +50,7 @@ export default function PricingView({ products = [] }) {
   // Tipo de anúncio no Mercado Livre: 'classico' ou 'premium'
   const [mlListingType, setMlListingType] = useState('premium');
   const [isKitsModalOpen, setIsKitsModalOpen] = useState(false);
+  const [isFreteProprioModalOpen, setIsFreteProprioModalOpen] = useState(false);
 
   const selectedProduct = products.find(p => p.id === selectedProductId) || products[0] || {
     title: 'Produto de Teste',
@@ -273,6 +275,32 @@ export default function PricingView({ products = [] }) {
           <Layers size={16} />
           <span>Precificadora de Kits Shopee</span>
         </button>
+
+        {/* 3. Botão Frete Próprio ao lado do botão da precificadora de kits */}
+        <button
+          type="button"
+          onClick={() => setIsFreteProprioModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 18px',
+            borderRadius: '12px',
+            border: 'none',
+            background: '#2563eb',
+            color: '#ffffff',
+            fontWeight: '800',
+            fontSize: '13px',
+            cursor: 'pointer',
+            boxShadow: '0 3px 10px rgba(37, 99, 235, 0.3)',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.background = '#1d4ed8'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#2563eb'; }}
+        >
+          <Truck size={16} />
+          <span>Frete Próprio</span>
+        </button>
       </div>
 
       {/* Grid com os 4 Cards de Canais perfeitamente alinhados */}
@@ -355,6 +383,14 @@ export default function PricingView({ products = [] }) {
       <ShopeeKitsModal
         isOpen={isKitsModalOpen}
         onClose={() => setIsKitsModalOpen(false)}
+        products={products}
+        initialProduct={selectedProduct}
+      />
+
+      {/* Modal Popup da Precificadora de Frete Próprio */}
+      <FreteProprioModal
+        isOpen={isFreteProprioModalOpen}
+        onClose={() => setIsFreteProprioModalOpen(false)}
         products={products}
         initialProduct={selectedProduct}
       />
