@@ -38,6 +38,13 @@ export default function ContasView({
     localStorage.setItem('taresk_contas_font_size', size);
   };
 
+  // Garantir que ao abrir a aba o mês atual fique sempre em evidência
+  useEffect(() => {
+    const now = new Date();
+    setCurrentYear(now.getFullYear());
+    setCurrentMonthIndex(now.getMonth());
+  }, []);
+
   // Feriados Nacionais consultados da BrasilAPI
   const [holidaysMap, setHolidaysMap] = useState({});
 
@@ -159,10 +166,10 @@ export default function ContasView({
     }
   };
 
-  // Gera meses sequenciais para a rolagem/arrastar
+  // Gera meses sequenciais para a rolagem/arrastar com o mês atual em foco no topo
   const displayedMonths = useMemo(() => {
     const list = [];
-    for (let offset = -2; offset <= 9; offset++) {
+    for (let offset = 0; offset <= 11; offset++) {
       let m = currentMonthIndex + offset;
       let y = currentYear;
       while (m < 0) {
@@ -657,7 +664,8 @@ export default function ContasView({
                           justifyContent: 'center',
                           fontWeight: '900',
                           fontSize: fontStyles.dayFontSize,
-                          color: '#000000',
+                          color: isPaid ? '#94a3b8' : '#000000',
+                          textDecoration: isPaid ? 'line-through' : 'none',
                           boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
                         }}
                       >
@@ -847,10 +855,10 @@ export default function ContasView({
                 />
               </div>
 
-              {/* Tipo de Conta: Pontual vs Mensal (Solicitado pelo usuário) */}
+              {/* Frequência: Pontual vs Mensal */}
               <div>
                 <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '6px' }}>
-                  Frequência da Conta
+                  Frequência
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <button
@@ -868,7 +876,7 @@ export default function ContasView({
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    Conta Pontual
+                    Pontual
                   </button>
 
                   <button
@@ -886,7 +894,7 @@ export default function ContasView({
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    🔁 Conta Mensal
+                    Mensal
                   </button>
                 </div>
                 <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '4px' }}>
