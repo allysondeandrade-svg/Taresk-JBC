@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Truck, Info, Calculator } from 'lucide-react';
+import { X, Truck, ChevronDown, ChevronUp } from 'lucide-react';
 import ProductSearchAutocomplete from './ProductSearchAutocomplete';
 
 // Formata para moeda brasileira BRL R$ 0,00
@@ -26,14 +26,58 @@ function parseCurrencyToNumber(val) {
   return parseInt(digits, 10) / 100;
 }
 
+/**
+ * Cores da Margem Líquida e do Lucro Líquido:
+ * < 5%         -> Vermelho
+ * até 9,99%    -> Laranja
+ * até 11,99%   -> Amarelo
+ * até 19,99%   -> Verde
+ * a partir 20% -> Azul
+ */
+function getMarginTheme(margemPct) {
+  const m = parseFloat(margemPct) || 0;
+  if (m < 5.0) {
+    return {
+      color: '#dc2626',      // Vermelho
+      bg: '#fef2f2',
+      border: '#fca5a5'
+    };
+  } else if (m <= 9.99) {
+    return {
+      color: '#ea580c',      // Laranja
+      bg: '#fff7ed',
+      border: '#fdba74'
+    };
+  } else if (m <= 11.99) {
+    return {
+      color: '#d97706',      // Amarelo
+      bg: '#fefce8',
+      border: '#fde047'
+    };
+  } else if (m <= 19.99) {
+    return {
+      color: '#16a34a',      // Verde
+      bg: '#f0fdf4',
+      border: '#86efac'
+    };
+  } else {
+    return {
+      color: '#2563eb',      // Azul
+      bg: '#eff6ff',
+      border: '#93c5fd'
+    };
+  }
+}
+
 export default function FreteProprioModal({
   isOpen,
   onClose,
   products = [],
   initialProduct = null
 }) {
-  // Produto selecionado
+  // Produto selecionado (ao abrir começa vazio)
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [productSearchText, setProductSearchText] = useState('');
 
   // Campos de entrada
   const [valorProdutoMask, setValorProdutoMask] = useState('');
@@ -41,19 +85,25 @@ export default function FreteProprioModal({
   const [freteMEMask, setFreteMEMask] = useState('');
   const [taxaPctInput, setTaxaPctInput] = useState('12,5'); // Padrão 12,5%
 
-  // Inicializa quando abre o modal ou muda o produto inicial
+  // Controle de exibição das informações intermediárias (ocultas por padrão)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  // Ao abrir o pop-up, a barra de pesquisa do produto fica vazia
   useEffect(() => {
     if (isOpen) {
-      const prod = initialProduct || products[0] || null;
-      if (prod) {
-        setSelectedProduct(prod);
-      }
+      setSelectedProduct(null);
+      setProductSearchText('');
+      setValorProdutoMask('');
+      setFreteAmazonMask('');
+      setFreteMEMask('');
+      setTaxaPctInput('12,5');
+      setIsDetailsOpen(false);
     }
-  }, [isOpen, initialProduct, products]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Custo puxado da validação de dados
+  // Custo puxado da validação de dados do produto
   const custo = selectedProduct
     ? (typeof selectedProduct.cost === 'number' ? selectedProduct.cost : parseFloat(String(selectedProduct.cost || 0).replace(',', '.')) || 0)
     : 0;
@@ -91,16 +141,7 @@ export default function FreteProprioModal({
   // 8. Margem = Lucro líquido / Valor do Produto
   const margem = valorProduto > 0 ? (lucroLiquido / valorProduto) * 100 : 0;
 
-  // Cor da Margem e do Lucro Líquido
-  const getMarginStyle = (m) => {
-    if (m < 5.0) return { color: '#dc2626', bg: '#fef2f2' };
-    if (m <= 9.99) return { color: '#ea580c', bg: '#fff7ed' };
-    if (m <= 11.99) return { color: '#d97706', bg: '#fefce8' };
-    if (m <= 19.99) return { color: '#16a34a', bg: '#f0fdf4' };
-    return { color: '#2563eb', bg: '#eff6ff' };
-  };
-
-  const marginTheme = getMarginStyle(margem);
+  const marginTheme = getMarginTheme(margem);
 
   return (
     <div
@@ -193,48 +234,54 @@ export default function FreteProprioModal({
         {/* Corpo com scroll */}
         <div style={{ padding: '20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
-          {/* Seletor do Produto com autocomplete estilo Excel */}
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '6px' }}>
-              PRODUTO (Busca por SKU ou Nome)
-            </label>
-            <ProductSearchAutocomplete
-              products={products}
-              value={selectedProduct ? `${selectedProduct.sku} - ${selectedProduct.title || selectedProduct.product || ''}` : ''}
-              onSelect={(p) => {
-                setSelectedProduct(p);
-              }}
-              placeholder="Digite as primeiras letras do SKU ou Produto..."
-              showCost={true}
-              inputStyle={{
-                borderRadius: '10px',
-                border: '1.5px solid #cbd5e1',
-                padding: '9px 12px 9px 36px',
-                fontSize: '13px',
-                fontWeight: '700'
-              }}
-            />
-          </div>
-
           {/* Tabela de Preenchimento e Cálculos estilo Planilha */}
           <div style={{
             border: '1.5px solid #e2e8f0',
             borderRadius: '12px',
-            overflow: 'hidden',
+            overflow: 'visible',
             background: '#ffffff'
           }}>
-            {/* Linha Produto */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
+            {/* Linha Produto: Ao lado de "Produto" fica a barra de pesquisa que abre vazia */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '140px 1fr',
+              borderBottom: '1px solid #e2e8f0',
+              alignItems: 'center',
+              padding: '6px 10px',
+              position: 'relative',
+              zIndex: 50
+            }}>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
                 Produto
               </div>
-              <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
-                {selectedProduct?.sku || '-'} {selectedProduct?.title ? `(${selectedProduct.title})` : ''}
+              <div>
+                <ProductSearchAutocomplete
+                  products={products}
+                  value={productSearchText}
+                  onChange={(val) => {
+                    setProductSearchText(val);
+                    if (!val) setSelectedProduct(null);
+                  }}
+                  onSelect={(p) => {
+                    setSelectedProduct(p);
+                    const label = `${p.sku} - ${p.title || p.product || ''}`;
+                    setProductSearchText(label);
+                  }}
+                  placeholder="Buscar por SKU ou Nome..."
+                  showCost={true}
+                  inputStyle={{
+                    borderRadius: '8px',
+                    border: '1.5px solid #cbd5e1',
+                    padding: '8px 12px 8px 36px',
+                    fontSize: '13px',
+                    fontWeight: '600'
+                  }}
+                />
               </div>
             </div>
 
             {/* Linha Valor Produto (Input) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
               <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
                 Valor Produto *
               </div>
@@ -262,7 +309,7 @@ export default function FreteProprioModal({
             </div>
 
             {/* Linha Frete Amazon (Input) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
               <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
                 Frete Amazon
               </div>
@@ -290,7 +337,7 @@ export default function FreteProprioModal({
             </div>
 
             {/* Linha Frete ME (Input) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
               <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
                 Frete ME
               </div>
@@ -317,104 +364,160 @@ export default function FreteProprioModal({
               </div>
             </div>
 
-            {/* Linha Valor Total (Calculado) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
-                Valor Total
-              </div>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
-                {formatBRL(valorTotal)}
-              </div>
-            </div>
-
-            {/* Linha Taxa (%) (Input editável) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
+            {/* Linha Taxa (%) - O bloco vai até o final da linha e o % fica dentro do bloco aparecendo apenas ao digitar */}
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
+              <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
                 Taxa (%)
               </div>
               <div style={{ padding: '6px 10px' }}>
-                <input
-                  type="text"
-                  value={taxaPctInput}
-                  onChange={(e) => setTaxaPctInput(e.target.value)}
-                  style={{
-                    width: '100px',
-                    padding: '6px 10px',
-                    borderRadius: '8px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    fontWeight: '700',
-                    color: '#0f172a',
-                    boxSizing: 'border-box',
-                    outline: 'none'
-                  }}
-                />
-                <span style={{ marginLeft: '6px', fontSize: '13px', color: '#64748b' }}>%</span>
+                <div style={{
+                  position: 'relative',
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <input
+                    type="text"
+                    placeholder="12,5"
+                    value={taxaPctInput}
+                    onChange={(e) => setTaxaPctInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '7px 28px 7px 10px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: '#0f172a',
+                      boxSizing: 'border-box',
+                      outline: 'none'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                  />
+                  {taxaPctInput.trim() !== '' && (
+                    <span style={{
+                      position: 'absolute',
+                      right: '12px',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: '#64748b',
+                      pointerEvents: 'none'
+                    }}>
+                      %
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Linha Taxa (R$) (Calculado) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
-                Taxa (R$)
-              </div>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
-                {formatBRL(taxaReais)}
-              </div>
+            {/* Seta abaixo de Taxa (%) para abrir/fechar as informações intermediárias */}
+            <div
+              onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '7px 12px',
+                background: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                cursor: 'pointer',
+                userSelect: 'none',
+                color: '#64748b',
+                fontSize: '12px',
+                fontWeight: '700',
+                transition: 'background-color 0.15s ease'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#3b82f6'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#64748b'; }}
+            >
+              <span>{isDetailsOpen ? 'Ocultar detalhes de taxas e valores' : 'Ver detalhes de taxas e valores'}</span>
+              {isDetailsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </div>
 
-            {/* Linha Valor a Receber (Calculado) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
-                Valor a Receber
-              </div>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
-                {formatBRL(valorAReceber)}
-              </div>
-            </div>
+            {/* Bloco de informações ocultáveis (Valor Total, Taxa R$, Valor a Receber, Valor - Frete ME) */}
+            {isDetailsOpen && (
+              <div style={{ background: '#fafafa', borderBottom: '1px solid #e2e8f0' }}>
+                {/* Linha Valor Total (Troca com Taxa % anterior) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #f1f5f9' }}>
+                  <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '500', color: '#64748b' }}>
+                    Valor Total
+                  </div>
+                  <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
+                    {formatBRL(valorTotal)}
+                  </div>
+                </div>
 
-            {/* Linha Valor - Frete ME (Calculado) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
-                Valor - Frete ME
-              </div>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
-                {formatBRL(valorMenosFreteME)}
-              </div>
-            </div>
+                {/* Linha Taxa (R$) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #f1f5f9' }}>
+                  <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '500', color: '#64748b' }}>
+                    Taxa (R$)
+                  </div>
+                  <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
+                    {formatBRL(taxaReais)}
+                  </div>
+                </div>
 
-            {/* Linha Custo (Puxado do Produto) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
+                {/* Linha Valor a Receber */}
+                <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #f1f5f9' }}>
+                  <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '500', color: '#64748b' }}>
+                    Valor a Receber
+                  </div>
+                  <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
+                    {formatBRL(valorAReceber)}
+                  </div>
+                </div>
+
+                {/* Linha Valor - Frete ME */}
+                <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr' }}>
+                  <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '500', color: '#64748b' }}>
+                    Valor - Frete ME
+                  </div>
+                  <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
+                    {formatBRL(valorMenosFreteME)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Linha Custo (PRETO conforme solicitado: apenas lucro líquido e margem são coloridos) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+              <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
                 Custo
               </div>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '800', color: '#059669' }}>
+              <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
                 {formatBRL(custo)}
               </div>
             </div>
 
             {/* Linha Lucro Bruto (Calculado) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+              <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
                 Lucro Bruto
               </div>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
+              <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
                 {formatBRL(lucroBruto)}
               </div>
             </div>
 
             {/* Linha Comissão (25% do Lucro Bruto) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+              <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
                 Comissão (25%)
               </div>
-              <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
+              <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
                 {formatBRL(comissao)}
               </div>
             </div>
 
-            {/* Linha Lucro Líquido (Acompanha a cor da margem) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', borderBottom: '1px solid #e2e8f0', background: marginTheme.bg }}>
+            {/* Linha Lucro Líquido (Colorido conforme a regra de margem) */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '140px 1fr',
+              borderBottom: '1px solid #e2e8f0',
+              background: marginTheme.bg
+            }}>
               <div style={{ padding: '10px 12px', fontSize: '13px', fontWeight: '800', color: marginTheme.color }}>
                 Lucro Líquido
               </div>
@@ -423,10 +526,14 @@ export default function FreteProprioModal({
               </div>
             </div>
 
-            {/* Linha Margem (Destaque final com cor temática) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', background: marginTheme.bg }}>
+            {/* Linha Margem Líquida (Destaque final com mesma regra de cores da precificadora kits) */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '140px 1fr',
+              background: marginTheme.bg
+            }}>
               <div style={{ padding: '12px 12px', fontSize: '14px', fontWeight: '900', color: marginTheme.color }}>
-                Margem
+                Margem Líquida
               </div>
               <div style={{ padding: '12px 12px', fontSize: '16px', fontWeight: '900', color: marginTheme.color }}>
                 {margem.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
