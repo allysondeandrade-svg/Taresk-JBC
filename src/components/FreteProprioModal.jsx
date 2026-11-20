@@ -308,10 +308,10 @@ export default function FreteProprioModal({
               </div>
             </div>
 
-            {/* Linha Frete Amazon (Input) */}
+            {/* Linha Frete Plataforma (Input) */}
             <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
               <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
-                Frete Amazon
+                Frete Plataforma
               </div>
               <div style={{ padding: '6px 10px' }}>
                 <input
@@ -336,10 +336,10 @@ export default function FreteProprioModal({
               </div>
             </div>
 
-            {/* Linha Frete ME (Input) */}
+            {/* Linha Frete Transportadora (Input) */}
             <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
               <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
-                Frete ME
+                Frete Transportadora
               </div>
               <div style={{ padding: '6px 10px' }}>
                 <input
@@ -469,10 +469,10 @@ export default function FreteProprioModal({
                   </div>
                 </div>
 
-                {/* Linha Valor - Frete ME */}
+                {/* Linha Valor - Frete Transportadora */}
                 <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr' }}>
                   <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '500', color: '#64748b' }}>
-                    Valor - Frete ME
+                    Valor - Frete Transportadora
                   </div>
                   <div style={{ padding: '8px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>
                     {formatBRL(valorMenosFreteME)}
