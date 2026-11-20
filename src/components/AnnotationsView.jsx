@@ -532,7 +532,7 @@ export default function AnnotationsView({
         </h1>
       </div>
 
-      {/* Barra de Filtros e Busca Completa: Plataforma, Tipo, Mês e Período por Calendário */}
+      {/* Barra de Filtros Completa: Plataforma, Tipo, Mês e Período por Calendário */}
       <div style={{
         background: '#ffffff',
         borderRadius: '16px',
@@ -546,42 +546,10 @@ export default function AnnotationsView({
         marginBottom: '20px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
       }}>
-        {/* Campo de Busca Textual */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 240px', minWidth: '200px' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: '#f8fafc',
-            border: '1.5px solid #cbd5e1',
-            borderRadius: '10px',
-            padding: '8px 12px',
-            width: '100%'
-          }}>
-            <Search size={16} color="#64748b" />
-            <input
-              type="text"
-              placeholder="Buscar por ID, pedido, valor, usuário..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                outline: 'none',
-                fontSize: '13px',
-                width: '100%',
-                color: '#1e293b'
-              }}
-            />
-            {searchTerm && (
-              <X size={14} color="#94a3b8" style={{ cursor: 'pointer' }} onClick={() => setSearchTerm('')} />
-            )}
-          </div>
-        </div>
-
         {/* Filtros lado a lado */}
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          {/* 1. Filtro de Plataforma */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', width: '100%', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            {/* 1. Filtro de Plataforma */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>Plataforma:</label>
             <select
@@ -757,6 +725,7 @@ export default function AnnotationsView({
           >
             <Plus size={22} strokeWidth={3} />
           </button>
+        </div>
         </div>
       </div>
 
