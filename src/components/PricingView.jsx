@@ -21,8 +21,6 @@ function formatCurrency(val) {
 export default function PricingView({ products = [] }) {
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || '');
   const [productSearch, setProductSearch] = useState('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
 
   // Preço de venda em centavos/valor numérico para cada canal
   const [channelPrices, setChannelPrices] = useState({
@@ -61,17 +59,6 @@ export default function PricingView({ products = [] }) {
     height: 30,
     weight: 3.50
   };
-
-  // Fecha dropdown ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Ao selecionar um produto ou trocar o tipo de anúncio ML, preenche automaticamente os preços para atingir 15% de margem líquida
   useEffect(() => {

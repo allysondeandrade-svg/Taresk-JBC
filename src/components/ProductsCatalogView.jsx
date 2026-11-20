@@ -191,12 +191,22 @@ export default function ProductsCatalogView({
         </button>
       </div>
 
-      {/* Barra de Busca por SKU ou Nome */}
+      {/* Barra de Filtros com balão branco de canto a canto */}
       <div style={{
-        marginBottom: '20px'
+        background: '#ffffff',
+        borderRadius: '16px',
+        padding: '12px 18px',
+        border: '1px solid #e2e8f0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        marginBottom: '20px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
       }}>
         {/* Campo de Busca Rápida por SKU ou Nome com Autocomplete estilo Excel */}
-        <div style={{ width: '280px', maxWidth: '100%' }}>
+        <div style={{ width: '320px', maxWidth: '100%' }}>
           <ProductSearchAutocomplete
             products={products}
             value={productSearch}
@@ -205,6 +215,40 @@ export default function ProductsCatalogView({
             placeholder="Buscar por SKU ou Nome..."
             showCost={true}
           />
+        </div>
+
+        {/* Quantidade total de produtos ou botão de limpar filtro se houver busca */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {productSearch && (
+            <button
+              type="button"
+              onClick={() => setProductSearch('')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: '1.5px solid #e2e8f0',
+                background: '#ffffff',
+                fontSize: '12px',
+                fontWeight: '700',
+                color: '#334155',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+            >
+              Limpar Filtro
+            </button>
+          )}
+
+          <div style={{
+            fontSize: '13px',
+            fontWeight: '700',
+            color: '#64748b'
+          }}>
+            Total: <span style={{ color: '#0f172a', fontWeight: '800' }}>{products.length} produtos</span>
+          </div>
         </div>
       </div>
 

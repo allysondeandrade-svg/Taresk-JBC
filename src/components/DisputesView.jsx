@@ -374,19 +374,20 @@ export default function DisputesView({
         </button>
       </div>
 
-      {/* Barra de Filtros e Busca */}
+      {/* Barra de Filtros e Busca isolada com balão branco de canto a canto */}
       <div
         style={{
-          background: '#f8fafc',
-          padding: '12px 20px',
+          background: '#ffffff',
+          borderRadius: '16px',
+          padding: '14px 20px',
+          border: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px',
-          borderRadius: '16px 16px 0 0',
-          border: '1.5px solid #e2e8f0',
-          borderBottom: '1px solid #e2e8f0'
+          marginBottom: '20px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '240px' }}>
@@ -546,10 +547,9 @@ export default function DisputesView({
       <div
         style={{
           background: '#ffffff',
-          borderRadius: '0 0 16px 16px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
           border: '1.5px solid #e2e8f0',
-          borderTop: 'none',
           overflowX: 'auto'
         }}
       >
