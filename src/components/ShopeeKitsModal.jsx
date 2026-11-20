@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Layers, Info } from 'lucide-react';
+import ProductSearchAutocomplete from './ProductSearchAutocomplete';
 
 /**
  * Retorna taxa % e taxa fixa de frete da Shopee de acordo com a tabela da Foto 2:
@@ -97,8 +98,9 @@ export default function ShopeeKitsModal({
   product = {},
   products = []
 }) {
-  // Produto selecionado no dropdown de validação de dados
-  const [selectedProdId, setSelectedProdId] = useState(product?.id || '');
+  // Produto selecionado no autocomplete de produtos
+  const [selectedProd, setSelectedProd] = useState(null);
+  const [productSearchText, setProductSearchText] = useState('');
 
   // Valores em formato monetário com máscara R$ 00,00 (sem zero na frente)
   const [custoStr, setCustoStr] = useState('');
@@ -109,30 +111,39 @@ export default function ShopeeKitsModal({
   const [desc3Unid, setDesc3Unid] = useState(10); // em % (ex: 10%)
   const comissaoVendedor = 25; // em % do Lucro Bruto (25%)
 
-  // Quando abrir o modal ou o produto mudar, inicializa os dados
+  // Quando abrir o modal, inicia vazio (ou com produto passado se fornecido explicitamente com id)
   useEffect(() => {
-    const activeProd = (products || []).find(p => p.id === (selectedProdId || product?.id)) || product;
-    if (activeProd) {
-      setSelectedProdId(activeProd.id || '');
-      const rawCost = typeof activeProd.cost === 'number' ? activeProd.cost : parseFloat(String(activeProd.cost || 0).replace(',', '.')) || 0;
-      setCustoStr(formatBRL(rawCost));
-      if (!precoUnStr) {
-        // Preço sugerido inicial
+    if (isOpen) {
+      if (product && product.id) {
+        setSelectedProd(product);
+        const label = `${product.sku} - ${product.title || product.product || ''}`;
+        setProductSearchText(label);
+        const rawCost = typeof product.cost === 'number' ? product.cost : parseFloat(String(product.cost || 0).replace(',', '.')) || 0;
+        setCustoStr(formatBRL(rawCost));
         const initialPrice = rawCost > 0 ? (rawCost * 2) : 45.00;
         setPrecoUnStr(formatBRL(initialPrice));
+      } else {
+        setSelectedProd(null);
+        setProductSearchText('');
+        setCustoStr(formatBRL(0));
+        setPrecoUnStr('');
       }
     }
   }, [product, isOpen]);
 
-  // Ao trocar de produto no dropdown de validação de dados
-  const handleProductSelect = (prodId) => {
-    setSelectedProdId(prodId);
-    const chosen = (products || []).find(p => p.id === prodId);
+  // Ao selecionar um produto no autocomplete
+  const handleSelectProduct = (chosen) => {
+    setSelectedProd(chosen);
     if (chosen) {
+      const label = `${chosen.sku} - ${chosen.title || chosen.product || ''}`;
+      setProductSearchText(label);
       const rawCost = typeof chosen.cost === 'number' ? chosen.cost : parseFloat(String(chosen.cost || 0).replace(',', '.')) || 0;
       setCustoStr(formatBRL(rawCost));
       const initialPrice = rawCost > 0 ? (rawCost * 2) : 45.00;
       setPrecoUnStr(formatBRL(initialPrice));
+    } else {
+      setProductSearchText('');
+      setCustoStr(formatBRL(0));
     }
   };
 
@@ -275,32 +286,42 @@ export default function ShopeeKitsModal({
                 <span>Valor</span>
               </div>
 
-              {/* Linha 1: Validação de Dados do Produto (Onde ficava o custo) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', alignItems: 'center', borderBottom: '1px solid #fed7aa', background: '#fff7ed', padding: '6px 10px' }}>
+              {/* Linha 1: Validação de Dados do Produto com busca/autocomplete */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '110px 1fr',
+                alignItems: 'center',
+                borderBottom: '1px solid #fed7aa',
+                background: '#fff7ed',
+                padding: '6px 10px',
+                position: 'relative',
+                zIndex: 60
+              }}>
                 <span style={{ fontWeight: '800', color: '#9a3412', fontSize: '13px' }}>Produto</span>
-                <select
-                  value={selectedProdId}
-                  onChange={(e) => handleProductSelect(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    borderRadius: '6px',
-                    border: '1px solid #fdba74',
-                    fontWeight: '700',
-                    fontSize: '12px',
-                    outline: 'none',
-                    background: '#ffffff',
-                    color: '#000000',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="">Selecione o Produto...</option>
-                  {(products || []).map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.sku} - {p.title}
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  <ProductSearchAutocomplete
+                    products={products}
+                    value={productSearchText}
+                    onChange={(val) => {
+                      setProductSearchText(val);
+                      if (!val) {
+                        setSelectedProd(null);
+                        setCustoStr(formatBRL(0));
+                      }
+                    }}
+                    onSelect={(p) => handleSelectProduct(p)}
+                    placeholder="Buscar por SKU ou Nome..."
+                    showCost={true}
+                    inputStyle={{
+                      borderRadius: '6px',
+                      border: '1px solid #fdba74',
+                      padding: '6px 10px 6px 34px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      background: '#ffffff'
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Linha 2: Custo em R$ 00,00 (No lugar onde estava Emb) */}
