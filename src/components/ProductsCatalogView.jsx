@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Check, Package, Search, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Package, Eye, EyeOff } from 'lucide-react';
+import ProductSearchAutocomplete from './ProductSearchAutocomplete';
 
 export default function ProductsCatalogView({
   products = [],
@@ -165,29 +166,16 @@ export default function ProductsCatalogView({
         gap: '16px',
         marginBottom: '20px'
       }}>
-        {/* Campo de Busca Rápida por SKU ou Nome */}
-        <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
-          <input
-            type="text"
-            placeholder="Buscar por SKU ou Nome..."
+        {/* Campo de Busca Rápida por SKU ou Nome com Autocomplete estilo Excel */}
+        <div style={{ width: '280px', maxWidth: '100%' }}>
+          <ProductSearchAutocomplete
+            products={products}
             value={productSearch}
-            onChange={(e) => setProductSearch(e.target.value)}
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              padding: '10px 14px 10px 38px',
-              borderRadius: '12px',
-              border: '1.5px solid #cbd5e1',
-              fontSize: '13px',
-              background: '#ffffff',
-              color: '#1e293b',
-              outline: 'none',
-              transition: 'border-color 0.15s ease'
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = '#8b5cf6'; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
+            onChange={(val) => setProductSearch(val)}
+            onSelect={(prod) => setProductSearch(prod.sku || prod.title || '')}
+            placeholder="Buscar por SKU ou Nome..."
+            showCost={true}
           />
-          <Search size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
         </div>
 
         {/* Botão Circular Roxo (+) igual ao da imagem */}

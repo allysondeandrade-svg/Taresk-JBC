@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Search, Calendar, User, CheckSquare, Plus, Edit2, Copy, Trash2, ArrowUp, ArrowDown, Package, CheckCircle2 } from 'lucide-react';
+import ProductSearchAutocomplete from './ProductSearchAutocomplete';
 import { DEFAULT_CHECKLIST_ITEMS } from '../data/initialData';
 
 export default function NewTaskModal({
@@ -467,64 +468,30 @@ export default function NewTaskModal({
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Se for Produto: Seletor de SKU */}
+          {/* Se for Produto: Busca e Autocomplete de Produto estilo Excel */}
           {taskType === 'product_catalog' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  placeholder="Buscar SKU do produto..."
-                  value={productSearch}
-                  onChange={(e) => {
-                    const query = e.target.value;
-                    setProductSearch(query);
-                    if (query.trim()) {
-                      const matched = products.find(p =>
-                        (p.sku && p.sku.toLowerCase().includes(query.toLowerCase())) ||
-                        (p.title && p.title.toLowerCase().includes(query.toLowerCase()))
-                      );
-                      if (matched) setSelectedProductId(matched.sku || matched.id);
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 34px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    color: '#1e293b',
-                    boxSizing: 'border-box',
-                    outline: 'none'
-                  }}
-                />
-                <Search size={15} color="#64748b" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-              </div>
-
-              <select
-                value={selectedProductId}
-                onChange={(e) => {
-                  setSelectedProductId(e.target.value);
-                  const p = products.find(item => (item.sku === e.target.value || item.id === e.target.value));
-                  if (p && !description) setDescription(p.title || p.sku);
+              <label style={{
+                fontSize: '13px',
+                fontWeight: '700',
+                color: '#334155',
+                display: 'block'
+              }}>
+                Produto / SKU
+              </label>
+              <ProductSearchAutocomplete
+                products={products}
+                value={description}
+                onSelect={(p) => {
+                  setSelectedProductId(p.sku || p.id);
+                  setDescription(p.title || p.sku || '');
                 }}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: '10px',
-                  border: '1.5px solid #cbd5e1',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  color: '#1e293b',
-                  background: '#f8fafc',
-                  boxSizing: 'border-box'
+                onChange={(val) => {
+                  setDescription(val);
                 }}
-              >
-                {filteredProducts.map(p => (
-                  <option key={p.id || p.sku} value={p.sku || p.id}>
-                    {p.sku} {p.title ? `- ${p.title}` : ''}
-                  </option>
-                ))}
-              </select>
+                placeholder="Buscar por SKU ou Nome do produto..."
+                showCost={true}
+              />
             </div>
           )}
 

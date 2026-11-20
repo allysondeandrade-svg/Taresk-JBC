@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Plus, Trash2, Edit2, Check, X, Search, Filter, AlertTriangle, ArrowUpDown, ChevronDown, Calendar, Copy } from 'lucide-react';
+import ProductSearchAutocomplete from './ProductSearchAutocomplete';
 
 export default function DisputesView({
   disputes = [],
@@ -958,31 +959,19 @@ export default function DisputesView({
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
                   Produto / SKU
                 </label>
-                <input
-                  type="text"
-                  required
-                  list="disputes-products-list"
-                  placeholder="Selecione ou digite o SKU / Produto..."
+                <ProductSearchAutocomplete
+                  products={products}
                   value={formData.product}
-                  onChange={(e) => setFormData({ ...formData, product: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
+                  onChange={(val) => setFormData({ ...formData, product: val })}
+                  onSelect={(p) => setFormData({ ...formData, product: p.sku || p.title || '' })}
+                  placeholder="Selecione ou digite o SKU / Produto..."
+                  showCost={true}
+                  inputStyle={{
                     borderRadius: '8px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    fontWeight: '700',
-                    outline: 'none',
-                    boxSizing: 'border-box'
+                    padding: '9px 12px 9px 36px',
+                    fontWeight: '700'
                   }}
                 />
-                <datalist id="disputes-products-list">
-                  {productsList.map((p, idx) => (
-                    <option key={idx} value={p.sku}>
-                      {p.display}
-                    </option>
-                  ))}
-                </datalist>
               </div>
 
               <div>

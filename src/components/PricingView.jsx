@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Calculator, DollarSign, ArrowRight, Info, AlertTriangle, TrendingUp, Box, Scale, Layers } from 'lucide-react';
 import ShopeeKitsModal from './ShopeeKitsModal';
+import ProductSearchAutocomplete from './ProductSearchAutocomplete';
 import { DEFAULT_PRICING_CONFIGS } from '../data/initialData';
 import {
   getConsideredWeight,
@@ -184,87 +185,17 @@ export default function PricingView({ products = [] }) {
       </div>
 
       {/* 1. Balão de busca mais simples igual ao do produto com autocomplete estilo Excel */}
-      <div ref={dropdownRef} style={{ position: 'relative', width: '320px', maxWidth: '100%', marginBottom: '20px' }}>
-        <div style={{ position: 'relative' }}>
-          <input
-            type="text"
-            placeholder="Buscar por SKU ou Nome..."
-            value={productSearch}
-            onChange={(e) => {
-              setProductSearch(e.target.value);
-              setIsDropdownOpen(true);
-            }}
-            onFocus={() => setIsDropdownOpen(true)}
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              padding: '10px 14px 10px 38px',
-              borderRadius: '12px',
-              border: '1.5px solid #cbd5e1',
-              fontSize: '13px',
-              background: '#ffffff',
-              color: '#1e293b',
-              outline: 'none',
-              transition: 'border-color 0.15s ease'
-            }}
-          />
-          <Search size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-        </div>
-
-        {/* Dropdown com opções estilo Excel ao digitar as primeiras letras */}
-        {isDropdownOpen && filteredProducts.length > 0 && (
-          <div style={{
-            position: 'absolute',
-            top: 'calc(100% + 4px)',
-            left: 0,
-            right: 0,
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1.5px solid #cbd5e1',
-            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)',
-            maxHeight: '260px',
-            overflowY: 'auto',
-            zIndex: 40
-          }}>
-            {filteredProducts.map(p => {
-              const isSelected = p.id === selectedProductId;
-              const pCost = typeof p.cost === 'number' && !isNaN(p.cost) ? p.cost : parseFloat(String(p.cost || 0).replace(',', '.')) || 0;
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => {
-                    setSelectedProductId(p.id);
-                    setProductSearch(`${p.sku} - ${p.title || p.product || ''}`);
-                    setIsDropdownOpen(false);
-                  }}
-                  style={{
-                    padding: '9px 14px',
-                    fontSize: '13px',
-                    fontWeight: isSelected ? '800' : '600',
-                    color: isSelected ? '#5925dc' : '#1e293b',
-                    background: isSelected ? '#ede9fe' : '#ffffff',
-                    borderBottom: '1px solid #f1f5f9',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    transition: 'background 0.1s ease'
-                  }}
-                  onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = '#f8fafc'; }}
-                  onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = '#ffffff'; }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontWeight: '800' }}>{p.sku}</span>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>{p.title || p.product || ''}</span>
-                  </div>
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#059669' }}>
-                    R$ {pCost.toFixed(2).replace('.', ',')}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+      <div style={{ width: '320px', maxWidth: '100%', marginBottom: '20px' }}>
+        <ProductSearchAutocomplete
+          products={products}
+          value={productSearch}
+          placeholder="Buscar por SKU ou Nome..."
+          showCost={true}
+          onSelect={(p) => {
+            setSelectedProductId(p.id);
+            setProductSearch(`${p.sku} - ${p.title || p.product || ''}`);
+          }}
+        />
       </div>
 
       {/* Linha com Balão Branco de dados do Produto + Botão Precificadora Shopee Kit FORA do balão branco */}
