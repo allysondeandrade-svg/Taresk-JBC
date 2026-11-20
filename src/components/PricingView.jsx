@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Calculator, DollarSign, ArrowRight, Info, AlertTriangle, TrendingUp, Box, Scale, Layers } from 'lucide-react';
 import ShopeeKitsModal from './ShopeeKitsModal';
 import { DEFAULT_PRICING_CONFIGS } from '../data/initialData';
@@ -16,9 +16,12 @@ function formatCurrency(val) {
   const num = typeof val === 'number' ? val : parseFloat(val) || 0;
   return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-export default function PricingView({ products }) {
+
+export default function PricingView({ products = [] }) {
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || '');
   const [productSearch, setProductSearch] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   // Preço de venda em centavos/valor numérico para cada canal
   const [channelPrices, setChannelPrices] = useState({
@@ -58,6 +61,17 @@ export default function PricingView({ products }) {
     weight: 3.50
   };
 
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Ao selecionar um produto ou trocar o tipo de anúncio ML, preenche automaticamente os preços para atingir 15% de margem líquida
   useEffect(() => {
     if (!selectedProduct || !selectedProduct.cost) return;
@@ -78,7 +92,7 @@ export default function PricingView({ products }) {
     });
   }, [selectedProductId, selectedProduct.cost, mlListingType, customRates, customFreights]);
 
-  // Ao digitar, trata como centavos: digitar 1000 => 10,00
+  // Altera o preço de venda de um canal com suporte a digitação fluida em centavos
   const handlePriceRawInput = (channelKey, rawString) => {
     const cleanDigits = rawString.replace(/\D/g, '');
     const cents = parseInt(cleanDigits, 10);
@@ -100,11 +114,11 @@ export default function PricingView({ products }) {
     const val = parseFloat(clean);
     setCustomRates(prev => ({
       ...prev,
-      [channelKey]: isNaN(val) ? null : val
+      [channelKey]: isNaN(val) ? 0 : val
     }));
   };
 
-  // Altera o frete / taxa fixa do canal
+  // Altera o Frete ou Tarifa Fixa do canal (formato monetário)
   const handleFreightRawInput = (channelKey, rawString) => {
     if (rawString === '') {
       setCustomFreights(prev => ({ ...prev, [channelKey]: null }));
@@ -112,190 +126,238 @@ export default function PricingView({ products }) {
     }
     const cleanDigits = rawString.replace(/\D/g, '');
     const cents = parseInt(cleanDigits, 10);
-    const val = isNaN(cents) ? null : cents / 100;
+    const newFreight = isNaN(cents) ? 0 : cents / 100;
     setCustomFreights(prev => ({
       ...prev,
-      [channelKey]: val
+      [channelKey]: newFreight
     }));
   };
 
-  // Reseta um canal para as tarifas/fretes automáticos oficiais
+  // Restaura configurações padrão do canal
   const handleResetChannel = (channelKey) => {
     setCustomRates(prev => ({ ...prev, [channelKey]: null }));
     setCustomFreights(prev => ({ ...prev, [channelKey]: null }));
   };
 
-  // Cálculos automáticos com base no produto, dimensões e peso
+  // Cálculos de cada Marketplace
+  const cost = parseFloat(selectedProduct.cost) || 0;
   const realWeight = parseFloat(selectedProduct.weight) || 0;
-  const cubicWeight = (selectedProduct.width && selectedProduct.length && selectedProduct.height)
-    ? ((selectedProduct.width * selectedProduct.length * selectedProduct.height) / 6000)
-    : 0;
-  const consideredWeight = Math.max(realWeight, cubicWeight, 0.1);
+  const length = parseFloat(selectedProduct.length) || 0;
+  const width = parseFloat(selectedProduct.width) || 0;
+  const height = parseFloat(selectedProduct.height) || 0;
+  const cubicWeight = (length * width * height) / 6000;
+  const consideredWeight = Math.max(realWeight, cubicWeight);
 
-  // Alíquota ML padrão
+  const shopeeCalc = calculateShopee(channelPrices.shopee, cost, customRates.shopee, customFreights.shopee);
   const mlRate = customRates.mercadoLivre !== null ? customRates.mercadoLivre : (mlListingType === 'classico' ? 12.0 : 16.5);
+  const mlCalc = calculateMercadoLivre(channelPrices.mercadoLivre, cost, selectedProduct, mlRate, customFreights.mercadoLivre);
+  const amazonCalc = calculateAmazon(channelPrices.amazon, cost, selectedProduct, customRates.amazon || 15.0, customFreights.amazon);
+  const magaluCalc = calculateMagalu(channelPrices.magalu, cost, selectedProduct, customRates.magalu || 16.0, customFreights.magalu);
 
-  const shopeeCalc = calculateShopee(channelPrices.shopee, selectedProduct.cost, customRates.shopee, customFreights.shopee);
-  const mlCalc = calculateMercadoLivre(channelPrices.mercadoLivre, selectedProduct.cost, selectedProduct, mlRate, customFreights.mercadoLivre);
-  const amazonCalc = calculateAmazon(channelPrices.amazon, selectedProduct.cost, selectedProduct, customRates.amazon || 15.0, customFreights.amazon);
-  const magaluCalc = calculateMagalu(channelPrices.magalu, selectedProduct.cost, selectedProduct, customRates.magalu || 16.0, customFreights.magalu);
+  // Filtro de produtos para o dropdown estilo Excel
+  const filteredProducts = products.filter(p => {
+    if (!productSearch) return true;
+    const q = productSearch.toLowerCase();
+    const sku = (p.sku || '').toLowerCase();
+    const title = (p.title || p.product || '').toLowerCase();
+    return sku.includes(q) || title.includes(q);
+  });
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+    <div style={{
+      maxWidth: '1440px',
+      margin: '0 auto',
+      padding: '24px 20px',
+      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif"
+    }}>
       {/* Título da Aba no canto superior esquerdo padronizado */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#1e293b', letterSpacing: '-0.5px' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <h1 style={{
+          margin: 0,
+          fontSize: '28px',
+          fontWeight: '900',
+          color: '#1e293b',
+          letterSpacing: '-0.5px'
+        }}>
           Precificadora
         </h1>
       </div>
 
-      {/* Barra de Pesquisa de Produto idêntica à Página 4 do PDF */}
+      {/* 1. Balão de busca mais simples igual ao do produto com autocomplete estilo Excel */}
+      <div ref={dropdownRef} style={{ position: 'relative', width: '320px', maxWidth: '100%', marginBottom: '20px' }}>
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            placeholder="Buscar por SKU ou Nome..."
+            value={productSearch}
+            onChange={(e) => {
+              setProductSearch(e.target.value);
+              setIsDropdownOpen(true);
+            }}
+            onFocus={() => setIsDropdownOpen(true)}
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '10px 14px 10px 38px',
+              borderRadius: '12px',
+              border: '1.5px solid #cbd5e1',
+              fontSize: '13px',
+              background: '#ffffff',
+              color: '#1e293b',
+              outline: 'none',
+              transition: 'border-color 0.15s ease'
+            }}
+          />
+          <Search size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+        </div>
+
+        {/* Dropdown com opções estilo Excel ao digitar as primeiras letras */}
+        {isDropdownOpen && filteredProducts.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            background: '#ffffff',
+            borderRadius: '12px',
+            border: '1.5px solid #cbd5e1',
+            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)',
+            maxHeight: '260px',
+            overflowY: 'auto',
+            zIndex: 40
+          }}>
+            {filteredProducts.map(p => {
+              const isSelected = p.id === selectedProductId;
+              const pCost = typeof p.cost === 'number' && !isNaN(p.cost) ? p.cost : parseFloat(String(p.cost || 0).replace(',', '.')) || 0;
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => {
+                    setSelectedProductId(p.id);
+                    setProductSearch(`${p.sku} - ${p.title || p.product || ''}`);
+                    setIsDropdownOpen(false);
+                  }}
+                  style={{
+                    padding: '9px 14px',
+                    fontSize: '13px',
+                    fontWeight: isSelected ? '800' : '600',
+                    color: isSelected ? '#5925dc' : '#1e293b',
+                    background: isSelected ? '#ede9fe' : '#ffffff',
+                    borderBottom: '1px solid #f1f5f9',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'background 0.1s ease'
+                  }}
+                  onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = '#f8fafc'; }}
+                  onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = '#ffffff'; }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontWeight: '800' }}>{p.sku}</span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>{p.title || p.product || ''}</span>
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#059669' }}>
+                    R$ {pCost.toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Linha com Balão Branco de dados do Produto + Botão Precificadora Shopee Kit FORA do balão branco */}
       <div style={{
-        marginBottom: '28px',
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        marginBottom: '28px'
       }}>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '380px' }}>
-          <input
-            type="text"
-            placeholder="Digite o Produto"
-            value={productSearch}
-            onChange={(e) => setProductSearch(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '14px 20px 14px 44px',
-              borderRadius: '9999px',
-              border: '2px solid #0f172a',
-              fontSize: '16px',
-              fontWeight: '500',
-              color: '#000000',
-              background: '#ffffff',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-            }}
-          />
-          <Search
-            size={20}
-            color="#000000"
-            style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }}
-          />
-        </div>
-
-        {/* Seletor rápido de produtos cadastrados */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: '700', color: '#000000' }}>
-            Selecionar Produto:
-          </span>
-          <select
-            value={selectedProductId}
-            onChange={(e) => setSelectedProductId(e.target.value)}
-            style={{
-              padding: '12px 18px',
-              borderRadius: '9999px',
-              border: '1.5px solid #cbd5e1',
-              fontSize: '14px',
-              fontWeight: '600',
-              background: '#ffffff',
-              color: '#000000'
-            }}
-          >
-            {products
-              .filter(p => !productSearch || p.title.toLowerCase().includes(productSearch.toLowerCase()) || p.sku.toLowerCase().includes(productSearch.toLowerCase()))
-              .map(p => {
-                const cVal = typeof p.cost === 'number' && !isNaN(p.cost) ? p.cost : parseFloat(String(p.cost || 0).replace(',', '.')) || 0;
-                return (
-                  <option key={p.id} value={p.id}>
-                    {p.sku} - {p.title} (Custo: R$ {cVal.toFixed(2).replace('.', ',')})
-                  </option>
-                );
-              })}
-          </select>
-        </div>
-
+        {/* Balão branco dos dados do produto */}
         <div style={{
-          background: '#f8fafc',
-          border: '1px solid #e2e8f0',
-          padding: '8px 16px',
-          borderRadius: '12px',
+          background: '#ffffff',
+          border: '1.5px solid #e2e8f0',
+          padding: '10px 18px',
+          borderRadius: '14px',
           display: 'flex',
           alignItems: 'center',
-          gap: '14px',
-          flexWrap: 'wrap'
+          gap: '16px',
+          flexWrap: 'wrap',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
         }}>
           <div>
-            <span style={{ fontSize: '11px', color: '#000000', opacity: 0.75, display: 'block' }}>Custo Base</span>
-            <span style={{ fontSize: '15px', fontWeight: '800', color: '#000000' }}>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Custo Base</span>
+            <span style={{ fontSize: '16px', fontWeight: '900', color: '#0f172a' }}>
               R$ {(typeof selectedProduct.cost === 'number' && !isNaN(selectedProduct.cost) ? selectedProduct.cost : parseFloat(String(selectedProduct.cost || 0).replace(',', '.')) || 0).toFixed(2).replace('.', ',')}
             </span>
           </div>
           <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
           <div>
-            <span style={{ fontSize: '11px', color: '#000000', opacity: 0.75, display: 'block' }}>Medidas (CxLxA)</span>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#000000' }}>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Medidas (CxLxA)</span>
+            <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
               {selectedProduct.length || 0} x {selectedProduct.width || 0} x {selectedProduct.height || 0} cm
             </span>
           </div>
           <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
           <div>
-            <span style={{ fontSize: '11px', color: '#000000', opacity: 0.75, display: 'block' }}>Peso Balança</span>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#000000' }}>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Peso Balança</span>
+            <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
               {realWeight.toFixed(2)} kg
             </span>
           </div>
           <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
           <div>
-            <span style={{ fontSize: '11px', color: '#000000', opacity: 0.75, display: 'block' }}>Peso Cubado (÷ 6000)</span>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#000000' }}>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Peso Cubado (÷ 6000)</span>
+            <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
               {cubicWeight.toFixed(2)} kg
             </span>
           </div>
           <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
           <div style={{
-            background: '#eef2ff',
-            padding: '4px 8px',
+            background: '#ede9fe',
+            padding: '5px 10px',
             borderRadius: '8px',
-            border: '1px solid #c7d2fe'
+            border: '1px solid #c4b5fd'
           }}>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: '#312e81', display: 'block' }}>
+            <span style={{ fontSize: '10px', fontWeight: '800', color: '#5925dc', display: 'block' }}>
               Peso Considerado (Maior)
             </span>
-            <span style={{ fontSize: '14px', fontWeight: '900', color: '#000000' }}>
+            <span style={{ fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>
               {consideredWeight.toFixed(2)} kg
             </span>
           </div>
-
-          <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
-
-          {/* Botão Precificadora de Kits Shopee ao lado do peso */}
-          <button
-            type="button"
-            onClick={() => setIsKitsModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '10px',
-              border: 'none',
-              background: '#ff5722',
-              color: '#ffffff',
-              fontWeight: '800',
-              fontSize: '12px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(255, 87, 34, 0.25)',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.background = '#f4511e'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#ff5722'; }}
-          >
-            <Layers size={15} />
-            Precificadora de Kits Shopee
-          </button>
         </div>
+
+        {/* 2. Botão Precificadora de Kits Shopee FORA do balão branco */}
+        <button
+          type="button"
+          onClick={() => setIsKitsModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 18px',
+            borderRadius: '12px',
+            border: 'none',
+            background: '#ff5722',
+            color: '#ffffff',
+            fontWeight: '800',
+            fontSize: '13px',
+            cursor: 'pointer',
+            boxShadow: '0 3px 10px rgba(255, 87, 34, 0.3)',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.background = '#f4511e'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#ff5722'; }}
+        >
+          <Layers size={16} />
+          <span>Precificadora de Kits Shopee</span>
+        </button>
       </div>
 
-      {/* Grid com os 4 Cards de Canais perfeitamente alinhados com fundo branco */}
+      {/* Grid com os 4 Cards de Canais perfeitamente alinhados */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
@@ -319,18 +381,18 @@ export default function PricingView({ products }) {
           onResetChannel={handleResetChannel}
         />
 
-        {/* CARD 2: MERCADO LIVRE (Escreve totalmente Mercado Livre e seletor Clássico/Premium) */}
+        {/* CARD 2: MERCADO LIVRE */}
         <PricingCard
           title="Mercado Livre"
-          subtitle="Envios e Comissões Oficiais"
+          subtitle="Clássico (12%) / Premium (16.5%)"
           brandBg="#ffe600"
           brandTextColor="#000000"
           calc={mlCalc}
           channelKey="mercadoLivre"
-          onPriceRawInput={handlePriceRawInput}
           hasListingSelector={true}
           mlListingType={mlListingType}
-          onToggleListingType={setMlListingType}
+          onToggleListingType={() => setMlListingType(prev => prev === 'classico' ? 'premium' : 'classico')}
+          onPriceRawInput={handlePriceRawInput}
           customRate={customRates.mercadoLivre}
           customFreight={customFreights.mercadoLivre}
           onRateRawInput={handleRateRawInput}
@@ -341,7 +403,7 @@ export default function PricingView({ products }) {
         {/* CARD 3: AMAZON */}
         <PricingCard
           title="Amazon"
-          subtitle="DBA - Delivery by Amazon"
+          subtitle="DBA – Delivery by Amazon"
           brandBg="#131921"
           brandTextColor="#ffffff"
           calc={amazonCalc}
@@ -371,12 +433,12 @@ export default function PricingView({ products }) {
         />
       </div>
 
-      {/* Modal da Precificadora de Kits Shopee */}
+      {/* Modal Popup da Precificadora de Kits Shopee */}
       <ShopeeKitsModal
         isOpen={isKitsModalOpen}
         onClose={() => setIsKitsModalOpen(false)}
-        product={selectedProduct}
         products={products}
+        initialProduct={selectedProduct}
       />
     </div>
   );
@@ -413,9 +475,10 @@ function PricingCard({
       justifyContent: 'space-between',
       border: '1.5px solid #e2e8f0',
       transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-      color: '#000000'
+      color: '#0f172a',
+      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif"
     }}>
-      {/* Topo do Card com altura fixa padronizada para manter alinhamento estrito */}
+      {/* Topo do Card com altura fixa padronizada */}
       <div>
         <div style={{
           padding: '22px 20px 18px',
@@ -453,16 +516,16 @@ function PricingCard({
             }}>
               <button
                 type="button"
-                onClick={() => onToggleListingType('classico')}
+                onClick={onToggleListingType}
                 style={{
-                  border: 'none',
-                  background: mlListingType === 'classico' ? '#000000' : 'transparent',
-                  color: mlListingType === 'classico' ? '#ffffff' : '#000000',
-                  padding: '4px 12px',
+                  padding: '4px 10px',
                   borderRadius: '9999px',
+                  border: 'none',
                   fontSize: '11px',
                   fontWeight: '800',
                   cursor: 'pointer',
+                  background: mlListingType === 'classico' ? '#000000' : 'transparent',
+                  color: mlListingType === 'classico' ? '#ffffff' : '#000000',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -470,16 +533,16 @@ function PricingCard({
               </button>
               <button
                 type="button"
-                onClick={() => onToggleListingType('premium')}
+                onClick={onToggleListingType}
                 style={{
-                  border: 'none',
-                  background: mlListingType === 'premium' ? '#000000' : 'transparent',
-                  color: mlListingType === 'premium' ? '#ffffff' : '#000000',
-                  padding: '4px 12px',
+                  padding: '4px 10px',
                   borderRadius: '9999px',
+                  border: 'none',
                   fontSize: '11px',
                   fontWeight: '800',
                   cursor: 'pointer',
+                  background: mlListingType === 'premium' ? '#000000' : 'transparent',
+                  color: mlListingType === 'premium' ? '#ffffff' : '#000000',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -525,13 +588,13 @@ function PricingCard({
           )}
         </div>
 
-        {/* Linhas de métricas perfeitamente alinhadas */}
+        {/* 3 & 4: Linhas de métricas com a mesma fonte de Precificadora ('Plus Jakarta Sans') e balões de escrita simplificados */}
         <div style={{
           padding: '20px 24px 16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
-          color: '#000000'
+          color: '#0f172a'
         }}>
           {/* Preço de Venda */}
           <div style={{
@@ -540,138 +603,134 @@ function PricingCard({
             alignItems: 'center',
             minHeight: '40px'
           }}>
-            <span style={{ fontSize: '15px', fontWeight: '800', color: '#000000' }}>Preço</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
-              <span style={{ fontSize: '14px', fontWeight: '800', color: '#000000' }}>R$</span>
+            <span style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>Preço</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '10px',
+              background: '#ffffff',
+              padding: '6px 12px',
+              justifyContent: 'space-between',
+              boxSizing: 'border-box'
+            }}>
+              <span style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8' }}>R$</span>
               <input
                 type="text"
                 inputMode="numeric"
                 value={formatCurrency(calc.price)}
                 onChange={(e) => onPriceRawInput(channelKey, e.target.value)}
-                title="Digite o preço (ex: 1000 vira 10,00)"
+                title="Digite o preço em formato R$ 00,00"
                 style={{
-                  width: '120px',
-                  padding: '7px 12px',
-                  borderRadius: '10px',
-                  border: '2px solid #cbd5e1',
-                  background: '#f8fafc',
+                  border: 'none',
+                  background: 'transparent',
                   fontWeight: '800',
-                  fontSize: '16px',
+                  fontSize: '15px',
                   textAlign: 'right',
-                  color: '#000000',
-                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)',
-                  outline: 'none'
+                  color: '#0f172a',
+                  outline: 'none',
+                  width: '100%'
                 }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#0284c7';
-                  e.currentTarget.style.background = '#ffffff';
-                  e.currentTarget.select();
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#cbd5e1';
-                  e.currentTarget.style.background = '#f8fafc';
-                }}
+                onFocus={(e) => e.currentTarget.select()}
               />
             </div>
           </div>
 
-          {/* Tarifa % (Agora editável com indicação visual) */}
+          {/* Tarifa % */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '110px 1fr',
             alignItems: 'center',
-            minHeight: '36px'
+            minHeight: '38px'
           }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#000000' }}>Tarifa %</span>
+              <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Tarifa %</span>
               {customRate !== null && (
-                <span style={{ fontSize: '10px', fontWeight: '700', color: '#7c3aed' }}>Personalizada</span>
+                <span style={{ fontSize: '10px', fontWeight: '800', color: '#7c3aed' }}>Personalizada</span>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              border: customRate !== null ? '1.5px solid #8b5cf6' : '1.5px solid #cbd5e1',
+              borderRadius: '10px',
+              background: customRate !== null ? '#faf5ff' : '#ffffff',
+              padding: '6px 12px',
+              justifyContent: 'space-between',
+              boxSizing: 'border-box'
+            }}>
               <input
                 type="text"
                 inputMode="decimal"
                 value={customRate !== null ? String(customRate).replace('.', ',') : calc.feeRate.toFixed(1).replace('.', ',')}
                 onChange={(e) => onRateRawInput(channelKey, e.target.value)}
                 placeholder={calc.feeRate.toFixed(1).replace('.', ',')}
-                title="Clique para alterar a alíquota de comissão % deste canal"
+                title="Alíquota % do canal"
                 style={{
-                  width: '84px',
-                  padding: '5px 8px',
-                  borderRadius: '8px',
-                  border: customRate !== null ? '2px solid #8b5cf6' : '1.5px solid #cbd5e1',
-                  background: customRate !== null ? '#faf5ff' : '#f8fafc',
+                  border: 'none',
+                  background: 'transparent',
                   fontWeight: '800',
                   fontSize: '14px',
                   textAlign: 'right',
-                  color: customRate !== null ? '#6b21a8' : '#000000',
-                  outline: 'none'
+                  color: customRate !== null ? '#6b21a8' : '#0f172a',
+                  outline: 'none',
+                  width: '100%'
                 }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#8b5cf6';
-                  e.currentTarget.style.background = '#ffffff';
-                  e.currentTarget.select();
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = customRate !== null ? '#8b5cf6' : '#cbd5e1';
-                  e.currentTarget.style.background = customRate !== null ? '#faf5ff' : '#f8fafc';
-                }}
+                onFocus={(e) => e.currentTarget.select()}
               />
-              <span style={{ fontSize: '14px', fontWeight: '800', color: '#000000' }}>%</span>
+              <span style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8', marginLeft: '6px' }}>%</span>
             </div>
           </div>
 
-          {/* Tarifa Fixa ou Frete (Agora editável com indicação visual) */}
+          {/* Tarifa Fixa ou Frete */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '110px 1fr',
             alignItems: 'center',
-            minHeight: '36px'
+            minHeight: '38px'
           }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#000000' }}>
+              <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>
                 {isShopeeStyle ? 'Tarifa Fixa' : 'Frete'}
               </span>
               {customFreight !== null && (
-                <span style={{ fontSize: '10px', fontWeight: '700', color: '#7c3aed' }}>Personalizado</span>
+                <span style={{ fontSize: '10px', fontWeight: '800', color: '#7c3aed' }}>Personalizado</span>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
-              <span style={{ fontSize: '13px', fontWeight: '800', color: '#000000' }}>R$</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              border: customFreight !== null ? '1.5px solid #8b5cf6' : '1.5px solid #cbd5e1',
+              borderRadius: '10px',
+              background: customFreight !== null ? '#faf5ff' : '#ffffff',
+              padding: '6px 12px',
+              justifyContent: 'space-between',
+              boxSizing: 'border-box'
+            }}>
+              <span style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8' }}>R$</span>
               <input
                 type="text"
                 inputMode="numeric"
                 value={formatCurrency(isShopeeStyle ? (customFreight !== null ? customFreight : calc.fixedFee) : (customFreight !== null ? customFreight : calc.frete))}
                 onChange={(e) => onFreightRawInput(channelKey, e.target.value)}
-                title={isShopeeStyle ? "Clique para alterar a Tarifa Fixa (ex: 450 vira 4,50)" : "Clique para alterar o Frete (ex: 2290 vira 22,90)"}
+                title={isShopeeStyle ? "Tarifa Fixa" : "Frete"}
                 style={{
-                  width: '100px',
-                  padding: '5px 8px',
-                  borderRadius: '8px',
-                  border: customFreight !== null ? '2px solid #8b5cf6' : '1.5px solid #cbd5e1',
-                  background: customFreight !== null ? '#faf5ff' : '#f8fafc',
+                  border: 'none',
+                  background: 'transparent',
                   fontWeight: '800',
                   fontSize: '14px',
                   textAlign: 'right',
-                  color: customFreight !== null ? '#6b21a8' : '#000000',
-                  outline: 'none'
+                  color: customFreight !== null ? '#6b21a8' : '#0f172a',
+                  outline: 'none',
+                  width: '100%'
                 }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#8b5cf6';
-                  e.currentTarget.style.background = '#ffffff';
-                  e.currentTarget.select();
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = customFreight !== null ? '#8b5cf6' : '#cbd5e1';
-                  e.currentTarget.style.background = customFreight !== null ? '#faf5ff' : '#f8fafc';
-                }}
+                onFocus={(e) => e.currentTarget.select()}
               />
             </div>
           </div>
 
-          {/* Divisor sutil */}
-          <div style={{ height: '1px', background: 'rgba(0,0,0,0.12)', margin: '2px 0' }} />
+          {/* Divisor */}
+          <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }} />
 
           {/* Recebido */}
           <div style={{
@@ -680,12 +739,12 @@ function PricingCard({
             alignItems: 'center',
             minHeight: '30px'
           }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#000000' }}>Recebido</span>
+            <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Recebido</span>
             <span style={{
               fontSize: '15px',
-              fontWeight: '800',
+              fontWeight: '900',
               textAlign: 'right',
-              color: '#000000',
+              color: '#0f172a',
               fontVariantNumeric: 'tabular-nums'
             }}>
               R$ {calc.recebido.toFixed(2).replace('.', ',')}
@@ -699,12 +758,12 @@ function PricingCard({
             alignItems: 'center',
             minHeight: '30px'
           }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#000000' }}>Custo</span>
+            <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Custo</span>
             <span style={{
               fontSize: '15px',
-              fontWeight: '800',
+              fontWeight: '900',
               textAlign: 'right',
-              color: '#000000',
+              color: '#0f172a',
               fontVariantNumeric: 'tabular-nums'
             }}>
               R$ {calc.custo.toFixed(2).replace('.', ',')}
@@ -718,12 +777,12 @@ function PricingCard({
             alignItems: 'center',
             minHeight: '30px'
           }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#000000' }}>Lucro Bruto</span>
+            <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Lucro Bruto</span>
             <span style={{
               fontSize: '15px',
-              fontWeight: '800',
+              fontWeight: '900',
               textAlign: 'right',
-              color: '#000000',
+              color: '#0f172a',
               fontVariantNumeric: 'tabular-nums'
             }}>
               R$ {calc.lucroBruto.toFixed(2).replace('.', ',')}
@@ -737,12 +796,12 @@ function PricingCard({
             alignItems: 'center',
             minHeight: '30px'
           }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#000000' }}>Comissão</span>
+            <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>Comissão</span>
             <span style={{
               fontSize: '15px',
-              fontWeight: '800',
+              fontWeight: '900',
               textAlign: 'right',
-              color: '#000000',
+              color: '#0f172a',
               fontVariantNumeric: 'tabular-nums'
             }}>
               R$ {calc.commission.toFixed(2).replace('.', ',')}
@@ -751,7 +810,7 @@ function PricingCard({
         </div>
       </div>
 
-      {/* Bloco de Rodapé do Card com Lucro Líquido e Margem Líquida fixados no rodapé */}
+      {/* Bloco de Rodapé do Card com Lucro Líquido e Margem Líquida */}
       <div style={{
         padding: '0 24px 24px',
         display: 'flex',
@@ -770,7 +829,7 @@ function PricingCard({
           borderRadius: '14px',
           border: '1.5px solid #e2e8f0'
         }}>
-          <span style={{ fontSize: '15px', fontWeight: '800', color: '#000000' }}>
+          <span style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>
             Lucro Líquido
           </span>
           <span style={{
@@ -778,29 +837,28 @@ function PricingCard({
             fontWeight: '900',
             textAlign: 'right',
             fontVariantNumeric: 'tabular-nums',
-            color: '#000000'
+            color: '#0f172a'
           }}>
             R$ {calc.lucroLiquido.toFixed(2).replace('.', ',')}
           </span>
         </div>
 
-        {/* Margem Líquida (Leve vermelho < 10%, amarelo 10-15%, verde > 15%) */}
+        {/* Margem Líquida */}
         {(() => {
           const m = calc.margemLiquida;
           let marginBg = '#f1f5f9';
           let marginBorder = '#e2e8f0';
 
-          // Arredonda para 1 casa decimal para conferência visual
           const roundedMargin = Math.round(m * 10) / 10;
 
           if (roundedMargin < 10) {
-            marginBg = '#fee2e2'; // leve vermelho (< 10%)
+            marginBg = '#fee2e2';
             marginBorder = '#fca5a5';
           } else if (roundedMargin < 15) {
-            marginBg = '#fef3c7'; // amarelo suave (10% a 14.9%)
+            marginBg = '#fef3c7';
             marginBorder = '#fcd34d';
           } else {
-            marginBg = '#dcfce7'; // verde suave (a partir de 15.0%)
+            marginBg = '#dcfce7';
             marginBorder = '#86efac';
           }
 
@@ -815,7 +873,7 @@ function PricingCard({
               border: `1.5px solid ${marginBorder}`,
               transition: 'background-color 0.2s ease, border-color 0.2s ease'
             }}>
-              <span style={{ fontSize: '15px', fontWeight: '800', color: '#000000' }}>
+              <span style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>
                 Margem Líquida
               </span>
               <span style={{
@@ -823,7 +881,7 @@ function PricingCard({
                 fontWeight: '900',
                 textAlign: 'right',
                 fontVariantNumeric: 'tabular-nums',
-                color: '#000000'
+                color: '#0f172a'
               }}>
                 {calc.margemLiquida.toFixed(1).replace('.', ',')}%
               </span>
@@ -834,5 +892,3 @@ function PricingCard({
     </div>
   );
 }
-
-
