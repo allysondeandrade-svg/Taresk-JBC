@@ -555,48 +555,32 @@ export default function DisputesView({
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '950px' }}>
           <thead>
             {/* Cabeçalho preto com texto branco conforme imagem de referência */}
-            <tr style={{ background: '#000000', color: '#ffffff' }}>
-              <th style={{ padding: '12px 14px', fontSize: '14px', fontWeight: '800', width: '85px', borderRight: '1px solid #334155' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Plataf <ChevronDown size={14} />
-                </div>
+            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                Plataf
               </th>
-              <th style={{ padding: '12px 12px', fontSize: '14px', fontWeight: '800', width: '80px', borderRight: '1px solid #334155' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Data <ChevronDown size={14} />
-                </div>
+              <th style={{ padding: '14px 14px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                Data
               </th>
-              <th style={{ padding: '12px 14px', fontSize: '14px', fontWeight: '800', width: '150px', borderRight: '1px solid #334155' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Produto <ChevronDown size={14} />
-                </div>
+              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                Produto
               </th>
-              <th style={{ padding: '12px 14px', fontSize: '14px', fontWeight: '800', width: '180px', borderRight: '1px solid #334155' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Pedido <ChevronDown size={14} />
-                </div>
+              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                Pedido
               </th>
-              <th style={{ padding: '12px 14px', fontSize: '14px', fontWeight: '800', minWidth: '150px', borderRight: '1px solid #334155' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Descrição <ChevronDown size={14} />
-                </div>
+              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                Descrição
               </th>
-              <th style={{ padding: '12px 14px', fontSize: '14px', fontWeight: '800', minWidth: '150px', borderRight: '1px solid #334155' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Observação <ChevronDown size={14} />
-                </div>
+              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                Observação
               </th>
-              <th style={{ padding: '12px 14px', fontSize: '14px', fontWeight: '800', width: '160px', borderRight: '1px solid #334155' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Devolução <ChevronDown size={14} />
-                </div>
+              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                Devolução
               </th>
-              <th style={{ padding: '12px 14px', fontSize: '14px', fontWeight: '800', width: '160px', borderRight: '1px solid #334155' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Situação <ChevronDown size={14} />
-                </div>
+              <th style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                Situação
               </th>
-              <th style={{ padding: '12px 10px', fontSize: '13px', fontWeight: '700', width: '70px', textAlign: 'center' }}>
+              <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#64748b', textAlign: 'center', whiteSpace: 'nowrap' }}>
                 Ações
               </th>
             </tr>
