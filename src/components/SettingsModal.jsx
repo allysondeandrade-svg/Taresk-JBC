@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown, Monitor, Smartphone } from 'lucide-react';
+import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown, Monitor, Smartphone, Bell } from 'lucide-react';
+import { NotificationService } from '../services/notificationService';
 
 export const APP_THEMES = [
   {
@@ -31,10 +32,12 @@ export default function SettingsModal({
   onToggleViewMode
 }) {
   const [sheetsUrl, setSheetsUrl] = useState(() => localStorage.getItem('taresk_sheets_api_url') || '');
-  const [activeTab, setActiveTab] = useState('checklist'); // 'checklist', 'planilha', 'cores' ou 'visualizacao'
+  const [activeTab, setActiveTab] = useState('checklist'); // 'checklist', 'planilha', 'cores', 'notificacoes' ou 'visualizacao'
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [checklistItems, setChecklistItems] = useState(defaultChecklistItems);
   const [newChecklistLabel, setNewChecklistLabel] = useState('');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => NotificationService.isEnabled());
+  const [notifStatusMsg, setNotifStatusMsg] = useState('');
 
   if (!isOpen) return null;
 
@@ -220,6 +223,27 @@ export default function SettingsModal({
           >
             <Palette size={16} />
             Tema & Cores
+          </button>
+
+          <button
+            onClick={() => setActiveTab('notificacoes')}
+            style={{
+              padding: '10px 14px',
+              border: 'none',
+              borderBottom: activeTab === 'notificacoes' ? '2.5px solid #5925dc' : '2.5px solid transparent',
+              background: 'transparent',
+              color: activeTab === 'notificacoes' ? '#5925dc' : '#64748b',
+              fontWeight: '700',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Bell size={16} />
+            Notificações
           </button>
 
           <button
@@ -589,6 +613,108 @@ export default function SettingsModal({
                 >
                   Concluir
                 </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'notificacoes' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b', display: 'block' }}>
+                  🔔 Notificações de Vencimento de Contas
+                </span>
+                <span style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
+                  Receba alertas automáticos no seu celular ou computador avisando no <b>dia anterior</b> e no <b>próprio dia</b> do vencimento de cada conta cadastrada.
+                </span>
+              </div>
+
+              <div style={{
+                background: '#f8fafc',
+                borderRadius: '16px',
+                border: '1.5px solid #e2e8f0',
+                padding: '18px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    background: notificationsEnabled ? '#dcfce7' : '#f1f5f9',
+                    color: notificationsEnabled ? '#16a34a' : '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Bell size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>
+                      Status das Notificações
+                    </div>
+                    <div style={{ fontSize: '12px', color: notificationsEnabled ? '#16a34a' : '#64748b', fontWeight: '700' }}>
+                      {notificationsEnabled ? '● Ativadas (Enviando alertas)' : '○ Desativadas'}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const nextState = !notificationsEnabled;
+                    const success = await NotificationService.setEnabled(nextState);
+                    if (success) {
+                      setNotificationsEnabled(nextState);
+                      setNotifStatusMsg(nextState ? 'Notificações ativadas com sucesso!' : 'Notificações desativadas.');
+                      setTimeout(() => setNotifStatusMsg(''), 3000);
+                    }
+                  }}
+                  style={{
+                    padding: '9px 18px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: notificationsEnabled ? '#ef4444' : '#5925dc',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  {notificationsEnabled ? 'Desativar' : 'Ativar Agora'}
+                </button>
+              </div>
+
+              {notifStatusMsg && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  background: '#dcfce7',
+                  border: '1px solid #86efac',
+                  color: '#15803d',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <Check size={16} /> {notifStatusMsg}
+                </div>
+              )}
+
+              <div style={{
+                background: '#eff6ff',
+                borderRadius: '12px',
+                padding: '14px',
+                border: '1px solid #bfdbfe',
+                fontSize: '12px',
+                color: '#1e40af',
+                lineHeight: '1.5'
+              }}>
+                💡 <b>Dica para Celular:</b> Ao adicionar o Taresk à tela inicial do seu celular (modo aplicativo PWA), o sistema enviará notificações nativas na barra superior do smartphone mesmo sem a aba estar em foco.
               </div>
             </div>
           )}

@@ -15,6 +15,7 @@ import AnnotationModal from './components/AnnotationModal';
 import DisputesView from './components/DisputesView';
 import AnnotationsView from './components/AnnotationsView';
 import ConciliacaoView from './components/ConciliacaoView';
+import { NotificationService } from './services/notificationService';
 import { SheetsApi } from './services/sheetsApi';
 import {
   INITIAL_USERS,
@@ -257,6 +258,17 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('taresk_bills', JSON.stringify(bills));
+    // Dispara checagem de notificações ao alterar contas
+    NotificationService.checkAndNotifyBills(bills);
+  }, [bills]);
+
+  // Checagem periódica diária de notificações de contas a pagar (a cada 30 minutos em background)
+  useEffect(() => {
+    NotificationService.checkAndNotifyBills(bills);
+    const interval = setInterval(() => {
+      NotificationService.checkAndNotifyBills(bills);
+    }, 30 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [bills]);
 
   // Rastreia timestamps das tarefas modificadas localmente recentemente para o polling não sobrescrever com dados antigos do Sheets

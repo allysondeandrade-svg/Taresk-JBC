@@ -218,13 +218,13 @@ function setupSheets() {
     ensureIdColumn(disputeSheet, 'ID');
   }
 
-  // 10. Aba Contas (Contas a Pagar): [ID, Dia, Mês, Ano, Descrição, Valor, Status]
+  // 10. Aba Contas (Contas a Pagar): [ID, Dia, Mês, Ano, Descrição, Valor, Status, Recorrente]
   let billSheet = ss.getSheetByName(SHEETS.BILLS) || ss.getSheetByName('Contas a Pagar');
   if (!billSheet) {
     billSheet = ss.insertSheet(SHEETS.BILLS);
-    billSheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status']);
-    billSheet.appendRow(['bill_1', 5, 11, 2026, 'Boleto Grenada', '', 'pending']);
-    billSheet.appendRow(['bill_2', 16, 11, 2026, 'Conta de Água', '', 'pending']);
+    billSheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status', 'Recorrente']);
+    billSheet.appendRow(['bill_1', 5, 11, 2026, 'Boleto Grenada', 'R$ 1.000,00', 'pending', 'Não']);
+    billSheet.appendRow(['bill_2', 16, 11, 2026, 'Conta de Água', 'R$ 150,00', 'pending', 'Mensal']);
     styleHeader(billSheet);
   } else {
     ensureIdColumn(billSheet, 'ID');
@@ -2201,6 +2201,7 @@ function getBillsDataAsJson() {
   const idxDesc = headers.findIndex(h => h === 'descrição' || h === 'descricao' || h === 'description');
   const idxValor = headers.findIndex(h => h === 'valor' || h === 'value');
   const idxStatus = headers.findIndex(h => h === 'status' || h === 'situação' || h === 'situacao');
+  const idxRecorrente = headers.findIndex(h => h === 'recorrente' || h === 'recorrencia' || h === 'tipo' || h === 'recurring');
 
   const bills = [];
   for (let i = 1; i < values.length; i++) {
@@ -2209,6 +2210,9 @@ function getBillsDataAsJson() {
     const day = idxDia !== -1 ? parseInt(row[idxDia], 10) : 1;
     if (!desc && isNaN(day)) continue;
 
+    const recVal = idxRecorrente !== -1 ? String(row[idxRecorrente] || '').toLowerCase() : '';
+    const isRecurring = recVal === 'true' || recVal === 'mensal' || recVal === 'monthly' || recVal === 'sim' || recVal === '1';
+
     bills.push({
       id: idxId !== -1 && row[idxId] ? String(row[idxId]).trim() : ('bill_' + i),
       day: isNaN(day) ? 1 : day,
@@ -2216,7 +2220,9 @@ function getBillsDataAsJson() {
       year: idxAno !== -1 ? (parseInt(row[idxAno], 10) || new Date().getFullYear()) : new Date().getFullYear(),
       description: desc,
       value: idxValor !== -1 ? (row[idxValor] !== '' && row[idxValor] !== null ? row[idxValor] : '') : '',
-      status: idxStatus !== -1 && row[idxStatus] ? String(row[idxStatus]).trim() : 'pending'
+      status: idxStatus !== -1 && row[idxStatus] ? String(row[idxStatus]).trim() : 'pending',
+      isRecurring: isRecurring,
+      recurringType: isRecurring ? 'monthly' : 'once'
     });
   }
 
@@ -2254,13 +2260,16 @@ function upsertBillRecord(bill) {
   const hasIdCol = idxId !== -1;
   const finalId = targetId || (hasIdCol ? ('bill_' + Date.now()) : '');
 
+  const isRec = bill.isRecurring || bill.recurringType === 'monthly';
+
   const rowData = [
     bill.day || 1,
     bill.month || 1,
     bill.year || new Date().getFullYear(),
     bill.description || '',
     bill.value || '',
-    bill.status || 'pending'
+    bill.status || 'pending',
+    isRec ? 'Mensal' : 'Pontual'
   ];
 
   const fullRow = hasIdCol ? [finalId, ...rowData] : rowData;
