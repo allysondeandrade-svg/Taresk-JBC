@@ -525,11 +525,44 @@ export default function TasksView({
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      {/* Título da Aba no canto superior esquerdo padronizado */}
-      <div style={{ marginBottom: '24px' }}>
+      {/* Barra Superior de Título e Botão Nova Tarefa */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+          marginBottom: '24px'
+        }}
+      >
         <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#1e293b', letterSpacing: '-0.5px' }}>
           Tarefas
         </h1>
+
+        {/* Botão Circular Roxo com + padronizado */}
+        <button
+          onClick={onOpenNewTaskModal}
+          title="Nova Tarefa"
+          style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            background: '#5925dc',
+            color: '#ffffff',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 4px 14px rgba(89, 37, 220, 0.4)',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.background = '#4e1fc4'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#5925dc'; }}
+        >
+          <Plus size={24} strokeWidth={3} />
+        </button>
       </div>
 
       {/* Barra Única de Filtros: Usuários + Status + Mês + Período + Limpar + Botão Nova Tarefa (+) */}
@@ -730,33 +763,6 @@ export default function TasksView({
             Limpar Filtro
           </button>
         </div>
-
-        {/* Canto Direito: Botão circular roxo com + (Nova Tarefa) */}
-        <button
-          onClick={onOpenNewTaskModal}
-          title="Nova Tarefa"
-          style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '50%',
-            backgroundColor: '#a855f7',
-            backgroundImage: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
-            color: '#ffffff',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4)',
-            transition: 'all 0.15s ease',
-            flexShrink: 0,
-            marginLeft: 'auto'
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-        >
-          <Plus size={20} strokeWidth={2.5} />
-        </button>
       </div>
 
       {/* Lista de Tarefas */}

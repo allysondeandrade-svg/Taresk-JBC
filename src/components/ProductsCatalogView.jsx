@@ -150,20 +150,49 @@ export default function ProductsCatalogView({
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      {/* Título da Aba no canto superior esquerdo padronizado */}
-      <div style={{ marginBottom: '20px' }}>
+      {/* Barra Superior de Título e Botão Novo Produto */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+          marginBottom: '24px'
+        }}
+      >
         <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#1e293b', letterSpacing: '-0.5px' }}>
           Produtos
         </h1>
+
+        {/* Botão Circular Roxo (+) padronizado */}
+        <button
+          onClick={() => setIsAdding(!isAdding)}
+          title="Novo Produto"
+          style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            background: '#5925dc',
+            color: '#ffffff',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 4px 14px rgba(89, 37, 220, 0.4)',
+            transition: 'all 0.15s ease',
+            flexShrink: 0
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.background = '#4e1fc4'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#5925dc'; }}
+        >
+          <Plus size={24} strokeWidth={3} />
+        </button>
       </div>
 
-      {/* Barra Superior: Busca por SKU ou Nome no canto esquerdo + Botão Circular Roxo (+) no canto direito */}
+      {/* Barra de Busca por SKU ou Nome */}
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '16px',
         marginBottom: '20px'
       }}>
         {/* Campo de Busca Rápida por SKU ou Nome com Autocomplete estilo Excel */}
@@ -177,32 +206,6 @@ export default function ProductsCatalogView({
             showCost={true}
           />
         </div>
-
-        {/* Botão Circular Roxo (+) igual ao da imagem */}
-        <button
-          onClick={() => setIsAdding(!isAdding)}
-          title="Novo Produto"
-          style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '50%',
-            backgroundColor: '#8b5cf6',
-            backgroundImage: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-            color: '#ffffff',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 4px 14px rgba(139, 92, 246, 0.45)',
-            transition: 'all 0.15s ease',
-            flexShrink: 0
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-        >
-          <Plus size={22} strokeWidth={2.8} />
-        </button>
       </div>
 
       {/* Formulário Colapsável de Novo Produto */}

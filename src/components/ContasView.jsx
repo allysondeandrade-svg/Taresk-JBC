@@ -569,7 +569,7 @@ export default function ContasView({
             ))}
           </div>
 
-          {/* Botão Circular Roxo com + */}
+          {/* Botão Circular Roxo com + padronizado */}
           <button
             type="button"
             onClick={() => handleOpenAdd()}
@@ -578,18 +578,18 @@ export default function ContasView({
               width: '42px',
               height: '42px',
               borderRadius: '50%',
-              background: '#b8a6f8',
+              background: '#5925dc',
               color: '#ffffff',
               border: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(184, 166, 248, 0.6)',
+              boxShadow: '0 4px 14px rgba(89, 37, 220, 0.4)',
               transition: 'all 0.15s ease'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.background = '#9e84f5'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#b8a6f8'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.background = '#4e1fc4'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#5925dc'; }}
           >
             <Plus size={24} strokeWidth={3} />
           </button>
