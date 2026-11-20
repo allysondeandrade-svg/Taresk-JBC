@@ -376,6 +376,7 @@ export default function PricingView({ products }) {
         isOpen={isKitsModalOpen}
         onClose={() => setIsKitsModalOpen(false)}
         product={selectedProduct}
+        products={products}
       />
     </div>
   );
