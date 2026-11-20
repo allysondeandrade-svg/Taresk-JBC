@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown, Monitor, Smartphone, Bell } from 'lucide-react';
+import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown, Monitor, Smartphone, Bell, Users, Globe } from 'lucide-react';
 import { NotificationService } from '../services/notificationService';
+import UsersCatalogTab from './UsersCatalogTab';
+import PlatformsCatalogTab from './PlatformsCatalogTab';
 
 export const APP_THEMES = [
   {
@@ -29,10 +31,20 @@ export default function SettingsModal({
   defaultChecklistItems = [],
   onUpdateDefaultChecklist,
   isMobileMode,
-  onToggleViewMode
+  onToggleViewMode,
+  users = [],
+  platforms = [],
+  currentUser = {},
+  onAddUser,
+  onUpdateUser,
+  onDeleteUser,
+  onAddPlatform,
+  onUpdatePlatform,
+  onDeletePlatform
 }) {
   const [sheetsUrl, setSheetsUrl] = useState(() => localStorage.getItem('taresk_sheets_api_url') || '');
-  const [activeTab, setActiveTab] = useState('checklist'); // 'checklist', 'planilha', 'cores', 'notificacoes' ou 'visualizacao'
+  const [activeTab, setActiveTab] = useState('cadastro'); // 'cadastro', 'checklist', 'planilha', 'cores', 'notificacoes' ou 'visualizacao'
+  const [activeCadastroSubTab, setActiveCadastroSubTab] = useState('usuarios'); // 'usuarios' ou 'plataformas'
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [checklistItems, setChecklistItems] = useState(defaultChecklistItems);
   const [newChecklistLabel, setNewChecklistLabel] = useState('');
@@ -100,12 +112,13 @@ export default function SettingsModal({
         backgroundColor: '#ffffff',
         borderRadius: '24px',
         width: '100%',
-        maxWidth: '580px',
+        maxWidth: activeTab === 'cadastro' ? '820px' : '580px',
         maxHeight: '90vh',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
+        transition: 'max-width 0.2s ease',
         animation: 'fadeIn 0.2s ease-out'
       }}>
         {/* Top Header */}
@@ -162,6 +175,27 @@ export default function SettingsModal({
           gap: '8px',
           overflowX: 'auto'
         }}>
+          <button
+            onClick={() => setActiveTab('cadastro')}
+            style={{
+              padding: '10px 14px',
+              border: 'none',
+              borderBottom: activeTab === 'cadastro' ? '2.5px solid #5925dc' : '2.5px solid transparent',
+              background: 'transparent',
+              color: activeTab === 'cadastro' ? '#5925dc' : '#64748b',
+              fontWeight: '700',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Users size={16} />
+            Cadastro
+          </button>
+
           <button
             onClick={() => setActiveTab('checklist')}
             style={{
@@ -270,6 +304,91 @@ export default function SettingsModal({
 
         {/* Conteúdo das Abas */}
         <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+          {/* Aba Cadastro: Usuários e Plataformas */}
+          {activeTab === 'cadastro' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Sub-abas de Cadastro: Usuários | Plataformas */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#f8fafc',
+                padding: '4px',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                width: 'fit-content'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveCadastroSubTab('usuarios')}
+                  style={{
+                    padding: '6px 16px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: activeCadastroSubTab === 'usuarios' ? '800' : '600',
+                    color: activeCadastroSubTab === 'usuarios' ? '#5925dc' : '#64748b',
+                    backgroundColor: activeCadastroSubTab === 'usuarios' ? '#ffffff' : 'transparent',
+                    boxShadow: activeCadastroSubTab === 'usuarios' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Users size={14} />
+                  <span>Usuários ({users.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveCadastroSubTab('plataformas')}
+                  style={{
+                    padding: '6px 16px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: activeCadastroSubTab === 'plataformas' ? '800' : '600',
+                    color: activeCadastroSubTab === 'plataformas' ? '#5925dc' : '#64748b',
+                    backgroundColor: activeCadastroSubTab === 'plataformas' ? '#ffffff' : 'transparent',
+                    boxShadow: activeCadastroSubTab === 'plataformas' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Globe size={14} />
+                  <span>Plataformas ({platforms.length})</span>
+                </button>
+              </div>
+
+              {/* Conteúdo da Sub-aba Usuários */}
+              {activeCadastroSubTab === 'usuarios' && (
+                <UsersCatalogTab
+                  users={users}
+                  platforms={platforms}
+                  currentUser={currentUser}
+                  onAddUser={onAddUser}
+                  onUpdateUser={onUpdateUser}
+                  onDeleteUser={onDeleteUser}
+                />
+              )}
+
+              {/* Conteúdo da Sub-aba Plataformas */}
+              {activeCadastroSubTab === 'plataformas' && (
+                <PlatformsCatalogTab
+                  platforms={platforms}
+                  users={users}
+                  currentUser={currentUser}
+                  onAddPlatform={onAddPlatform}
+                  onUpdatePlatform={onUpdatePlatform}
+                  onDeletePlatform={onDeletePlatform}
+                />
+              )}
+            </div>
+          )}
+
           {activeTab === 'checklist' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>

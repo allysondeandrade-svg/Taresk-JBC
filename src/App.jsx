@@ -895,6 +895,15 @@ export default function App() {
               }
             }
           }}
+          users={users}
+          platforms={platforms}
+          currentUser={currentUser}
+          onAddUser={handleAddUser}
+          onUpdateUser={handleUpdateUser}
+          onDeleteUser={handleDeleteUser}
+          onAddPlatform={handleAddPlatform}
+          onUpdatePlatform={handleUpdatePlatform}
+          onDeletePlatform={handleDeletePlatform}
         />
       </>
     );
@@ -1007,6 +1016,15 @@ export default function App() {
               }
             }
           }}
+          users={users}
+          platforms={platforms}
+          currentUser={currentUser}
+          onAddUser={handleAddUser}
+          onUpdateUser={handleUpdateUser}
+          onDeleteUser={handleDeleteUser}
+          onAddPlatform={handleAddPlatform}
+          onUpdatePlatform={handleUpdatePlatform}
+          onDeletePlatform={handleDeletePlatform}
         />
       </div>
     );
@@ -1065,7 +1083,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'cadastro' && (
+        {(activeTab === 'produtos' || activeTab === 'cadastro') && (
           <ProductsCatalogView
             products={products}
             tasks={tasks}
@@ -1073,14 +1091,7 @@ export default function App() {
             onAddProduct={handleAddProduct}
             onUpdateProduct={handleUpdateProduct}
             onDeleteProduct={handleDeleteProduct}
-            users={users}
             platforms={platforms}
-            onAddUser={handleAddUser}
-            onUpdateUser={handleUpdateUser}
-            onDeleteUser={handleDeleteUser}
-            onAddPlatform={handleAddPlatform}
-            onUpdatePlatform={handleUpdatePlatform}
-            onDeletePlatform={handleDeletePlatform}
           />
         )}
 
@@ -1186,6 +1197,15 @@ export default function App() {
             }
           }
         }}
+        users={users}
+        platforms={platforms}
+        currentUser={currentUser}
+        onAddUser={handleAddUser}
+        onUpdateUser={handleUpdateUser}
+        onDeleteUser={handleDeleteUser}
+        onAddPlatform={handleAddPlatform}
+        onUpdatePlatform={handleUpdatePlatform}
+        onDeletePlatform={handleDeletePlatform}
       />
 
       {/* Modal de Anotação (Desktop) */}

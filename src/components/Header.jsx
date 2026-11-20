@@ -19,7 +19,7 @@ export default function Header({
 
   const tabs = [
     { id: 'tarefas', label: 'Tarefas' },
-    { id: 'cadastro', label: 'Cadastro' },
+    { id: 'produtos', label: 'Produtos' },
     { id: 'precificadora', label: 'Precificadora' },
     { id: 'disputas', label: 'Disputa' },
     { id: 'contas', label: 'Contas' },
@@ -98,7 +98,7 @@ export default function Header({
                   }}
                 >
                   {tab.id === 'tarefas' && <CheckCircle size={16} />}
-                  {tab.id === 'cadastro' && <Package size={16} />}
+                  {tab.id === 'produtos' && <Package size={16} />}
                   {tab.id === 'precificadora' && <DollarSign size={16} />}
                   {tab.id === 'disputas' && <AlertTriangle size={16} />}
                   {tab.id === 'contas' && <Calendar size={16} />}

@@ -1,30 +1,16 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Check, Package, Sparkles, Users, Globe, Layers, Search, Eye, EyeOff } from 'lucide-react';
-import UsersCatalogTab from './UsersCatalogTab';
-import PlatformsCatalogTab from './PlatformsCatalogTab';
+import { Plus, Trash2, Edit2, Check, Package, Search, Eye, EyeOff } from 'lucide-react';
 
 export default function ProductsCatalogView({
-  products,
+  products = [],
   tasks = [],
   currentUser = {},
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
-  // Usuários e Plataformas
-  users = [],
-  platforms = [],
-  onAddUser,
-  onUpdateUser,
-  onDeleteUser,
-  onAddPlatform,
-  onUpdatePlatform,
-  onDeletePlatform
+  platforms = []
 }) {
-  // 3 Sub-abas: 'produtos', 'usuarios', 'plataformas'
-  const [activeSubTab, setActiveSubTab] = useState('produtos');
-
   const [isAdding, setIsAdding] = useState(false);
-  const [filterCatalogStatus, setFilterCatalogStatus] = useState('all'); // 'all', 'cataloged', 'pending'
   const [productSearch, setProductSearch] = useState('');
   const [visiblePlatformsProductIds, setVisiblePlatformsProductIds] = useState(new Set());
 
@@ -39,6 +25,7 @@ export default function ProductsCatalogView({
       return next;
     });
   };
+
   const [newProduct, setNewProduct] = useState({
     sku: '',
     title: '',
@@ -59,18 +46,26 @@ export default function ProductsCatalogView({
       return;
     }
 
-    onAddProduct({
-      id: 'prod_' + Date.now(),
-      sku: newProduct.sku.toUpperCase(),
-      title: newProduct.title || newProduct.sku,
-      product: newProduct.title || newProduct.sku,
-      cost: parseFloat(newProduct.cost) || 0,
-      width: parseFloat(newProduct.width) || 0,
-      length: parseFloat(newProduct.length) || 0,
-      height: parseFloat(newProduct.height) || 0,
-      weight: parseFloat(newProduct.weight) || 0
-    });
+    const costNum = parseFloat(String(newProduct.cost).replace(',', '.')) || 0;
+    const widthNum = parseFloat(String(newProduct.width).replace(',', '.')) || 0;
+    const lengthNum = parseFloat(String(newProduct.length).replace(',', '.')) || 0;
+    const heightNum = parseFloat(String(newProduct.height).replace(',', '.')) || 0;
+    const weightNum = parseFloat(String(newProduct.weight).replace(',', '.')) || 0;
 
+    const prodToSave = {
+      id: 'prod_' + Date.now(),
+      sku: newProduct.sku.trim().toUpperCase(),
+      title: newProduct.title.trim() || newProduct.sku.trim().toUpperCase(),
+      product: newProduct.title.trim() || newProduct.sku.trim().toUpperCase(),
+      cost: costNum,
+      width: widthNum,
+      length: lengthNum,
+      height: heightNum,
+      weight: weightNum,
+      platforms: []
+    };
+
+    onAddProduct(prodToSave);
     setNewProduct({
       sku: '',
       title: '',
@@ -85,29 +80,39 @@ export default function ProductsCatalogView({
 
   const startEdit = (prod) => {
     setEditingId(prod.id);
-    setEditForm({ ...prod });
+    setEditForm({
+      sku: prod.sku,
+      title: prod.title || prod.product || '',
+      cost: prod.cost,
+      width: prod.width,
+      length: prod.length,
+      height: prod.height,
+      weight: prod.weight
+    });
   };
 
   const handleSaveEdit = (id) => {
+    const costNum = parseFloat(String(editForm.cost).replace(',', '.')) || 0;
+    const widthNum = parseFloat(String(editForm.width).replace(',', '.')) || 0;
+    const lengthNum = parseFloat(String(editForm.length).replace(',', '.')) || 0;
+    const heightNum = parseFloat(String(editForm.height).replace(',', '.')) || 0;
+    const weightNum = parseFloat(String(editForm.weight).replace(',', '.')) || 0;
+
     onUpdateProduct(id, {
-      ...editForm,
-      title: editForm.title || editForm.product || editForm.sku,
-      product: editForm.product || editForm.title || editForm.sku,
-      cost: parseFloat(editForm.cost) || 0,
-      width: parseFloat(editForm.width) || 0,
-      length: parseFloat(editForm.length) || 0,
-      height: parseFloat(editForm.height) || 0,
-      weight: parseFloat(editForm.weight) || 0
+      sku: editForm.sku.trim().toUpperCase(),
+      title: editForm.title.trim() || editForm.sku.trim().toUpperCase(),
+      product: editForm.title.trim() || editForm.sku.trim().toUpperCase(),
+      cost: costNum,
+      width: widthNum,
+      length: lengthNum,
+      height: heightNum,
+      weight: weightNum
     });
     setEditingId(null);
   };
 
-  // Alterna o status de cadastro do produto em uma determinada plataforma
   const handleToggleProductPlatform = (prod, platformId) => {
-    // Lista de plataformas ativas atuais do produto
-    let currentPlatforms = Array.isArray(prod.platforms) ? [...prod.platforms] : null;
-
-    // Se ainda não tem array explícito, deduz das tarefas relacionadas
+    let currentPlatforms = prod.platforms;
     if (!currentPlatforms) {
       currentPlatforms = [];
       const relatedTasks = tasks.filter(t => t.productId === prod.id || (prod.sku && t.title?.toLowerCase().includes(prod.sku.toLowerCase())));
@@ -129,257 +134,88 @@ export default function ProductsCatalogView({
     });
   };
 
-  // Helper para verificar se um produto está cadastrado em uma plataforma
   const isProductPlatformActive = (prod, plat) => {
     if (Array.isArray(prod.platforms)) {
       return prod.platforms.includes(plat.id);
     }
-    // Fallback para tarefas existentes caso prod.platforms ainda não tenha sido definido
     const relatedTasks = tasks.filter(t => t.productId === prod.id || (prod.sku && t.title?.toLowerCase().includes(prod.sku.toLowerCase())));
     const platName = plat.name?.toLowerCase() || '';
-    if (platName.includes('shopee')) {
-      return relatedTasks.some(t => t.marketplaces?.shopee?.active);
-    }
-    if (platName.includes('mercado') || platName.includes('ml')) {
-      return relatedTasks.some(t => t.marketplaces?.mercadoLivre?.active);
-    }
-    if (platName.includes('amazon')) {
-      return relatedTasks.some(t => t.marketplaces?.amazon?.active);
-    }
-    if (platName.includes('magalu')) {
-      return relatedTasks.some(t => t.marketplaces?.magalu?.active);
-    }
+    if (platName.includes('shopee')) return relatedTasks.some(t => t.marketplaces?.shopee?.active);
+    if (platName.includes('mercado') || platName.includes('ml')) return relatedTasks.some(t => t.marketplaces?.mercadoLivre?.active);
+    if (platName.includes('amazon')) return relatedTasks.some(t => t.marketplaces?.amazon?.active);
+    if (platName.includes('magalu')) return relatedTasks.some(t => t.marketplaces?.magalu?.active);
     return false;
-  };
-
-  // Helper para verificar se produto tem pelo menos uma plataforma cadastrada
-  const hasAnyPlatformActive = (prod) => {
-    if (Array.isArray(prod.platforms)) {
-      return prod.platforms.length > 0;
-    }
-    const relatedTasks = tasks.filter(t => t.productId === prod.id || (prod.sku && t.title?.toLowerCase().includes(prod.sku.toLowerCase())));
-    return relatedTasks.some(t => {
-      const mp = t.marketplaces || {};
-      return mp.shopee?.active || mp.mercadoLivre?.active || mp.amazon?.active || mp.magalu?.active;
-    });
   };
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
       {/* Título da Aba no canto superior esquerdo padronizado */}
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: '20px' }}>
         <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#1e293b', letterSpacing: '-0.5px' }}>
-          Cadastro
+          Produtos
         </h1>
       </div>
 
-      {/* Navegação das 3 Sub-abas: Produtos | Usuários | Plataformas */}
+      {/* Barra Superior: Busca por SKU ou Nome no canto esquerdo + Botão Circular Roxo (+) no canto direito */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
-        background: '#ffffff',
-        padding: '6px',
-        borderRadius: '14px',
-        border: '1px solid #e2e8f0',
-        marginBottom: '24px',
-        width: 'fit-content',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px',
+        marginBottom: '20px'
       }}>
-        <button
-          onClick={() => setActiveSubTab('produtos')}
-          style={{
-            padding: '8px 20px',
-            borderRadius: '10px',
-            fontSize: '14px',
-            fontWeight: activeSubTab === 'produtos' ? '800' : '600',
-            color: activeSubTab === 'produtos' ? '#5925dc' : '#64748b',
-            backgroundColor: activeSubTab === 'produtos' ? '#ecebfa' : 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <Package size={17} />
-          <span>Produtos</span>
-          <span style={{
-            fontSize: '11px',
-            padding: '2px 7px',
-            borderRadius: '10px',
-            background: activeSubTab === 'produtos' ? '#5925dc' : '#f1f5f9',
-            color: activeSubTab === 'produtos' ? '#ffffff' : '#64748b',
-            fontWeight: '800'
-          }}>
-            {products.length}
-          </span>
-        </button>
+        {/* Campo de Busca Rápida por SKU ou Nome */}
+        <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
+          <input
+            type="text"
+            placeholder="Buscar por SKU ou Nome..."
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '10px 14px 10px 38px',
+              borderRadius: '12px',
+              border: '1.5px solid #cbd5e1',
+              fontSize: '13px',
+              background: '#ffffff',
+              color: '#1e293b',
+              outline: 'none',
+              transition: 'border-color 0.15s ease'
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = '#8b5cf6'; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
+          />
+          <Search size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+        </div>
 
+        {/* Botão Circular Roxo (+) igual ao da imagem */}
         <button
-          onClick={() => setActiveSubTab('usuarios')}
+          onClick={() => setIsAdding(!isAdding)}
+          title="Novo Produto"
           style={{
-            padding: '8px 20px',
-            borderRadius: '10px',
-            fontSize: '14px',
-            fontWeight: activeSubTab === 'usuarios' ? '800' : '600',
-            color: activeSubTab === 'usuarios' ? '#5925dc' : '#64748b',
-            backgroundColor: activeSubTab === 'usuarios' ? '#ecebfa' : 'transparent',
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            backgroundColor: '#8b5cf6',
+            backgroundImage: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+            color: '#ffffff',
             border: 'none',
-            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <Users size={17} />
-          <span>Usuários</span>
-          <span style={{
-            fontSize: '11px',
-            padding: '2px 7px',
-            borderRadius: '10px',
-            background: activeSubTab === 'usuarios' ? '#5925dc' : '#f1f5f9',
-            color: activeSubTab === 'usuarios' ? '#ffffff' : '#64748b',
-            fontWeight: '800'
-          }}>
-            {users.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveSubTab('plataformas')}
-          style={{
-            padding: '8px 20px',
-            borderRadius: '10px',
-            fontSize: '14px',
-            fontWeight: activeSubTab === 'plataformas' ? '800' : '600',
-            color: activeSubTab === 'plataformas' ? '#5925dc' : '#64748b',
-            backgroundColor: activeSubTab === 'plataformas' ? '#ecebfa' : 'transparent',
-            border: 'none',
+            justifyContent: 'center',
             cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.15s ease'
+            boxShadow: '0 4px 14px rgba(139, 92, 246, 0.45)',
+            transition: 'all 0.15s ease',
+            flexShrink: 0
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
         >
-          <Globe size={17} />
-          <span>Plataformas</span>
-          <span style={{
-            fontSize: '11px',
-            padding: '2px 7px',
-            borderRadius: '10px',
-            background: activeSubTab === 'plataformas' ? '#5925dc' : '#f1f5f9',
-            color: activeSubTab === 'plataformas' ? '#ffffff' : '#64748b',
-            fontWeight: '800'
-          }}>
-            {platforms.length}
-          </span>
+          <Plus size={22} strokeWidth={2.8} />
         </button>
       </div>
-
-      {/* Sub-Aba 2: Usuários */}
-      {activeSubTab === 'usuarios' && (
-        <UsersCatalogTab
-          users={users}
-          platforms={platforms}
-          currentUser={currentUser}
-          onAddUser={onAddUser}
-          onUpdateUser={onUpdateUser}
-          onDeleteUser={onDeleteUser}
-        />
-      )}
-
-      {/* Sub-Aba 3: Plataformas */}
-      {activeSubTab === 'plataformas' && (
-        <PlatformsCatalogTab
-          platforms={platforms}
-          users={users}
-          currentUser={currentUser}
-          onAddPlatform={onAddPlatform}
-          onUpdatePlatform={onUpdatePlatform}
-          onDeletePlatform={onDeletePlatform}
-        />
-      )}
-
-      {/* Sub-Aba 1: Produtos (Catálogo Geral) */}
-      {activeSubTab === 'produtos' && (
-        <>
-          {/* Topo com Botão Nova Cadastro + e Filtros de Status */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            flexWrap: 'wrap',
-            gap: '16px',
-            marginBottom: '20px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              {/* Campo de Busca Rápida por SKU ou Nome */}
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  placeholder="Buscar por SKU ou Nome..."
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  style={{
-                    padding: '9px 14px 9px 34px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    width: '220px',
-                    background: '#ffffff',
-                    color: '#1e293b'
-                  }}
-                />
-                <Search size={15} color="#64748b" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-              </div>
-
-              {/* Filtro: Todos, Já Cadastrados, Pendentes */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '700' }}>Filtro:</span>
-                <select
-                  value={filterCatalogStatus}
-                  onChange={(e) => setFilterCatalogStatus(e.target.value)}
-                  style={{
-                    padding: '9px 14px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    background: '#ffffff',
-                    color: '#1e293b'
-                  }}
-                >
-                  <option value="all">Todos os Produtos ({products.length})</option>
-                  <option value="cataloged">✅ Já Cadastrados</option>
-                  <option value="pending">⏳ Pendentes de Cadastro</option>
-                </select>
-              </div>
-
-              <button
-                onClick={() => setIsAdding(!isAdding)}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: '9999px',
-                  backgroundColor: '#5925dc',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  fontWeight: '700',
-                  boxShadow: '0 4px 12px rgba(89, 37, 220, 0.35)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                Nova Cadastro +
-              </button>
-            </div>
-          </div>
 
       {/* Formulário Colapsável de Novo Produto */}
       {isAdding && (
@@ -404,12 +240,13 @@ export default function ProductsCatalogView({
             </label>
             <input
               type="text"
-              placeholder="Ex: FOG-02-BOC"
+              placeholder="Ex: Band G"
               value={newProduct.sku}
               onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
               required
               style={{
                 width: '100%',
+                boxSizing: 'border-box',
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1.5px solid #cbd5e1',
@@ -425,11 +262,12 @@ export default function ProductsCatalogView({
             </label>
             <input
               type="text"
-              placeholder="Ex: Fogão 2 Bocas Inox"
+              placeholder="Ex: Bandeja G"
               value={newProduct.title}
               onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })}
               style={{
                 width: '100%',
+                boxSizing: 'border-box',
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1.5px solid #cbd5e1',
@@ -445,11 +283,12 @@ export default function ProductsCatalogView({
             <input
               type="number"
               step="0.01"
-              placeholder="0.00"
+              placeholder="Ex: 21.00"
               value={newProduct.cost}
               onChange={(e) => setNewProduct({ ...newProduct, cost: e.target.value })}
               style={{
                 width: '100%',
+                boxSizing: 'border-box',
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1.5px solid #cbd5e1',
@@ -465,11 +304,12 @@ export default function ProductsCatalogView({
             <input
               type="number"
               step="0.1"
-              placeholder="Ex: 30"
+              placeholder="Ex: 20"
               value={newProduct.width}
               onChange={(e) => setNewProduct({ ...newProduct, width: e.target.value })}
               style={{
                 width: '100%',
+                boxSizing: 'border-box',
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1.5px solid #cbd5e1',
@@ -480,16 +320,17 @@ export default function ProductsCatalogView({
 
           <div>
             <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '6px' }}>
-              Comp (cm)
+              Comprimento (cm)
             </label>
             <input
               type="number"
               step="0.1"
-              placeholder="Ex: 50"
+              placeholder="Ex: 30"
               value={newProduct.length}
               onChange={(e) => setNewProduct({ ...newProduct, length: e.target.value })}
               style={{
                 width: '100%',
+                boxSizing: 'border-box',
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1.5px solid #cbd5e1',
@@ -505,11 +346,12 @@ export default function ProductsCatalogView({
             <input
               type="number"
               step="0.1"
-              placeholder="Ex: 20"
+              placeholder="Ex: 5"
               value={newProduct.height}
               onChange={(e) => setNewProduct({ ...newProduct, height: e.target.value })}
               style={{
                 width: '100%',
+                boxSizing: 'border-box',
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1.5px solid #cbd5e1',
@@ -525,11 +367,12 @@ export default function ProductsCatalogView({
             <input
               type="number"
               step="0.01"
-              placeholder="Ex: 3.5"
+              placeholder="Ex: 1.5"
               value={newProduct.weight}
               onChange={(e) => setNewProduct({ ...newProduct, weight: e.target.value })}
               style={{
                 width: '100%',
+                boxSizing: 'border-box',
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1.5px solid #cbd5e1',
@@ -548,6 +391,8 @@ export default function ProductsCatalogView({
                 color: '#fff',
                 fontWeight: '700',
                 fontSize: '13px',
+                border: 'none',
+                cursor: 'pointer',
                 flex: 1
               }}
             >
@@ -562,7 +407,9 @@ export default function ProductsCatalogView({
                 background: '#e2e8f0',
                 color: '#475569',
                 fontWeight: '600',
-                fontSize: '13px'
+                fontSize: '13px',
+                border: 'none',
+                cursor: 'pointer'
               }}
             >
               Cancelar
@@ -571,42 +418,39 @@ export default function ProductsCatalogView({
         </form>
       )}
 
-      {/* Tabela Idêntica à Página 3 do PDF: SKU | Custo | Largura | Comp | Altura | Peso */}
+      {/* Tabela de Produtos exatamente como na foto do usuário */}
       <div style={{
         background: '#ffffff',
         borderRadius: '16px',
         overflowX: 'auto',
         border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
       }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '980px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '940px' }}>
           <thead>
-            <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
-              <th style={{ padding: '18px 24px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <th style={{ padding: '16px 24px', fontSize: '15px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 SKU
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 20px', fontSize: '15px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Produto
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 20px', fontSize: '15px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Custo
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 20px', fontSize: '15px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Largura
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 20px', fontSize: '15px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Comp
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 20px', fontSize: '15px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Altura
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '18px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 20px', fontSize: '15px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Peso
               </th>
-              <th style={{ padding: '18px 20px', fontSize: '16px', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                Status nos Marketplaces
-              </th>
-              <th style={{ padding: '18px 20px', fontSize: '14px', fontWeight: '700', color: '#64748b', textAlign: 'right', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: '700', color: '#64748b', textAlign: 'right', whiteSpace: 'nowrap' }}>
                 Ações
               </th>
             </tr>
@@ -623,315 +467,283 @@ export default function ProductsCatalogView({
                 if (productSearch.trim()) {
                   const q = productSearch.toLowerCase().trim();
                   const matchSku = (prod.sku || '').toLowerCase().includes(q);
-                  const matchTitle = (prod.title || '').toLowerCase().includes(q);
+                  const matchTitle = (prod.title || prod.product || '').toLowerCase().includes(q);
                   if (!matchSku && !matchTitle) return false;
                 }
-                const isCataloged = hasAnyPlatformActive(prod);
-                if (filterCatalogStatus === 'cataloged') return isCataloged;
-                if (filterCatalogStatus === 'pending') return !isCataloged;
                 return true;
               })
               .map((prod) => {
                 const isEditing = editingId === prod.id;
-                const relatedTasks = tasks.filter(t => t.productId === prod.id || (prod.sku && t.title?.toLowerCase().includes(prod.sku.toLowerCase())));
-                const latestTask = relatedTasks[0];
-                const isCataloged = hasAnyPlatformActive(prod);
+                const isPlatVisible = visiblePlatformsProductIds.has(prod.id);
 
-              return (
-                <tr
-                  key={prod.id}
-                  style={{
-                    borderBottom: '1px solid #e2e8f0',
-                    transition: 'background 0.15s ease'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                >
-                  {/* Coluna SKU */}
-                  <td style={{ padding: '16px 24px', whiteSpace: 'nowrap' }}>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.sku}
-                        onChange={(e) => setEditForm({ ...editForm, sku: e.target.value })}
-                        style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
-                        {prod.sku}
-                      </span>
-                    )}
-                  </td>
+                return (
+                  <tr
+                    key={prod.id}
+                    style={{
+                      borderBottom: '1px solid #f1f5f9',
+                      transition: 'background 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    {/* Coluna SKU */}
+                    <td style={{ padding: '16px 24px', whiteSpace: 'nowrap' }}>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editForm.sku}
+                          onChange={(e) => setEditForm({ ...editForm, sku: e.target.value })}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
+                          {prod.sku}
+                        </span>
+                      )}
+                    </td>
 
-                  {/* Coluna Produto */}
-                  <td style={{ padding: '16px 20px', minWidth: '180px' }}>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.title !== undefined ? editForm.title : (editForm.product || '')}
-                        onChange={(e) => setEditForm({ ...editForm, title: e.target.value, product: e.target.value })}
-                        style={{ width: '100%', minWidth: '160px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
-                        {prod.title || prod.product || '-'}
-                      </span>
-                    )}
-                  </td>
+                    {/* Coluna Produto */}
+                    <td style={{ padding: '16px 20px', minWidth: '180px' }}>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editForm.title !== undefined ? editForm.title : (editForm.product || '')}
+                          onChange={(e) => setEditForm({ ...editForm, title: e.target.value, product: e.target.value })}
+                          style={{ width: '100%', minWidth: '160px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
+                          {prod.title || prod.product || '-'}
+                        </span>
+                      )}
+                    </td>
 
-                  {/* Coluna Custo */}
-                  <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={editForm.cost}
-                        onChange={(e) => setEditForm({ ...editForm, cost: e.target.value })}
-                        style={{ width: '90px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
-                        R$&nbsp;{(typeof prod.cost === 'number' && !isNaN(prod.cost) ? prod.cost : parseFloat(String(prod.cost || 0).replace(',', '.')) || 0).toFixed(2).replace('.', ',')}
-                      </span>
-                    )}
-                  </td>
+                    {/* Coluna Custo */}
+                    <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editForm.cost}
+                          onChange={(e) => setEditForm({ ...editForm, cost: e.target.value })}
+                          style={{ width: '90px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
+                          R$ {(typeof prod.cost === 'number' && !isNaN(prod.cost) ? prod.cost : parseFloat(String(prod.cost || 0).replace(',', '.')) || 0).toFixed(2).replace('.', ',')}
+                        </span>
+                      )}
+                    </td>
 
-                  {/* Coluna Largura */}
-                  <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={editForm.width}
-                        onChange={(e) => setEditForm({ ...editForm, width: e.target.value })}
-                        style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {prod.width}&nbsp;cm
-                      </span>
-                    )}
-                  </td>
+                    {/* Coluna Largura */}
+                    <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={editForm.width}
+                          onChange={(e) => setEditForm({ ...editForm, width: e.target.value })}
+                          style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
+                          {prod.width || 0} cm
+                        </span>
+                      )}
+                    </td>
 
-                  {/* Coluna Comp */}
-                  <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={editForm.length}
-                        onChange={(e) => setEditForm({ ...editForm, length: e.target.value })}
-                        style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {prod.length}&nbsp;cm
-                      </span>
-                    )}
-                  </td>
+                    {/* Coluna Comp */}
+                    <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={editForm.length}
+                          onChange={(e) => setEditForm({ ...editForm, length: e.target.value })}
+                          style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
+                          {prod.length || 0} cm
+                        </span>
+                      )}
+                    </td>
 
-                  {/* Coluna Altura */}
-                  <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={editForm.height}
-                        onChange={(e) => setEditForm({ ...editForm, height: e.target.value })}
-                        style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {prod.height}&nbsp;cm
-                      </span>
-                    )}
-                  </td>
+                    {/* Coluna Altura */}
+                    <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={editForm.height}
+                          onChange={(e) => setEditForm({ ...editForm, height: e.target.value })}
+                          style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
+                          {prod.height || 0} cm
+                        </span>
+                      )}
+                    </td>
 
-                  {/* Coluna Peso */}
-                  <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={editForm.weight}
-                        onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
-                        style={{ width: '80px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {prod.weight}&nbsp;kg
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Coluna Status nos Marketplaces: Ícones das plataformas em cinza, se clicado fica na cor da plataforma */}
-                  <td style={{ padding: '16px 20px' }}>
-                    {visiblePlatformsProductIds.has(prod.id) ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          flexWrap: 'wrap'
-                        }}>
-                          {platforms.map((plat) => {
-                            const isActive = isProductPlatformActive(prod, plat);
-                            const platColor = plat.color || '#5925dc';
-
-                            // Abreviatura/Iniciais ou nome curto
-                            const shortName = plat.name?.length <= 8 ? plat.name : (
-                              plat.name.includes(' ')
-                                ? plat.name.split(' ').map(w => w[0]).join('').slice(0, 3)
-                                : plat.name.slice(0, 4)
-                            );
-
-                            return (
-                              <button
-                                key={plat.id}
-                                type="button"
-                                onClick={() => handleToggleProductPlatform(prod, plat.id)}
-                                title={isActive ? `${plat.name}: Já cadastrado (Clique para desmarcar)` : `${plat.name}: Não cadastrado (Clique para marcar)`}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  padding: '4px 8px',
-                                  borderRadius: '8px',
-                                  border: isActive ? `1.5px solid ${platColor}` : '1.5px solid #cbd5e1',
-                                  background: isActive ? platColor : '#f1f5f9',
-                                  color: isActive ? '#ffffff' : '#64748b',
-                                  fontSize: '11px',
-                                  fontWeight: '700',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.15s ease',
-                                  outline: 'none',
-                                  boxShadow: isActive ? `0 2px 6px ${platColor}40` : 'none'
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (!isActive) {
-                                    e.currentTarget.style.borderColor = '#94a3b8';
-                                    e.currentTarget.style.color = '#334155';
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (!isActive) {
-                                    e.currentTarget.style.borderColor = '#cbd5e1';
-                                    e.currentTarget.style.color = '#64748b';
-                                  }
-                                }}
-                              >
-                                <span style={{
-                                  width: '7px',
-                                  height: '7px',
-                                  borderRadius: '50%',
-                                  background: isActive ? '#ffffff' : '#94a3b8',
-                                  display: 'inline-block'
-                                }} />
-                                <span>{shortName}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {latestTask?.dueDate && (
-                          <span style={{ fontSize: '11px', color: '#64748b' }}>
-                            Prazo: {latestTask.dueDate}
+                    {/* Coluna Peso (+ Exibição colapsável das plataformas se ativadas pelo olho) */}
+                    <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editForm.weight}
+                          onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
+                          style={{ width: '80px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600' }}
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
+                            {prod.weight || 0} kg
                           </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        Oculto (clique no olho para ver)
-                      </span>
-                    )}
-                  </td>
 
-                  {/* Ações */}
-                  <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                    {isEditing ? (
-                      <button
-                        onClick={() => handleSaveEdit(prod.id)}
-                        style={{
-                          background: '#10b981',
-                          color: '#fff',
-                          padding: '6px 12px',
-                          borderRadius: '6px',
-                          fontWeight: '700',
-                          fontSize: '12px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <Check size={14} /> Salvar
-                      </button>
-                    ) : (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          {/* Se plataformas estiverem visíveis ou ocultas */}
+                          {isPlatVisible ? (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              {platforms.map((plat) => {
+                                const isActive = isProductPlatformActive(prod, plat);
+                                const platColor = plat.color || '#5925dc';
+                                const shortName = plat.name?.length <= 8 ? plat.name : (
+                                  plat.name.includes(' ')
+                                    ? plat.name.split(' ').map(w => w[0]).join('').slice(0, 3)
+                                    : plat.name.slice(0, 4)
+                                );
+
+                                return (
+                                  <button
+                                    key={plat.id}
+                                    type="button"
+                                    onClick={() => handleToggleProductPlatform(prod, plat.id)}
+                                    title={isActive ? `${plat.name}: Já cadastrado (Clique para desmarcar)` : `${plat.name}: Não cadastrado (Clique para marcar)`}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      padding: '3px 8px',
+                                      borderRadius: '6px',
+                                      border: isActive ? `1.5px solid ${platColor}` : '1.5px solid #cbd5e1',
+                                      background: isActive ? platColor : '#f1f5f9',
+                                      color: isActive ? '#ffffff' : '#64748b',
+                                      fontSize: '11px',
+                                      fontWeight: '700',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                  >
+                                    <span style={{
+                                      width: '6px',
+                                      height: '6px',
+                                      borderRadius: '50%',
+                                      background: isActive ? '#ffffff' : '#94a3b8',
+                                      display: 'inline-block'
+                                    }} />
+                                    <span>{shortName}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+                              Oculto (clique no olho para ver)
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Ações: Olho, Editar, Excluir como na imagem */}
+                    <td style={{ padding: '16px 24px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {isEditing ? (
                         <button
-                          onClick={() => toggleProductPlatformsVisibility(prod.id)}
-                          title={visiblePlatformsProductIds.has(prod.id) ? "Ocultar plataformas" : "Ver plataformas cadastradas"}
+                          onClick={() => handleSaveEdit(prod.id)}
                           style={{
-                            padding: '6px 10px',
+                            background: '#10b981',
+                            color: '#fff',
+                            padding: '6px 12px',
                             borderRadius: '6px',
-                            background: visiblePlatformsProductIds.has(prod.id) ? '#ede9fe' : '#f1f5f9',
-                            color: visiblePlatformsProductIds.has(prod.id) ? '#6d28d9' : '#475569',
-                            border: visiblePlatformsProductIds.has(prod.id) ? '1px solid #c4b5fd' : 'none',
+                            fontWeight: '700',
+                            fontSize: '12px',
+                            border: 'none',
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            gap: '4px'
                           }}
                         >
-                          {visiblePlatformsProductIds.has(prod.id) ? <EyeOff size={14} /> : <Eye size={14} />}
+                          <Check size={14} /> Salvar
                         </button>
-                        <button
-                          onClick={() => startEdit(prod)}
-                          title="Editar"
-                          style={{
-                            padding: '6px 10px',
-                            borderRadius: '6px',
-                            background: '#f1f5f9',
-                            color: '#475569',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(`Excluir ${prod.sku}?`)) onDeleteProduct(prod.id);
-                          }}
-                          title="Excluir"
-                          style={{
-                            padding: '6px 10px',
-                            borderRadius: '6px',
-                            background: '#fef2f2',
-                            color: '#ef4444',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-
-            {/* Linhas vazias para manter a grade visual limpa como no mock se houver poucos itens */}
-            {products.length === 0 && (
-              <tr>
-                <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                  Nenhum produto cadastrado na tabela ainda. Clique em "Nova Cadastro +" acima.
-                </td>
-              </tr>
-            )}
+                      ) : (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            onClick={() => toggleProductPlatformsVisibility(prod.id)}
+                            title={isPlatVisible ? "Ocultar plataformas" : "Ver plataformas cadastradas"}
+                            style={{
+                              padding: '6px 8px',
+                              borderRadius: '8px',
+                              background: isPlatVisible ? '#ede9fe' : '#f8fafc',
+                              color: isPlatVisible ? '#6d28d9' : '#94a3b8',
+                              border: '1px solid #e2e8f0',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {isPlatVisible ? <EyeOff size={15} /> : <Eye size={15} />}
+                          </button>
+                          <button
+                            onClick={() => startEdit(prod)}
+                            title="Editar"
+                            style={{
+                              padding: '6px 8px',
+                              borderRadius: '8px',
+                              background: '#f8fafc',
+                              color: '#64748b',
+                              border: '1px solid #e2e8f0',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <Edit2 size={15} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Excluir ${prod.sku}?`)) onDeleteProduct(prod.id);
+                            }}
+                            title="Excluir"
+                            style={{
+                              padding: '6px 8px',
+                              borderRadius: '8px',
+                              background: '#fef2f2',
+                              color: '#ef4444',
+                              border: '1px solid #fecaca',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
-        </>
-      )}
     </div>
   );
 }
