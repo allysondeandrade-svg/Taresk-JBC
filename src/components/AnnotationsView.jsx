@@ -187,6 +187,16 @@ export default function AnnotationsView({
   // ID do item em edição inline
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [copiedOrderId, setCopiedOrderId] = useState(null);
+
+  const handleCopyOrderNumber = (text, id) => {
+    if (!text) return;
+    navigator.clipboard.writeText(String(text).trim());
+    setCopiedOrderId(id);
+    setTimeout(() => {
+      setCopiedOrderId(null);
+    }, 1500);
+  };
 
   // Input oculto para o calendário na edição de linha
   const dateInputEditRef = useRef(null);
@@ -757,41 +767,40 @@ export default function AnnotationsView({
                     padding: isMobileScreen ? '12px 10px' : '14px 16px',
                     fontSize: '13px',
                     fontWeight: '700',
-                    color: '#475569',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
+                    color: '#0f172a',
                     cursor: 'pointer',
-                    userSelect: 'none'
+                    userSelect: 'none',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <span>DATA</span>
+                    <span>Data</span>
                     <ArrowUpDown size={13} color="#8b5cf6" />
                   </div>
                 </th>
-                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  TIPO
+                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                  Tipo
                 </th>
                 {!isMobileScreen && (
                   <>
-                    <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      PLATAFORMA
+                    <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                      Plataforma
                     </th>
-                    <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      PEDIDO
+                    <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                      Pedido
                     </th>
                   </>
                 )}
-                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  VALOR
+                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                  Valor
                 </th>
                 {!isMobileScreen && (
-                  <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    OBSERVAÇÃO
+                  <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                    Observação
                   </th>
                 )}
-                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' }}>
-                  AÇÕES
+                <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#64748b', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                  Ações
                 </th>
               </tr>
             </thead>
@@ -1079,13 +1088,13 @@ export default function AnnotationsView({
                         onMouseLeave={(e) => { if (!isExpanded) e.currentTarget.style.background = 'transparent'; }}
                       >
                         {/* Data: dd/mm */}
-                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '500', color: '#334155', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
                           {item.date || '-'}
                         </td>
 
                         {/* Tipo: Entrega Local, Retirada Fábrica, Entrega Direta, Gasto Pontual, Prejuízo, Anotação */}
                         <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '500', color: '#334155' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
                             <span style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -1106,25 +1115,57 @@ export default function AnnotationsView({
                         {!isMobileScreen && (
                           <>
                             {/* Plataforma: Shopee JBC, Shopee Izabela... */}
-                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '500', color: '#334155', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
                               {(item.platform && item.platform !== 'Nenhuma') ? item.platform : '-'}
                             </td>
 
-                            {/* Pedido com JetBrains Mono para códigos/pedidos longos */}
-                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '500', color: '#334155', whiteSpace: 'nowrap', fontFamily: "'JetBrains Mono', monospace" }}>
-                              {item.orderNumber || item.pedido || '-'}
+                            {/* Pedido com opção de copiar e fonte JetBrains Mono */}
+                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap', fontFamily: "'JetBrains Mono', monospace" }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>{item.orderNumber || item.pedido || '-'}</span>
+                                {(item.orderNumber || item.pedido) && (
+                                  <button
+                                    type="button"
+                                    title={copiedOrderId === (item.id || idx) ? 'Copiado!' : 'Copiar Pedido'}
+                                    onClick={() => handleCopyOrderNumber(item.orderNumber || item.pedido, item.id || idx)}
+                                    style={{
+                                      background: 'transparent',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      padding: '2px 4px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      color: copiedOrderId === (item.id || idx) ? '#16a34a' : '#94a3b8',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      if (copiedOrderId !== (item.id || idx)) e.currentTarget.style.color = '#5925dc';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      if (copiedOrderId !== (item.id || idx)) e.currentTarget.style.color = '#94a3b8';
+                                    }}
+                                  >
+                                    {copiedOrderId === (item.id || idx) ? (
+                                      <Check size={14} color="#16a34a" strokeWidth={2.5} />
+                                    ) : (
+                                      <Copy size={14} />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </>
                         )}
 
                         {/* Valor: R$ xx,yy */}
-                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '500', color: '#334155', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
                           {item.value || item.valor || '-'}
                         </td>
 
                         {!isMobileScreen && (
                           /* Observação */
-                          <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '500', color: '#334155', maxWidth: '300px', wordBreak: 'break-word' }}>
+                          <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '600', color: '#334155', maxWidth: '300px', wordBreak: 'break-word' }}>
                             {item.notes || item.observacao || '-'}
                           </td>
                         )}

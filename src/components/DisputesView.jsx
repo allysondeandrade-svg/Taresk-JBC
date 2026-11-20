@@ -558,7 +558,7 @@ export default function DisputesView({
             {/* Cabeçalho preto com texto branco conforme imagem de referência */}
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                Plataf
+                Plataforma
               </th>
               <th style={{ padding: '14px 14px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Data
@@ -636,7 +636,7 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 12px',
                       fontSize: '13px',
-                      fontWeight: '500',
+                      fontWeight: '600',
                       color: '#000000',
                       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
                       borderRight: '1px solid #f1f5f9'
@@ -648,7 +648,7 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 14px',
                       fontSize: '13px',
-                      fontWeight: '500',
+                      fontWeight: '600',
                       color: '#000000',
                       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
                       borderRight: '1px solid #f1f5f9'
@@ -660,7 +660,7 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 14px',
                       fontSize: '13px',
-                      fontWeight: '500',
+                      fontWeight: '600',
                       color: '#000000',
                       fontFamily: "'JetBrains Mono', monospace",
                       borderRight: '1px solid #f1f5f9'
@@ -704,7 +704,7 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 14px',
                       fontSize: '13px',
-                      fontWeight: '500',
+                      fontWeight: '600',
                       color: '#000000',
                       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
                       borderRight: '1px solid #f1f5f9'
@@ -716,7 +716,7 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 14px',
                       fontSize: '13px',
-                      fontWeight: '500',
+                      fontWeight: '600',
                       color: '#000000',
                       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
                       borderRight: '1px solid #f1f5f9'
@@ -728,7 +728,7 @@ export default function DisputesView({
                     <td style={{
                       padding: '10px 14px',
                       fontSize: '13px',
-                      fontWeight: '500',
+                      fontWeight: '600',
                       color: '#000000',
                       fontFamily: "'JetBrains Mono', monospace",
                       borderRight: '1px solid #f1f5f9'
