@@ -518,17 +518,17 @@ export default function AnnotationsView({
   };
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {/* Título simples em Roxo no canto superior esquerdo */}
-      <div style={{ marginBottom: '20px' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      {/* Título da Aba no canto superior esquerdo padronizado */}
+      <div style={{ marginBottom: '24px' }}>
         <h1 style={{
-          fontSize: '26px',
+          fontSize: '28px',
           fontWeight: '900',
-          color: '#6d28d9',
+          color: '#1e293b',
           letterSpacing: '-0.5px',
           margin: 0
         }}>
-          Anotação
+          Anotações
         </h1>
       </div>
 

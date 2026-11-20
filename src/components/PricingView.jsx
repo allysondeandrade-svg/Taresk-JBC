@@ -139,7 +139,14 @@ export default function PricingView({ products }) {
   const magaluCalc = calculateMagalu(channelPrices.magalu, selectedProduct.cost, selectedProduct, customRates.magalu || 16.0, customFreights.magalu);
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      {/* Título da Aba no canto superior esquerdo padronizado */}
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#1e293b', letterSpacing: '-0.5px' }}>
+          Precificadora
+        </h1>
+      </div>
+
       {/* Barra de Pesquisa de Produto idêntica à Página 4 do PDF */}
       <div style={{
         marginBottom: '28px',

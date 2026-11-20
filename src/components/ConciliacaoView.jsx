@@ -67,38 +67,45 @@ export default function ConciliacaoView({
     });
   };
 
+  // Limpar TODOS os checklists de todos os usuários
+  const handleClearAllChecklists = () => {
+    if (!window.confirm('Tem certeza de que deseja limpar todos os checklists de todos os usuários na Conciliação?')) return;
+    setChecklistState({});
+    localStorage.removeItem('taresk_conciliacao_state');
+  };
+
   return (
     <div style={{
       maxWidth: '1440px',
       margin: '0 auto',
       padding: '24px 20px',
-      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif"
     }}>
-      {/* Título com estilo roxo/violeta idêntico à imagem de referência */}
+      {/* Título padronizado com Contas a Pagar + Botão Limpar Todos os Checklists */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '28px',
+        marginBottom: '24px',
         flexWrap: 'wrap',
-        gap: '12px'
+        gap: '16px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <h1 style={{
-            fontSize: '32px',
-            fontWeight: '800',
-            color: '#6325ea',
-            letterSpacing: '-0.5px',
-            margin: 0
+            margin: 0,
+            fontSize: '28px',
+            fontWeight: '900',
+            color: '#1e293b',
+            letterSpacing: '-0.5px'
           }}>
             Conciliação
           </h1>
           <span style={{
             fontSize: '13px',
-            fontWeight: '600',
-            color: '#7c3aed',
-            background: '#f3e8ff',
-            padding: '4px 10px',
+            fontWeight: '700',
+            color: '#6d28d9',
+            background: '#ecebfa',
+            padding: '4px 12px',
             borderRadius: '9999px',
             display: 'inline-flex',
             alignItems: 'center',
@@ -109,9 +116,37 @@ export default function ConciliacaoView({
           </span>
         </div>
 
-        <div style={{ fontSize: '13px', color: '#64748b' }}>
-          Sincronizado automaticamente localmente
-        </div>
+        {/* Botão de limpar todos os checklists */}
+        <button
+          type="button"
+          onClick={handleClearAllChecklists}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '9px 18px',
+            borderRadius: '12px',
+            border: '1.5px solid #e2e8f0',
+            background: '#ffffff',
+            color: '#dc2626',
+            fontSize: '13px',
+            fontWeight: '800',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#fef2f2';
+            e.currentTarget.style.borderColor = '#fca5a5';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#ffffff';
+            e.currentTarget.style.borderColor = '#e2e8f0';
+          }}
+        >
+          <RotateCcw size={16} />
+          Limpar Todos os Checklists
+        </button>
       </div>
 
       {/* Grid de Cards dos Usuários (Allyson, Jeremias, etc.) */}

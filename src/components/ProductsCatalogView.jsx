@@ -165,7 +165,14 @@ export default function ProductsCatalogView({
   };
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      {/* Título da Aba no canto superior esquerdo padronizado */}
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#1e293b', letterSpacing: '-0.5px' }}>
+          Cadastro
+        </h1>
+      </div>
+
       {/* Navegação das 3 Sub-abas: Produtos | Usuários | Plataformas */}
       <div style={{
         display: 'flex',

@@ -317,38 +317,31 @@ export default function DisputesView({
   }, [disputes, searchTerm, statusFilter, monthFilter, startDate, endDate]);
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', minHeight: '80vh' }}>
-      {/* Banner Principal Superior: DISPUTAS em roxo do aplicativo conforme solicitado */}
+    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 20px', minHeight: '80vh', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      {/* Barra Superior de Título e Botão Nova Disputa */}
       <div
         style={{
-          width: '100%',
-          background: 'linear-gradient(135deg, #5925dc 0%, #4318ac 100%)',
-          borderRadius: '16px 16px 0 0',
-          padding: '18px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          boxShadow: '0 8px 24px rgba(89, 37, 220, 0.25)',
-          boxSizing: 'border-box'
+          flexWrap: 'wrap',
+          gap: '16px',
+          marginBottom: '24px'
         }}
       >
-        <div style={{ width: '40px' }} /> {/* Espaçador para centralizar título */}
-
         <h1
           style={{
             margin: 0,
             fontSize: '28px',
             fontWeight: '900',
-            color: '#ffffff',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            textAlign: 'center'
+            color: '#1e293b',
+            letterSpacing: '-0.5px'
           }}
         >
-          DISPUTAS
+          Disputas
         </h1>
 
-        {/* Botão Circular com ícone + exatamente como na referência */}
+        {/* Botão Circular Roxo com + igual ao de Contas a Pagar */}
         <button
           type="button"
           onClick={handleOpenAdd}
@@ -357,32 +350,30 @@ export default function DisputesView({
             width: '42px',
             height: '42px',
             borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.22)',
+            background: '#b8a6f8',
             color: '#ffffff',
-            border: '2px solid rgba(255, 255, 255, 0.4)',
+            border: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            backdropFilter: 'blur(4px)'
+            boxShadow: '0 4px 14px rgba(184, 166, 248, 0.6)',
+            transition: 'all 0.15s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#ffffff';
-            e.currentTarget.style.color = '#5925dc';
-            e.currentTarget.style.transform = 'scale(1.08)';
+            e.currentTarget.style.transform = 'scale(1.1)';
+            e.currentTarget.style.background = '#9e84f5';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)';
-            e.currentTarget.style.color = '#ffffff';
             e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.background = '#b8a6f8';
           }}
         >
           <Plus size={24} strokeWidth={3} />
         </button>
       </div>
 
-      {/* Barra de Filtros e Busca logo abaixo do banner */}
+      {/* Barra de Filtros e Busca */}
       <div
         style={{
           background: '#f8fafc',
@@ -392,8 +383,8 @@ export default function DisputesView({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px',
-          borderLeft: '1.5px solid #e2e8f0',
-          borderRight: '1.5px solid #e2e8f0',
+          borderRadius: '16px 16px 0 0',
+          border: '1.5px solid #e2e8f0',
           borderBottom: '1px solid #e2e8f0'
         }}
       >
