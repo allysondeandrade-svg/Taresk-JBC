@@ -1,29 +1,33 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  Plus, Trash2, Edit2, X, ChevronLeft, ChevronRight,
+  Plus, Trash2, Edit2, X, ChevronLeft, ChevronRight, ChevronDown,
   Calendar as CalendarIcon, Check, Landmark,
   CreditCard, FileText, Landmark as BankIcon, FileSpreadsheet,
-  Receipt, ArrowRightLeft, DollarSign, Wallet
+  Pin, CalendarDays
 } from 'lucide-react';
 import { fetchNationalHolidays } from '../services/holidayService';
 
-// Tipos de conta com seus respectivos ícones e rótulos
-const BILL_TYPES = [
-  { id: 'boleto', label: 'Boleto', icon: FileText },
-  { id: 'cartao', label: 'Cartão de Crédito', icon: CreditCard },
-  { id: 'emprestimo', label: 'Empréstimo', icon: BankIcon },
-  { id: 'cheque', label: 'Cheque', icon: FileSpreadsheet }
+// Tipos de conta (exclusivos entre si) com seus respectivos ícones e rótulos
+const ALL_BILL_TYPES = [
+  { id: 'pontual', label: 'Pontual', icon: Pin, isRecurring: false },
+  { id: 'mensal', label: 'Mensal', icon: CalendarDays, isRecurring: true },
+  { id: 'boleto', label: 'Boleto', icon: FileText, isRecurring: false },
+  { id: 'cartao', label: 'Cartão de Crédito', icon: CreditCard, isRecurring: true },
+  { id: 'emprestimo', label: 'Empréstimo', icon: BankIcon, isRecurring: false },
+  { id: 'cheque', label: 'Cheque', icon: FileSpreadsheet, isRecurring: false }
 ];
 
 // Helper para obter o ícone do tipo de conta
 function getBillTypeIcon(bill) {
   const typeId = bill?.billType || '';
+  if (typeId === 'pontual') return Pin;
+  if (typeId === 'mensal') return CalendarDays;
   if (typeId === 'cartao') return CreditCard;
   if (typeId === 'boleto') return FileText;
   if (typeId === 'emprestimo') return BankIcon;
   if (typeId === 'cheque') return FileSpreadsheet;
 
-  // Detecção automática inteligente pelo nome caso a conta antiga não tenha billType salvo
+  // Detecção inteligente para contas já cadastradas
   const desc = (bill?.description || '').toLowerCase();
   if (desc.includes('cartão') || desc.includes('cartao') || desc.includes('mercado pago') || desc.includes('inter') || desc.includes('c6')) {
     return CreditCard;
@@ -34,7 +38,10 @@ function getBillTypeIcon(bill) {
   if (desc.includes('cheque')) {
     return FileSpreadsheet;
   }
-  return FileText; // Default: boleto (folha)
+  if (bill?.isRecurring || bill?.recurringType === 'monthly') {
+    return CalendarDays;
+  }
+  return FileText; // Default
 }
 
 const MONTH_NAMES = [
@@ -119,25 +126,34 @@ export default function ContasView({
   const [editingBill, setEditingBill] = useState(null);
   const [formData, setFormData] = useState({
     description: '',
-    day: today.getDate(),
-    month: today.getMonth() + 1,
+    day: String(today.getDate()).padStart(2, '0'),
+    month: String(today.getMonth() + 1).padStart(2, '0'),
     year: today.getFullYear(),
     value: '',
-    isRecurring: false, // true = Mensal, false = Pontual
-    billType: 'boleto', // 'boleto' | 'cartao' | 'emprestimo' | 'cheque'
+    billType: 'pontual', // 'pontual' | 'mensal' | 'boleto' | 'cartao' | 'emprestimo' | 'cheque'
     status: 'pending' // 'pending' | 'paid'
   });
 
+  // Datas adicionais ("Mais de uma data")
+  const [showExtraDates, setShowExtraDates] = useState(false);
+  const [extraDates, setExtraDates] = useState([]); // [{ id, day, month, year }]
+
+  // Referências para os inputs de dia e mês principal
+  const dayInputRef = useRef(null);
+  const monthInputRef = useRef(null);
+  const datePickerRef = useRef(null);
+
   const handleOpenAdd = (presetDay = null, presetMonth = null, presetYear = null) => {
     setEditingBill(null);
+    setShowExtraDates(false);
+    setExtraDates([]);
     setFormData({
       description: '',
-      day: presetDay || today.getDate(),
-      month: presetMonth || (currentMonthIndex + 1),
+      day: String(presetDay || today.getDate()).padStart(2, '0'),
+      month: String(presetMonth || (currentMonthIndex + 1)).padStart(2, '0'),
       year: presetYear || currentYear,
       value: '',
-      isRecurring: false,
-      billType: 'boleto',
+      billType: 'pontual',
       status: 'pending'
     });
     setIsModalOpen(true);
@@ -145,18 +161,21 @@ export default function ContasView({
 
   const handleOpenEdit = (bill) => {
     setEditingBill(bill);
+    setShowExtraDates(false);
+    setExtraDates([]);
+    const detectedType = bill.billType || (
+      (bill.description || '').toLowerCase().includes('cart') ? 'cartao' :
+      (bill.description || '').toLowerCase().includes('empr') ? 'emprestimo' :
+      (bill.description || '').toLowerCase().includes('cheq') ? 'cheque' :
+      (bill.isRecurring || bill.recurringType === 'monthly') ? 'mensal' : 'pontual'
+    );
     setFormData({
       description: bill.description || '',
-      day: bill.day || today.getDate(),
-      month: bill.month || (today.getMonth() + 1),
+      day: String(bill.day || today.getDate()).padStart(2, '0'),
+      month: String(bill.month || (today.getMonth() + 1)).padStart(2, '0'),
       year: bill.year || today.getFullYear(),
       value: bill.value || '',
-      isRecurring: !!(bill.isRecurring || bill.recurringType === 'monthly'),
-      billType: bill.billType || (
-        (bill.description || '').toLowerCase().includes('cart') ? 'cartao' :
-        (bill.description || '').toLowerCase().includes('empr') ? 'emprestimo' :
-        (bill.description || '').toLowerCase().includes('cheq') ? 'cheque' : 'boleto'
-      ),
+      billType: detectedType,
       status: bill.status || 'pending'
     });
     setIsModalOpen(true);
@@ -165,6 +184,28 @@ export default function ContasView({
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingBill(null);
+    setShowExtraDates(false);
+    setExtraDates([]);
+  };
+
+  // Adiciona mais uma data sugerindo o mesmo dia do próximo mês
+  const handleAddExtraDate = () => {
+    const lastDate = extraDates.length > 0 ? extraDates[extraDates.length - 1] : formData;
+    let nextM = (parseInt(lastDate.month, 10) || 1) + 1;
+    let nextY = parseInt(lastDate.year, 10) || currentYear;
+    if (nextM > 12) {
+      nextM = 1;
+      nextY += 1;
+    }
+    setExtraDates(prev => [
+      ...prev,
+      {
+        id: `extra_${Date.now()}_${prev.length}`,
+        day: String(lastDate.day || '01').padStart(2, '0'),
+        month: String(nextM).padStart(2, '0'),
+        year: nextY
+      }
+    ]);
   };
 
   const handleSaveBill = (e) => {
@@ -174,23 +215,39 @@ export default function ContasView({
       return;
     }
 
-    const payload = {
-      ...formData,
+    const isRec = formData.billType === 'mensal' || formData.billType === 'cartao';
+
+    const basePayload = {
       description: formData.description.trim(),
       day: parseInt(formData.day, 10) || today.getDate(),
       month: parseInt(formData.month, 10) || (today.getMonth() + 1),
       year: parseInt(formData.year, 10) || today.getFullYear(),
       value: formData.value || '',
-      isRecurring: formData.isRecurring,
-      recurringType: formData.isRecurring ? 'monthly' : 'once',
-      billType: formData.billType || 'boleto',
+      isRecurring: isRec,
+      recurringType: isRec ? 'monthly' : 'once',
+      billType: formData.billType,
+      status: formData.status || 'pending',
       id: editingBill ? editingBill.id : `bill_${Date.now()}`
     };
 
     if (editingBill) {
-      if (onUpdateBill) onUpdateBill(editingBill.id, payload);
+      if (onUpdateBill) onUpdateBill(editingBill.id, basePayload);
     } else {
-      if (onAddBill) onAddBill(payload);
+      if (onAddBill) onAddBill(basePayload);
+
+      // Se houver datas extras configuradas, salva cada uma como uma conta vinculada
+      if (showExtraDates && extraDates.length > 0) {
+        extraDates.forEach((ed, idx) => {
+          const extraPayload = {
+            ...basePayload,
+            id: `bill_${Date.now()}_${idx + 1}`,
+            day: parseInt(ed.day, 10) || basePayload.day,
+            month: parseInt(ed.month, 10) || basePayload.month,
+            year: parseInt(ed.year, 10) || basePayload.year
+          };
+          if (onAddBill) onAddBill(extraPayload);
+        });
+      }
     }
 
     handleCloseModal();
@@ -242,7 +299,7 @@ export default function ContasView({
   }, [currentMonthIndex, currentYear]);
 
   // Contas filtradas do mês/ano atualmente selecionado
-  // Se for conta mensal (isRecurring / monthly), aparece em todos os meses a partir do mês/ano de início
+  // Se for conta mensal ou cartão de crédito (recorrente), aparece em todos os meses a partir do mês/ano de início
   const focusedMonthBills = useMemo(() => {
     const targetMonth = currentMonthIndex + 1;
     const targetYear = currentYear;
@@ -251,16 +308,16 @@ export default function ContasView({
       .filter(b => {
         const bMonth = parseInt(b.month, 10) || 1;
         const bYear = parseInt(b.year, 10) || targetYear;
-        const isRec = b.isRecurring || b.recurringType === 'monthly';
+        const isRec = b.isRecurring || b.recurringType === 'monthly' || b.billType === 'mensal' || b.billType === 'cartao';
 
         if (isRec) {
-          // Conta mensal aparece no mês/ano inicial e em todos os meses/anos futuros
+          // Conta recorrente (Mensal / Cartão) aparece no mês/ano inicial e em todos os meses/anos futuros
           if (targetYear > bYear) return true;
           if (targetYear === bYear && targetMonth >= bMonth) return true;
           return false;
         }
 
-        // Conta pontual: apenas naquele mês e ano específico
+        // Conta de ocorrência única (Pontual, Boleto, Empréstimo, Cheque): apenas naquele mês e ano específico
         return bMonth === targetMonth && (!b.year || bYear === targetYear);
       })
       .sort((a, b) => (parseInt(a.day, 10) || 0) - (parseInt(b.day, 10) || 0));
@@ -273,7 +330,7 @@ export default function ContasView({
       const bDay = parseInt(b.day, 10) || 1;
       const bMonth = parseInt(b.month, 10) || 1;
       const bYear = parseInt(b.year, 10) || currentYear;
-      const isRec = b.isRecurring || b.recurringType === 'monthly';
+      const isRec = b.isRecurring || b.recurringType === 'monthly' || b.billType === 'mensal' || b.billType === 'cartao';
 
       if (isRec) {
         // Espalha para os meses exibidos se a data for igual ou posterior ao início da recorrência
@@ -969,112 +1026,176 @@ export default function ContasView({
                       flex: 1,
                       border: '1.5px solid #cbd5e1',
                       borderRadius: '12px',
-                      padding: '10px 12px',
+                      padding: '10px 14px',
                       background: '#ffffff'
                     }}>
                       <input
-                        type="number"
-                        min="1"
-                        max="31"
+                        ref={dayInputRef}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={2}
                         required
+                        placeholder="DD"
                         value={formData.day}
-                        onChange={(e) => setFormData({ ...formData, day: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '');
+                          setFormData({ ...formData, day: val });
+                          if (val.length === 2 && monthInputRef.current) {
+                            monthInputRef.current.focus();
+                            monthInputRef.current.select();
+                          }
+                        }}
                         style={{
-                          width: '40px',
+                          width: '32px',
                           border: 'none',
                           outline: 'none',
-                          fontSize: '15px',
+                          fontSize: '16px',
                           fontWeight: '800',
                           textAlign: 'center',
                           color: '#0f172a'
                         }}
                       />
-                      <span style={{ fontSize: '16px', fontWeight: '800', color: '#94a3b8', margin: '0 4px' }}>/</span>
-                      <select
+                      <span style={{ fontSize: '16px', fontWeight: '800', color: '#94a3b8', margin: '0 6px' }}>/</span>
+                      <input
+                        ref={monthInputRef}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={2}
+                        required
+                        placeholder="MM"
                         value={formData.month}
-                        onChange={(e) => setFormData({ ...formData, month: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '');
+                          setFormData({ ...formData, month: val });
+                        }}
+                        onBlur={() => {
+                          if (formData.month && formData.month.length === 1) {
+                            setFormData(prev => ({ ...prev, month: prev.month.padStart(2, '0') }));
+                          }
+                        }}
                         style={{
-                          flex: 1,
+                          width: '32px',
                           border: 'none',
                           outline: 'none',
-                          fontSize: '14px',
+                          fontSize: '16px',
                           fontWeight: '800',
-                          color: '#0f172a',
-                          background: 'transparent',
+                          textAlign: 'center',
+                          color: '#0f172a'
+                        }}
+                      />
+                    </div>
+
+                    {/* Botão de Calendário nativo HTML5 invisível com acionamento ao clicar no ícone */}
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        ref={datePickerRef}
+                        type="date"
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          opacity: 0,
+                          width: '100%',
+                          height: '100%',
+                          cursor: 'pointer',
+                          zIndex: 2
+                        }}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const [y, m, d] = e.target.value.split('-');
+                            setFormData({
+                              ...formData,
+                              day: String(d).padStart(2, '0'),
+                              month: String(m).padStart(2, '0'),
+                              year: parseInt(y, 10) || currentYear
+                            });
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        title="Abrir calendário"
+                        onClick={() => {
+                          if (datePickerRef.current) {
+                            if (typeof datePickerRef.current.showPicker === 'function') {
+                              datePickerRef.current.showPicker();
+                            } else {
+                              datePickerRef.current.focus();
+                            }
+                          }
+                        }}
+                        style={{
+                          width: '46px',
+                          height: '46px',
+                          borderRadius: '12px',
+                          background: '#ede9fe',
+                          border: '1px solid #ddd6fe',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '20px',
+                          flexShrink: 0,
                           cursor: 'pointer'
                         }}
                       >
-                        {MONTH_NAMES.map((m, idx) => (
-                          <option key={idx + 1} value={idx + 1}>{String(idx + 1).padStart(2, '0')}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Botão de Calendário decorativo/ação rápida */}
-                    <div
-                      title={`Ano de referência: ${formData.year}`}
-                      style={{
-                        width: '46px',
-                        height: '46px',
-                        borderRadius: '12px',
-                        background: '#ede9fe',
-                        border: '1px solid #ddd6fe',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '20px',
-                        flexShrink: 0,
-                        cursor: 'default'
-                      }}
-                    >
-                      🗓️
+                        🗓️
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Seção Tipo */}
+              {/* Seção Tipo (comportamento de rádio exclusivo: Pontual, Mensal, Boleto, Cartão de Crédito, Empréstimo, Cheque) */}
               <div>
                 <label style={{ fontSize: '13px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '8px' }}>
                   Tipo
                 </label>
 
-                {/* Linha 1 de Tipos: Frequência (Pontual | Mensal) */}
+                {/* Linha 1 de Tipos: Pontual (com pino) e Mensal (com calendário) */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, isRecurring: false })}
+                    onClick={() => setFormData({ ...formData, billType: 'pontual' })}
                     style={{
                       padding: '12px 14px',
                       borderRadius: '12px',
-                      border: !formData.isRecurring ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
-                      background: !formData.isRecurring ? '#ecebfa' : '#ffffff',
-                      color: !formData.isRecurring ? '#5925dc' : '#475569',
+                      border: formData.billType === 'pontual' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
+                      background: formData.billType === 'pontual' ? '#ecebfa' : '#ffffff',
+                      color: formData.billType === 'pontual' ? '#5925dc' : '#475569',
                       fontWeight: '800',
                       fontSize: '14px',
                       cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    Pontual
+                    <Pin size={16} />
+                    <span>Pontual</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, isRecurring: true })}
+                    onClick={() => setFormData({ ...formData, billType: 'mensal' })}
                     style={{
                       padding: '12px 14px',
                       borderRadius: '12px',
-                      border: formData.isRecurring ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
-                      background: formData.isRecurring ? '#ecebfa' : '#ffffff',
-                      color: formData.isRecurring ? '#5925dc' : '#475569',
+                      border: formData.billType === 'mensal' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
+                      background: formData.billType === 'mensal' ? '#ecebfa' : '#ffffff',
+                      color: formData.billType === 'mensal' ? '#5925dc' : '#475569',
                       fontWeight: '800',
                       fontSize: '14px',
                       cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    Mensal
+                    <CalendarDays size={16} />
+                    <span>Mensal</span>
                   </button>
                 </div>
 
@@ -1128,7 +1249,7 @@ export default function ContasView({
                 </div>
 
                 {/* Linha 3 de Tipos: Empréstimo e Cheque */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, billType: 'emprestimo' })}
@@ -1175,6 +1296,201 @@ export default function ContasView({
                     <span>Cheque</span>
                   </button>
                 </div>
+
+                {/* Botão cinza "Mais de uma data v" */}
+                {!editingBill && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextState = !showExtraDates;
+                        setShowExtraDates(nextState);
+                        if (nextState && extraDates.length === 0) {
+                          handleAddExtraDate();
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #cbd5e1',
+                        background: '#f8fafc',
+                        color: '#475569',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+                    >
+                      <span>Mais de uma data</span>
+                      <ChevronDown
+                        size={15}
+                        style={{
+                          transform: showExtraDates ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease'
+                        }}
+                      />
+                    </button>
+
+                    {/* Lista de Datas Adicionais */}
+                    {showExtraDates && (
+                      <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '800', color: '#64748b' }}>
+                            Datas Adicionais
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleAddExtraDate}
+                            title="Adicionar outra data"
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '10px',
+                              border: 'none',
+                              background: '#5925dc',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 8px rgba(89, 37, 220, 0.3)'
+                            }}
+                          >
+                            <Plus size={18} />
+                          </button>
+                        </div>
+
+                        {extraDates.map((ed, idx) => (
+                          <div key={ed.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#475569', minWidth: '50px' }}>
+                              Data {idx + 2}
+                            </span>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              flex: 1,
+                              border: '1.5px solid #cbd5e1',
+                              borderRadius: '12px',
+                              padding: '8px 12px',
+                              background: '#ffffff'
+                            }}>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={2}
+                                value={ed.day}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/\D/g, '');
+                                  setExtraDates(prev => prev.map(item => item.id === ed.id ? { ...item, day: val } : item));
+                                }}
+                                style={{
+                                  width: '30px',
+                                  border: 'none',
+                                  outline: 'none',
+                                  fontSize: '15px',
+                                  fontWeight: '800',
+                                  textAlign: 'center',
+                                  color: '#0f172a'
+                                }}
+                              />
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#94a3b8', margin: '0 4px' }}>/</span>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={2}
+                                value={ed.month}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/\D/g, '');
+                                  setExtraDates(prev => prev.map(item => item.id === ed.id ? { ...item, month: val } : item));
+                                }}
+                                onBlur={() => {
+                                  if (ed.month && ed.month.length === 1) {
+                                    setExtraDates(prev => prev.map(item => item.id === ed.id ? { ...item, month: item.month.padStart(2, '0') } : item));
+                                  }
+                                }}
+                                style={{
+                                  width: '30px',
+                                  border: 'none',
+                                  outline: 'none',
+                                  fontSize: '15px',
+                                  fontWeight: '800',
+                                  textAlign: 'center',
+                                  color: '#0f172a'
+                                }}
+                              />
+                            </div>
+
+                            {/* Calendário nativo para data adicional */}
+                            <div style={{ position: 'relative' }}>
+                              <input
+                                type="date"
+                                style={{
+                                  position: 'absolute',
+                                  inset: 0,
+                                  opacity: 0,
+                                  width: '100%',
+                                  height: '100%',
+                                  cursor: 'pointer',
+                                  zIndex: 2
+                                }}
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    const [y, m, d] = e.target.value.split('-');
+                                    setExtraDates(prev => prev.map(item => item.id === ed.id ? {
+                                      ...item,
+                                      day: String(d).padStart(2, '0'),
+                                      month: String(m).padStart(2, '0'),
+                                      year: parseInt(y, 10) || currentYear
+                                    } : item));
+                                  }
+                                }}
+                              />
+                              <div
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  borderRadius: '10px',
+                                  background: '#ede9fe',
+                                  border: '1px solid #ddd6fe',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '18px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                🗓️
+                              </div>
+                            </div>
+
+                            {/* Remover data adicional */}
+                            <button
+                              type="button"
+                              onClick={() => setExtraDates(prev => prev.filter(item => item.id !== ed.id))}
+                              title="Remover data"
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                padding: '4px'
+                              }}
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Botões do Rodapé: Cancelar e Salvar */}
