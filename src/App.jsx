@@ -310,14 +310,14 @@ export default function App() {
             // 1. Atualiza as tarefas que vieram da planilha
             const updatedIncoming = sanitizedTasks.map(incomingTask => {
               const localMatch = prevTasks.find(pt => {
-                if (pt.id && incomingTask.id && (String(pt.id) === String(incomingTask.id) || parseInt(pt.id, 10) === parseInt(incomingTask.id, 10))) {
+                if (pt.id && incomingTask.id && String(pt.id) === String(incomingTask.id)) {
                   return true;
                 }
-                return pt.sku && pt.sku === incomingTask.sku && String(pt.assignedTo) === String(incomingTask.assignedTo);
+                return false;
               });
               const lastLocalUpdate = localMatch ? (localTaskUpdatesRef.current[localMatch.id] || localTaskUpdatesRef.current[String(localMatch.id)] || 0) : 0;
-              // Se foi editado localmente há menos de 30 segundos, preserva o estado local mais recente
-              if (localMatch && (now - lastLocalUpdate < 30000)) {
+              // Se foi editado localmente há menos de 45 segundos, preserva o estado local mais recente
+              if (localMatch && (now - lastLocalUpdate < 45000)) {
                 return localMatch;
               }
               return incomingTask;
@@ -326,7 +326,7 @@ export default function App() {
             // 2. Preserva tarefas locais criadas recentemente que ainda não constem no snapshot da planilha
             const pendingLocalTasks = prevTasks.filter(pt => {
               const isMissingFromIncoming = !incomingIds.has(String(pt.id));
-              const isRecent = (now - (localTaskUpdatesRef.current[pt.id] || 0) < 60000);
+              const isRecent = (now - (localTaskUpdatesRef.current[pt.id] || 0) < 120000); // 2 minutos de margem
               return isMissingFromIncoming && isRecent;
             });
 

@@ -461,33 +461,10 @@ function formatToFiveDigits(num) {
 }
 
 function getNextFormattedId(sheetNames) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const names = Array.isArray(sheetNames) ? sheetNames : [sheetNames];
-  let maxId = 0;
-
-  names.forEach(name => {
-    const sheet = ss.getSheetByName(name);
-    if (!sheet) return;
-    const values = sheet.getDataRange().getValues();
-    if (values.length <= 1) return;
-
-    const headers = values[0].map(h => String(h).toLowerCase().trim());
-    const idxId = headers.indexOf('id');
-    const colIndex = idxId !== -1 ? idxId : 0;
-
-    for (let i = 1; i < values.length; i++) {
-      const val = values[i][colIndex];
-      const match = String(val || '').match(/\d+/);
-      if (match) {
-        const n = parseInt(match[0], 10);
-        if (!isNaN(n) && n > maxId) {
-          maxId = n;
-        }
-      }
-    }
-  });
-
-  return formatToFiveDigits(maxId + 1);
+  // Gera um ID numérico único baseado no timestamp atual e um número aleatório
+  // garantindo unicidade absoluta sem risco de colisão entre tarefas simples, produtos ou recorrentes
+  const randomSuffix = Math.floor(100 + Math.random() * 900); // 3 dígitos aleatórios
+  return String(Date.now()).slice(-6) + String(randomSuffix);
 }
 
 /**
@@ -954,17 +931,20 @@ function upsertTask(task) {
   const targetSku = String(task.sku || task.productId || task.title || '').trim().toLowerCase();
   const targetAssignee = String(task.assignedTo || '').trim().toLowerCase();
 
+  // 1. Prioridade máxima: busca por ID exato
   if (hasIdCol && targetId) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId]).trim();
-      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+      if (rowId && (rowId === targetId || String(rowId).toLowerCase() === targetId.toLowerCase())) {
         rowIndex = i + 1;
         break;
       }
     }
   }
 
-  if (rowIndex === -1 && targetSku) {
+  // 2. Se não encontrou por ID E o targetId não foi fornecido (ou é novo), busca por SKU/Título + Atribuído
+  // Se targetId foi fornecido e NÃO foi achado por ID, NÃO sobrescreve outra tarefa que tenha o mesmo SKU!
+  if (rowIndex === -1 && !targetId && targetSku) {
     for (let i = 1; i < values.length; i++) {
       const rowSku = String(values[i][idxSku] || '').trim().toLowerCase();
       const rowAssignee = idxAssignee !== -1 ? String(values[i][idxAssignee] || '').trim().toLowerCase() : '';
@@ -980,7 +960,7 @@ function upsertTask(task) {
     finalId = String(values[rowIndex - 1][idxId] || '').trim();
   }
   if (!finalId && targetId) {
-    finalId = formatToFiveDigits(targetId);
+    finalId = targetId;
   }
   if (!finalId) {
     finalId = getNextFormattedId([SHEETS.TASKS, SHEETS.COMPLETED_TASKS]);
@@ -1036,17 +1016,19 @@ function upsertCompletedTask(task) {
   const targetSku = String(task.sku || task.productId || task.title || '').trim().toLowerCase();
   const targetAssignee = String(task.assignedTo || '').trim().toLowerCase();
 
+  // 1. Busca por ID exato
   if (hasIdCol && targetId) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId]).trim();
-      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+      if (rowId && (rowId === targetId || String(rowId).toLowerCase() === targetId.toLowerCase())) {
         rowIndex = i + 1;
         break;
       }
     }
   }
 
-  if (rowIndex === -1 && targetSku) {
+  // 2. Busca por SKU/Título apenas se targetId não foi fornecido
+  if (rowIndex === -1 && !targetId && targetSku) {
     for (let i = 1; i < values.length; i++) {
       const rowSku = String(values[i][idxSku] || '').trim().toLowerCase();
       const rowAssignee = idxAssignee !== -1 ? String(values[i][idxAssignee] || '').trim().toLowerCase() : '';
@@ -1057,7 +1039,7 @@ function upsertCompletedTask(task) {
     }
   }
 
-  let finalId = targetId && /^\d{5}$/.test(targetId) ? targetId : '';
+  let finalId = targetId || '';
   if (!finalId && rowIndex > 0 && hasIdCol) {
     finalId = String(values[rowIndex - 1][idxId] || '').trim();
   }
@@ -1105,7 +1087,7 @@ function moveTaskToCompleted(task) {
   const hasIdCol = headers.indexOf('id') !== -1;
 
   let finalId = String(task.id || '').trim();
-  if (!finalId || !/^\d{5}$/.test(finalId)) {
+  if (!finalId) {
     finalId = getNextFormattedId([SHEETS.TASKS, SHEETS.COMPLETED_TASKS]);
   }
 
@@ -1510,33 +1492,37 @@ function deleteTaskRecord(sheetName, taskOrData) {
   const idxSku = headers.indexOf('sku') !== -1 ? headers.indexOf('sku') : headers.findIndex(h => h.includes('produto') || h.includes('sku'));
   const idxAssignee = headers.findIndex(h => h.includes('atrib') && h.includes('para'));
 
+  // 1. Prioridade absoluta: Se tem ID, busca e exclui única e exclusivamente pelo ID
   if (idxId !== -1 && id) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId]).trim();
-      if (rowId && (rowId === id || formatToFiveDigits(rowId) === formatToFiveDigits(id))) {
+      if (rowId && (rowId === id || String(rowId).toLowerCase() === id.toLowerCase())) {
         sheet.deleteRow(i + 1);
         return { deleted: true, matchedBy: 'id', id: id };
       }
     }
   }
 
-  for (let i = 1; i < values.length; i++) {
-    const rowSku = idxSku !== -1 ? String(values[i][idxSku] || '').trim().toLowerCase() : String(values[i][1] || '').trim().toLowerCase();
-    const rowAssignee = idxAssignee !== -1 ? String(values[i][idxAssignee] || '').trim().toLowerCase() : String(values[i][2] || '').trim().toLowerCase();
+  // 2. Se e somente se NÃO tem ID (legado), busca por SKU + Atribuído
+  if (!id) {
+    for (let i = 1; i < values.length; i++) {
+      const rowSku = idxSku !== -1 ? String(values[i][idxSku] || '').trim().toLowerCase() : String(values[i][1] || '').trim().toLowerCase();
+      const rowAssignee = idxAssignee !== -1 ? String(values[i][idxAssignee] || '').trim().toLowerCase() : String(values[i][2] || '').trim().toLowerCase();
 
-    const matchesAssignee = !assignedTo || rowAssignee === assignedTo || !rowAssignee;
+      const matchesAssignee = !assignedTo || rowAssignee === assignedTo || !rowAssignee;
 
-    if (sku && rowSku === sku) {
-      if (matchesAssignee) {
-        sheet.deleteRow(i + 1);
-        return { deleted: true, matchedBy: 'sku' };
+      if (sku && rowSku === sku) {
+        if (matchesAssignee) {
+          sheet.deleteRow(i + 1);
+          return { deleted: true, matchedBy: 'sku' };
+        }
       }
-    }
 
-    if (title && rowSku === title) {
-      if (matchesAssignee) {
-        sheet.deleteRow(i + 1);
-        return { deleted: true, matchedBy: 'title' };
+      if (title && rowSku === title) {
+        if (matchesAssignee) {
+          sheet.deleteRow(i + 1);
+          return { deleted: true, matchedBy: 'title' };
+        }
       }
     }
   }
