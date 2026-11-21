@@ -47,8 +47,9 @@ export default function ProductSearchAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Só exibe a lista suspensa se o usuário tiver digitado algo na busca
-  const filteredProducts = !searchTerm.trim() ? [] : products.filter(p => {
+  // Abre a lista se houver produtos correspondentes
+  const filteredProducts = products.filter(p => {
+    if (!searchTerm.trim()) return false;
     const q = searchTerm.toLowerCase().trim();
     const sku = String(p.sku || '').toLowerCase();
     const title = String(p.title || p.product || p.name || '').toLowerCase();

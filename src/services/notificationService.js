@@ -130,7 +130,50 @@ export const NotificationService = {
       const bDay = parseInt(bill.day, 10);
       const isRecurring = bill.isRecurring || bill.recurringType === 'monthly';
 
-      // 1. Checa se vence HOJE
+      const formatVal = bill.value ? ` ${bill.value}` : '';
+      const billTitle = `${bill.description}${formatVal}`.trim();
+
+      // Formatação no padrão solicitado:
+      // Exemplo Foto 2:
+      // Linha de Título: "⚠️ Hoje 20/11" ou "🟢 Amanhã 21/11" ou "🚨 Atrasado 19/11"
+      // Linha de Conteúdo (Body): "Aluguel R$ 850,00"
+      const ddToday = String(currentDay).padStart(2, '0');
+      const mmToday = String(currentMonth).padStart(2, '0');
+      const ddTomorrow = String(tomorrowDay).padStart(2, '0');
+      const mmTomorrow = String(tomorrowMonth).padStart(2, '0');
+
+      // 1. Checa se está ATRASADA (não marcada como paga e dia já passou)
+      let isOverdue = false;
+      let overdueDateStr = '';
+
+      if (isRecurring) {
+        // Se for recorrente mensal, se o dia da conta for menor que o dia atual do mês vigente
+        if (bDay < currentDay) {
+          isOverdue = true;
+          overdueDateStr = `${String(bDay).padStart(2, '0')}/${mmToday}`;
+        }
+      } else {
+        const bMonth = parseInt(bill.month, 10);
+        const bYear = parseInt(bill.year, 10) || currentYear;
+        const billDate = new Date(bYear, bMonth - 1, bDay, 23, 59, 59);
+        if (billDate < today && !(bDay === currentDay && bMonth === currentMonth && bYear === currentYear)) {
+          isOverdue = true;
+          overdueDateStr = `${String(bDay).padStart(2, '0')}/${String(bMonth).padStart(2, '0')}`;
+        }
+      }
+
+      if (isOverdue) {
+        const notifId = `overdue_${bill.id}_${todayDateString}`;
+        if (!alreadySentIds.includes(notifId)) {
+          this.sendImmediateNotification(
+            `🚨 Atrasado ${overdueDateStr}`,
+            billTitle
+          );
+          alreadySentIds.push(notifId);
+        }
+      }
+
+      // 2. Checa se vence HOJE
       const isToday = isRecurring
         ? bDay === currentDay
         : (bDay === currentDay && parseInt(bill.month, 10) === currentMonth && (!bill.year || parseInt(bill.year, 10) === currentYear));
@@ -138,16 +181,15 @@ export const NotificationService = {
       if (isToday) {
         const notifId = `today_${bill.id}_${todayDateString}`;
         if (!alreadySentIds.includes(notifId)) {
-          const valText = bill.value ? ` (${bill.value})` : '';
           this.sendImmediateNotification(
-            `⚠️ Conta Vencendo HOJE: ${bill.description}`,
-            `Lembrete Taresk: A conta "${bill.description}"${valText} vence hoje dia ${currentDay}!`
+            `⚠️ Hoje ${ddToday}/${mmToday}`,
+            billTitle
           );
           alreadySentIds.push(notifId);
         }
       }
 
-      // 2. Checa se vence AMANHÃ (dia anterior)
+      // 3. Checa se vence AMANHÃ (dia anterior ao vencimento)
       const isTomorrow = isRecurring
         ? bDay === tomorrowDay
         : (bDay === tomorrowDay && parseInt(bill.month, 10) === tomorrowMonth && (!bill.year || parseInt(bill.year, 10) === tomorrowYear));
@@ -155,10 +197,9 @@ export const NotificationService = {
       if (isTomorrow) {
         const notifId = `tomorrow_${bill.id}_${todayDateString}`;
         if (!alreadySentIds.includes(notifId)) {
-          const valText = bill.value ? ` (${bill.value})` : '';
           this.sendImmediateNotification(
-            `🔔 Conta Vence Amanhã: ${bill.description}`,
-            `Atenção: A conta "${bill.description}"${valText} vence amanhã dia ${tomorrowDay}!`
+            `🟢 Amanhã ${ddTomorrow}/${mmTomorrow}`,
+            billTitle
           );
           alreadySentIds.push(notifId);
         }

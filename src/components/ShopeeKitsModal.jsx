@@ -280,7 +280,7 @@ export default function ShopeeKitsModal({
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(310px, 360px) 1fr', gap: '24px', alignItems: 'start' }}>
             
             {/* Tabela de Referência (Laranja conforme a Foto 1) */}
-            <div style={{ borderRadius: '10px', overflow: 'hidden', border: '2px solid #ff5722', background: '#ffffff' }}>
+            <div style={{ borderRadius: '10px', overflow: 'visible', border: '2px solid #ff5722', background: '#ffffff', position: 'relative', zIndex: 80 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', background: '#ff5722', color: '#ffffff', fontWeight: '900', fontSize: '13px', textAlign: 'center', padding: '8px 10px' }}>
                 <span>Referência</span>
                 <span>Valor</span>
@@ -295,10 +295,10 @@ export default function ShopeeKitsModal({
                 background: '#fff7ed',
                 padding: '6px 10px',
                 position: 'relative',
-                zIndex: 60
+                zIndex: 100
               }}>
                 <span style={{ fontWeight: '800', color: '#9a3412', fontSize: '13px' }}>Produto</span>
-                <div>
+                <div style={{ position: 'relative', zIndex: 110 }}>
                   <ProductSearchAutocomplete
                     products={products}
                     value={productSearchText}
