@@ -1,6 +1,41 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Edit2, X, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Check, Landmark } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import {
+  Plus, Trash2, Edit2, X, ChevronLeft, ChevronRight,
+  Calendar as CalendarIcon, Check, Landmark,
+  CreditCard, FileText, Landmark as BankIcon, FileSpreadsheet,
+  Receipt, ArrowRightLeft, DollarSign, Wallet
+} from 'lucide-react';
 import { fetchNationalHolidays } from '../services/holidayService';
+
+// Tipos de conta com seus respectivos ícones e rótulos
+const BILL_TYPES = [
+  { id: 'boleto', label: 'Boleto', icon: FileText },
+  { id: 'cartao', label: 'Cartão de Crédito', icon: CreditCard },
+  { id: 'emprestimo', label: 'Empréstimo', icon: BankIcon },
+  { id: 'cheque', label: 'Cheque', icon: FileSpreadsheet }
+];
+
+// Helper para obter o ícone do tipo de conta
+function getBillTypeIcon(bill) {
+  const typeId = bill?.billType || '';
+  if (typeId === 'cartao') return CreditCard;
+  if (typeId === 'boleto') return FileText;
+  if (typeId === 'emprestimo') return BankIcon;
+  if (typeId === 'cheque') return FileSpreadsheet;
+
+  // Detecção automática inteligente pelo nome caso a conta antiga não tenha billType salvo
+  const desc = (bill?.description || '').toLowerCase();
+  if (desc.includes('cartão') || desc.includes('cartao') || desc.includes('mercado pago') || desc.includes('inter') || desc.includes('c6')) {
+    return CreditCard;
+  }
+  if (desc.includes('empréstimo') || desc.includes('emprestimo') || desc.includes('banco') || desc.includes('financiamento')) {
+    return BankIcon;
+  }
+  if (desc.includes('cheque')) {
+    return FileSpreadsheet;
+  }
+  return FileText; // Default: boleto (folha)
+}
 
 const MONTH_NAMES = [
   'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
@@ -88,7 +123,8 @@ export default function ContasView({
     month: today.getMonth() + 1,
     year: today.getFullYear(),
     value: '',
-    isRecurring: false, // true = Conta Mensal (aparece em todos os meses seguintes), false = Conta Pontual
+    isRecurring: false, // true = Mensal, false = Pontual
+    billType: 'boleto', // 'boleto' | 'cartao' | 'emprestimo' | 'cheque'
     status: 'pending' // 'pending' | 'paid'
   });
 
@@ -101,6 +137,7 @@ export default function ContasView({
       year: presetYear || currentYear,
       value: '',
       isRecurring: false,
+      billType: 'boleto',
       status: 'pending'
     });
     setIsModalOpen(true);
@@ -115,6 +152,11 @@ export default function ContasView({
       year: bill.year || today.getFullYear(),
       value: bill.value || '',
       isRecurring: !!(bill.isRecurring || bill.recurringType === 'monthly'),
+      billType: bill.billType || (
+        (bill.description || '').toLowerCase().includes('cart') ? 'cartao' :
+        (bill.description || '').toLowerCase().includes('empr') ? 'emprestimo' :
+        (bill.description || '').toLowerCase().includes('cheq') ? 'cheque' : 'boleto'
+      ),
       status: bill.status || 'pending'
     });
     setIsModalOpen(true);
@@ -141,6 +183,7 @@ export default function ContasView({
       value: formData.value || '',
       isRecurring: formData.isRecurring,
       recurringType: formData.isRecurring ? 'monthly' : 'once',
+      billType: formData.billType || 'boleto',
       id: editingBill ? editingBill.id : `bill_${Date.now()}`
     };
 
@@ -685,8 +728,25 @@ export default function ContasView({
                         {bill.day}
                       </div>
 
-                      {/* Descrição da Conta */}
+                      {/* Descrição da Conta com Ícone do Tipo */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        {(() => {
+                          const IconComp = getBillTypeIcon(bill);
+                          return (
+                            <div
+                              title={`Tipo: ${bill.billType || 'Boleto'}`}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: isPaid ? '#94a3b8' : '#475569',
+                                flexShrink: 0
+                              }}
+                            >
+                              <IconComp size={16} strokeWidth={2.2} />
+                            </div>
+                          );
+                        })()}
                         <span
                           style={{
                             fontSize: fontStyles.descFontSize,
@@ -830,23 +890,23 @@ export default function ContasView({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: '#1e293b' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '900', color: '#1e293b' }}>
                 {editingBill ? 'Editar Conta' : 'Nova Conta'}
               </h2>
               <button
                 type="button"
                 onClick={handleCloseModal}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}
               >
-                <X size={20} />
+                <X size={22} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveBill} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleSaveBill} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Descrição */}
               <div>
-                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '6px' }}>
                   Descrição da Conta
                 </label>
                 <input
@@ -857,8 +917,8 @@ export default function ContasView({
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '14px',
                     fontWeight: '700',
@@ -868,23 +928,130 @@ export default function ContasView({
                 />
               </div>
 
-              {/* Frequência: Pontual vs Mensal */}
+              {/* Valor e Data lado a lado */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', alignItems: 'flex-start' }}>
+                {/* Valor (R$) */}
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    Valor (R$)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="R$ 0,00"
+                    value={formData.value}
+                    onChange={(e) => {
+                      const formatted = formatCurrencyInput(e.target.value);
+                      setFormData({ ...formData, value: formatted });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '15px',
+                      fontWeight: '800',
+                      color: '#0f172a',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {/* Data: Campo com dia/mês e botão de calendário */}
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    Data
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      flex: 1,
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: '12px',
+                      padding: '10px 12px',
+                      background: '#ffffff'
+                    }}>
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        required
+                        value={formData.day}
+                        onChange={(e) => setFormData({ ...formData, day: e.target.value })}
+                        style={{
+                          width: '40px',
+                          border: 'none',
+                          outline: 'none',
+                          fontSize: '15px',
+                          fontWeight: '800',
+                          textAlign: 'center',
+                          color: '#0f172a'
+                        }}
+                      />
+                      <span style={{ fontSize: '16px', fontWeight: '800', color: '#94a3b8', margin: '0 4px' }}>/</span>
+                      <select
+                        value={formData.month}
+                        onChange={(e) => setFormData({ ...formData, month: e.target.value })}
+                        style={{
+                          flex: 1,
+                          border: 'none',
+                          outline: 'none',
+                          fontSize: '14px',
+                          fontWeight: '800',
+                          color: '#0f172a',
+                          background: 'transparent',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {MONTH_NAMES.map((m, idx) => (
+                          <option key={idx + 1} value={idx + 1}>{String(idx + 1).padStart(2, '0')}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Botão de Calendário decorativo/ação rápida */}
+                    <div
+                      title={`Ano de referência: ${formData.year}`}
+                      style={{
+                        width: '46px',
+                        height: '46px',
+                        borderRadius: '12px',
+                        background: '#ede9fe',
+                        border: '1px solid #ddd6fe',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        flexShrink: 0,
+                        cursor: 'default'
+                      }}
+                    >
+                      🗓️
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção Tipo */}
               <div>
-                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '6px' }}>
-                  Frequência
+                <label style={{ fontSize: '13px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '8px' }}>
+                  Tipo
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+
+                {/* Linha 1 de Tipos: Frequência (Pontual | Mensal) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, isRecurring: false })}
                     style={{
-                      padding: '10px 12px',
-                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
                       border: !formData.isRecurring ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
                       background: !formData.isRecurring ? '#ecebfa' : '#ffffff',
-                      color: !formData.isRecurring ? '#5925dc' : '#64748b',
+                      color: !formData.isRecurring ? '#5925dc' : '#475569',
                       fontWeight: '800',
-                      fontSize: '13px',
+                      fontSize: '14px',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease'
                     }}
@@ -896,13 +1063,13 @@ export default function ContasView({
                     type="button"
                     onClick={() => setFormData({ ...formData, isRecurring: true })}
                     style={{
-                      padding: '10px 12px',
-                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
                       border: formData.isRecurring ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
                       background: formData.isRecurring ? '#ecebfa' : '#ffffff',
-                      color: formData.isRecurring ? '#5925dc' : '#64748b',
+                      color: formData.isRecurring ? '#5925dc' : '#475569',
                       fontWeight: '800',
-                      fontSize: '13px',
+                      fontSize: '14px',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease'
                     }}
@@ -910,126 +1077,121 @@ export default function ContasView({
                     Mensal
                   </button>
                 </div>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '4px' }}>
-                  {formData.isRecurring
-                    ? 'Aparece em todos os meses seguintes neste mesmo dia.'
-                    : 'Aparece somente na data específica selecionada abaixo.'}
-                </span>
-              </div>
 
-              {/* Data: Dia / Mês / Ano */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
-                    Dia
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    required
-                    value={formData.day}
-                    onChange={(e) => setFormData({ ...formData, day: e.target.value })}
+                {/* Linha 2 de Tipos: Boleto e Cartão de Crédito */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, billType: 'boleto' })}
                     style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '14px',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: formData.billType === 'boleto' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
+                      background: formData.billType === 'boleto' ? '#ecebfa' : '#ffffff',
+                      color: formData.billType === 'boleto' ? '#5925dc' : '#475569',
                       fontWeight: '800',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
-                    Mês {formData.isRecurring && '(Início)'}
-                  </label>
-                  <select
-                    value={formData.month}
-                    onChange={(e) => setFormData({ ...formData, month: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '9px 8px',
-                      borderRadius: '8px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '13px',
-                      fontWeight: '700',
-                      outline: 'none',
-                      background: '#ffffff',
-                      boxSizing: 'border-box'
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      transition: 'all 0.15s ease'
                     }}
                   >
-                    {MONTH_NAMES.map((m, idx) => (
-                      <option key={idx + 1} value={idx + 1}>{m.slice(0, 3)}</option>
-                    ))}
-                  </select>
-                </div>
+                    <FileText size={16} />
+                    <span>Boleto</span>
+                  </button>
 
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
-                    Ano {formData.isRecurring && '(Início)'}
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.year}
-                    onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, billType: 'cartao' })}
                     style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '14px',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: formData.billType === 'cartao' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
+                      background: formData.billType === 'cartao' ? '#ecebfa' : '#ffffff',
+                      color: formData.billType === 'cartao' ? '#5925dc' : '#475569',
                       fontWeight: '800',
-                      outline: 'none',
-                      boxSizing: 'border-box'
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      transition: 'all 0.15s ease'
                     }}
-                  />
+                  >
+                    <CreditCard size={16} />
+                    <span>Cartão de Crédito</span>
+                  </button>
+                </div>
+
+                {/* Linha 3 de Tipos: Empréstimo e Cheque */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, billType: 'emprestimo' })}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: formData.billType === 'emprestimo' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
+                      background: formData.billType === 'emprestimo' ? '#ecebfa' : '#ffffff',
+                      color: formData.billType === 'emprestimo' ? '#5925dc' : '#475569',
+                      fontWeight: '800',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <BankIcon size={16} />
+                    <span>Empréstimo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, billType: 'cheque' })}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: formData.billType === 'cheque' ? '2px solid #5925dc' : '1.5px solid #cbd5e1',
+                      background: formData.billType === 'cheque' ? '#ecebfa' : '#ffffff',
+                      color: formData.billType === 'cheque' ? '#5925dc' : '#475569',
+                      fontWeight: '800',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <FileSpreadsheet size={16} />
+                    <span>Cheque</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Valor com máscara em Real R$ 00,00 */}
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
-                  Valor (R$)
-                </label>
-                <input
-                  type="text"
-                  placeholder="R$ 0,00"
-                  value={formData.value}
-                  onChange={(e) => {
-                    const formatted = formatCurrencyInput(e.target.value);
-                    setFormData({ ...formData, value: formatted });
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '15px',
-                    fontWeight: '800',
-                    color: '#0f172a',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+              {/* Botões do Rodapé: Cancelar e Salvar */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
                 <button
                   type="button"
                   onClick={handleCloseModal}
                   style={{
-                    padding: '10px 18px',
-                    borderRadius: '10px',
-                    border: '1px solid #cbd5e1',
+                    padding: '12px 24px',
+                    borderRadius: '12px',
+                    border: '1.5px solid #cbd5e1',
                     background: '#ffffff',
-                    color: '#475569',
-                    fontSize: '13px',
-                    fontWeight: '700',
-                    cursor: 'pointer'
+                    color: '#334155',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   Cancelar
@@ -1037,15 +1199,16 @@ export default function ContasView({
                 <button
                   type="submit"
                   style={{
-                    padding: '10px 24px',
-                    borderRadius: '10px',
+                    padding: '12px 32px',
+                    borderRadius: '12px',
                     border: 'none',
                     background: '#5925dc',
                     color: '#ffffff',
-                    fontSize: '13px',
+                    fontSize: '14px',
                     fontWeight: '800',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(89, 37, 220, 0.3)'
+                    boxShadow: '0 4px 16px rgba(89, 37, 220, 0.35)',
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   Salvar
