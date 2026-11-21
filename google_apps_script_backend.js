@@ -574,6 +574,11 @@ function doGet(e) {
       responseData = getUsersDataAsJson();
     } else if (action === 'getChecklistTemplates') {
       responseData = getChecklistTemplatesDataAsJson();
+    } else if (action === 'getFinancialData') {
+      const monthSheet = (e && e.parameter && e.parameter.monthSheet) ? e.parameter.monthSheet : 'Nov 26';
+      responseData = getFinancialDataFromMonth(monthSheet);
+    } else if (action === 'getFinancialSheets') {
+      responseData = getAvailableFinancialSheets();
     } else {
       responseData = { error: 'Ação não reconhecida: ' + action };
     }
@@ -684,6 +689,14 @@ function doPost(e) {
 
       case 'deleteBill':
         result = deleteBillRecord(data);
+        break;
+
+      case 'getFinancialData':
+        result = getFinancialDataFromMonth(data && data.monthSheet ? data.monthSheet : 'Nov 26');
+        break;
+
+      case 'getFinancialSheets':
+        result = getAvailableFinancialSheets();
         break;
 
       default:
@@ -2256,4 +2269,141 @@ function deleteBillRecord(billData) {
 function createJsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * ============================================================================
+ * MÓDULO FINANCEIRO (Resumo de Marketplaces e Pedidos por Mês)
+ * ============================================================================
+ */
+
+/**
+ * Retorna as abas mensais disponíveis na planilha (ex: "Nov 26", "Dez 26", "Jan 27")
+ */
+function getAvailableFinancialSheets() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const allSheets = ss.getSheets();
+  const monthRegex = /^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\s*\d{2}$/i;
+  
+  const monthSheets = [];
+  allSheets.forEach(sheet => {
+    const name = sheet.getName().trim();
+    if (monthRegex.test(name)) {
+      monthSheets.push(name);
+    }
+  });
+
+  // Se não encontrou pelo regex exato, procura abas que contenham nomes de meses e ano
+  if (monthSheets.length === 0) {
+    allSheets.forEach(sheet => {
+      const name = sheet.getName().trim();
+      if (/Nov\s*26/i.test(name) || /Dez\s*26/i.test(name) || /Jan\s*27/i.test(name)) {
+        monthSheets.push(name);
+      }
+    });
+  }
+
+  // Fallback garantido
+  if (monthSheets.length === 0) {
+    monthSheets.push('Nov 26');
+  }
+
+  return monthSheets;
+}
+
+/**
+ * Extrai os dados de Resumo (B1:J16) e Pedidos (B154:N1010) de uma aba mensal (ex: 'Nov 26')
+ */
+function getFinancialDataFromMonth(sheetName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const targetName = sheetName || 'Nov 26';
+  let sheet = ss.getSheetByName(targetName);
+
+  if (!sheet) {
+    // Procura por aproximação
+    const all = ss.getSheets();
+    sheet = all.find(s => s.getName().trim().toLowerCase() === targetName.trim().toLowerCase());
+  }
+
+  if (!sheet) {
+    return {
+      sheetName: targetName,
+      availableSheets: getAvailableFinancialSheets(),
+      resumo: [],
+      pedidos: [],
+      error: 'Aba não encontrada: ' + targetName
+    };
+  }
+
+  // 1. EXTRAI RESUMO: B1:J16 (Linhas 1 a 16, Colunas B=2 até J=10)
+  // B: Plataforma, C: Margem, D: Faturamento, E: Descontos, F: Recebido, G: Lucro Bruto, H: Comissão, I: Lucro Líquido, J: Qtd
+  const resumoValues = sheet.getRange(1, 2, 16, 9).getValues();
+  const resumoList = [];
+
+  // Linha 0 (linha 1 da planilha) pode ser o título "MARKETPLACES" ou cabeçalho.
+  // Vamos ler as linhas a partir de onde começa os cabeçalhos/dados
+  for (let r = 0; r < resumoValues.length; r++) {
+    const row = resumoValues[r];
+    const plataforma = String(row[0] || '').trim();
+    if (!plataforma) continue;
+    if (plataforma.toUpperCase() === 'MARKETPLACES') continue;
+    if (plataforma.toLowerCase() === 'plataforma') continue; // cabeçalho
+
+    resumoList.push({
+      plataforma: plataforma,
+      margem: row[1],
+      faturamento: row[2],
+      descontos: row[3],
+      recebido: row[4],
+      lucroBruto: row[5],
+      comissao: row[6],
+      lucroLiquido: row[7],
+      qtd: row[8],
+      isTotal: plataforma.toUpperCase() === 'TOTAL'
+    });
+  }
+
+  // 2. EXTRAI PEDIDOS: B154:N1010
+  // B: Marketplace, C: Unid, D: Produto, E: Preço, F: Recebido, G: Lucro Bruto, H: Comissão, I: Lucro Liq, J: P (pago?), K: Pedido, L: Situação, M: Entrega, N: Margem
+  let pedidosList = [];
+  const startRow = 154;
+  const numRows = Math.min(sheet.getLastRow() - startRow + 1, 857); // até linha 1010 max
+
+  if (numRows > 0) {
+    const pedidosValues = sheet.getRange(startRow, 2, numRows, 13).getValues();
+    for (let i = 0; i < pedidosValues.length; i++) {
+      const row = pedidosValues[i];
+      const mkp = String(row[0] || '').trim();
+      const prod = String(row[2] || '').trim();
+      const order = String(row[9] || '').trim();
+
+      // Pula linha de cabeçalho "Marketplace" ou "MARKETPLACES" ou linhas em branco
+      if (!mkp && !prod && !order) continue;
+      if (mkp.toUpperCase() === 'MARKETPLACES' || mkp.toLowerCase() === 'marketplace') continue;
+
+      pedidosList.push({
+        id: 'ped_' + (startRow + i),
+        marketplace: mkp,
+        unid: row[1],
+        produto: prod,
+        preco: row[3],
+        recebido: row[4],
+        lucroBruto: row[5],
+        comissao: row[6],
+        lucroLiquido: row[7],
+        pago: row[8] === true || String(row[8]).toLowerCase() === 'true' || String(row[8]).trim() === '✔' || String(row[8]).trim() === '✓',
+        pedido: order,
+        situacao: String(row[10] || '').trim(),
+        entrega: String(row[11] || '').trim(),
+        margem: row[12]
+      });
+    }
+  }
+
+  return {
+    sheetName: targetName,
+    availableSheets: getAvailableFinancialSheets(),
+    resumo: resumoList,
+    pedidos: pedidosList
+  };
 }

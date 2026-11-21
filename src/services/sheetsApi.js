@@ -545,5 +545,64 @@ export const SheetsApi = {
       console.error('Erro ao excluir conta no Sheets:', err);
       return false;
     }
+  },
+
+  /**
+   * Carrega os dados Financeiros (Resumo B1:J16 e Pedidos B154:N1010) de uma aba mensal (ex: 'Nov 26')
+   */
+  async fetchFinancialData(monthSheet = 'Nov 26') {
+    const url = this.getUrl();
+    if (!url) return null;
+
+    try {
+      const resp = await fetch(`${url}?action=getFinancialData&monthSheet=${encodeURIComponent(monthSheet)}&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      const json = await resp.json();
+      if (json.status === 'success' && json.data) {
+        return json.data;
+      }
+      return null;
+    } catch (err) {
+      console.warn('Erro ao carregar dados financeiros via GET, tentando POST fallback:', err);
+      try {
+        const resp2 = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'getFinancialData',
+            data: { monthSheet }
+          })
+        });
+        const json2 = await resp2.json();
+        if (json2.status === 'success' && json2.result) {
+          return json2.result;
+        }
+      } catch (e2) {
+        console.error('Erro no fallback financeiro:', e2);
+      }
+      return null;
+    }
+  },
+
+  /**
+   * Retorna a lista de abas mensais disponíveis na planilha (ex: ["Nov 26", "Dez 26", "Jan 27"])
+   */
+  async fetchFinancialSheets() {
+    const url = this.getUrl();
+    if (!url) return ['Nov 26'];
+
+    try {
+      const resp = await fetch(`${url}?action=getFinancialSheets&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      const json = await resp.json();
+      if (json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+        return json.data;
+      }
+      return ['Nov 26'];
+    } catch (err) {
+      return ['Nov 26'];
+    }
   }
 };
