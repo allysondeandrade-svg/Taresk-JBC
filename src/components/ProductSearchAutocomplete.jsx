@@ -27,7 +27,9 @@ export default function ProductSearchAutocomplete({
 }) {
   const [searchTerm, setSearchTerm] = useState(value || '');
   const [isOpen, setIsOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const containerRef = useRef(null);
+  const listRef = useRef(null);
 
   // Sincroniza quando o valor externo mudar
   useEffect(() => {
@@ -41,6 +43,7 @@ export default function ProductSearchAutocomplete({
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsOpen(false);
+        setHighlightedIndex(-1);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -56,7 +59,26 @@ export default function ProductSearchAutocomplete({
     return sku.includes(q) || title.includes(q);
   });
 
+  // Reseta o índice destacado se a busca mudar ou se fechar
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [searchTerm, isOpen]);
+
+  // Rolagem suave até o item selecionado ao navegar com setas
+  useEffect(() => {
+    if (highlightedIndex >= 0 && listRef.current) {
+      const items = listRef.current.children;
+      if (items[highlightedIndex]) {
+        items[highlightedIndex].scrollIntoView({
+          block: 'nearest',
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [highlightedIndex]);
+
   const handleSelectProduct = (product) => {
+    if (!product) return;
     if (autoClearOnSelect) {
       setSearchTerm('');
       if (onChange) onChange('');
@@ -66,8 +88,37 @@ export default function ProductSearchAutocomplete({
       if (onChange) onChange(displayLabel);
     }
     setIsOpen(false);
+    setHighlightedIndex(-1);
     if (onSelect) {
       onSelect(product);
+    }
+  };
+
+  // Navegação por teclado: Seta para Cima, Seta para Baixo, Enter e Escape
+  const handleKeyDown = (e) => {
+    if (!isOpen || filteredProducts.length === 0) {
+      if (e.key === 'ArrowDown' && filteredProducts.length > 0) {
+        setIsOpen(true);
+        setHighlightedIndex(0);
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev < filteredProducts.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : filteredProducts.length - 1));
+    } else if (e.key === 'Enter') {
+      if (highlightedIndex >= 0 && highlightedIndex < filteredProducts.length) {
+        e.preventDefault();
+        handleSelectProduct(filteredProducts[highlightedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+      setHighlightedIndex(-1);
     }
   };
 
@@ -86,6 +137,7 @@ export default function ProductSearchAutocomplete({
           type="text"
           placeholder={placeholder}
           value={searchTerm}
+          onKeyDown={handleKeyDown}
           onChange={(e) => {
             const val = e.target.value;
             setSearchTerm(val);
@@ -124,29 +176,34 @@ export default function ProductSearchAutocomplete({
 
       {/* Dropdown com opções estilo Excel idêntico à imagem de referência */}
       {isOpen && filteredProducts.length > 0 && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 4px)',
-          left: 0,
-          right: 0,
-          background: '#ffffff',
-          borderRadius: '12px',
-          border: '1.5px solid #cbd5e1',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-          maxHeight: '260px',
-          overflowY: 'auto',
-          zIndex: 9999
-        }}>
-          {filteredProducts.map((p) => {
+        <div
+          ref={listRef}
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            background: '#ffffff',
+            borderRadius: '12px',
+            border: '1.5px solid #cbd5e1',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+            maxHeight: '260px',
+            overflowY: 'auto',
+            zIndex: 9999
+          }}
+        >
+          {filteredProducts.map((p, idx) => {
             const sku = p.sku || p.id || 'PROD';
             const title = p.title || p.product || p.name || '';
             const rawCost = typeof p.cost === 'number' && !isNaN(p.cost) ? p.cost : parseFloat(String(p.cost || 0).replace(',', '.')) || 0;
             const costFormatted = rawCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const isHighlighted = idx === highlightedIndex;
 
             return (
               <div
-                key={p.id || p.sku}
+                key={p.id || p.sku || idx}
                 onClick={() => handleSelectProduct(p)}
+                onMouseEnter={() => setHighlightedIndex(idx)}
                 style={{
                   padding: '10px 14px',
                   borderBottom: '1px solid #f1f5f9',
@@ -156,16 +213,14 @@ export default function ProductSearchAutocomplete({
                   justifyContent: 'space-between',
                   gap: '12px',
                   transition: 'background-color 0.1s ease',
-                  backgroundColor: '#ffffff'
+                  backgroundColor: isHighlighted ? '#ede9fe' : '#ffffff'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>
                   <span style={{
                     fontSize: '13px',
                     fontWeight: '800',
-                    color: '#0f172a',
+                    color: isHighlighted ? '#5925dc' : '#0f172a',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis'
@@ -175,7 +230,7 @@ export default function ProductSearchAutocomplete({
                   {title && (
                     <span style={{
                       fontSize: '11px',
-                      color: '#64748b',
+                      color: isHighlighted ? '#475569' : '#64748b',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
