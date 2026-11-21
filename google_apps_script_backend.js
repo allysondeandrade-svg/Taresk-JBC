@@ -1140,30 +1140,35 @@ function upsertProduct(prod) {
   const targetId = String(prod.id || '').trim();
   const targetSku = String(prod.sku || prod.id || '').toUpperCase().trim();
 
-  if (hasIdCol && targetId) {
+  // 1. Busca por ID exato (sem comparar números aleatórios ou converter para 5 dígitos)
+  if (hasIdCol && targetId && !targetId.startsWith('prod_')) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId]).trim();
-      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+      if (rowId && (rowId === targetId || String(rowId).toLowerCase() === targetId.toLowerCase())) {
         rowIndex = i + 1;
         break;
       }
     }
   }
 
+  // 2. Busca por SKU apenas se estiver editando um produto existente com o mesmo SKU
   if (rowIndex === -1 && targetSku) {
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][idxSku]).toUpperCase().trim() === targetSku) {
+      const rowSku = String(values[i][idxSku] || '').toUpperCase().trim();
+      if (rowSku === targetSku) {
         rowIndex = i + 1;
         break;
       }
     }
   }
 
-  let finalId = targetId && /^\d{5}$/.test(targetId) ? targetId : '';
-  if (!finalId && rowIndex > 0 && hasIdCol) {
+  // Se já existe na planilha, mantém o ID original da linha; se for novo, gera um ID totalmente único
+  let finalId = '';
+  if (rowIndex > 0 && hasIdCol) {
     finalId = String(values[rowIndex - 1][idxId] || '').trim();
   }
   if (!finalId) {
+    // Gera ID aleatório único que nunca colide com 1, 2, 3...
     finalId = getNextFormattedId(SHEETS.PRODUCTS);
   }
 

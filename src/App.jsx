@@ -803,7 +803,15 @@ export default function App() {
 
   // Handlers de Produtos
   const handleAddProduct = (newProd) => {
-    setProducts([...products, newProd]);
+    // Insere o produto e mantém a lista de produtos ordenada alfabeticamente por SKU / Título
+    setProducts(prev => {
+      const updatedList = [...prev, newProd];
+      return updatedList.sort((a, b) => {
+        const skuA = String(a.sku || a.product || a.title || '').toUpperCase();
+        const skuB = String(b.sku || b.product || b.title || '').toUpperCase();
+        return skuA.localeCompare(skuB, 'pt-BR');
+      });
+    });
     SheetsApi.syncProduct(newProd);
   };
 
