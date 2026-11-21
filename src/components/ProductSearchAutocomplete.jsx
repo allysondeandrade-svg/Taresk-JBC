@@ -50,9 +50,9 @@ export default function ProductSearchAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Abre a lista se houver produtos correspondentes
+  // Abre a lista com os produtos filtrados se houver busca, ou todos os produtos se o campo estiver vazio ao focar/clicar
   const filteredProducts = products.filter(p => {
-    if (!searchTerm.trim()) return false;
+    if (!searchTerm.trim()) return true;
     const q = searchTerm.toLowerCase().trim();
     const sku = String(p.sku || '').toLowerCase();
     const title = String(p.title || p.product || p.name || '').toLowerCase();
@@ -138,6 +138,7 @@ export default function ProductSearchAutocomplete({
           placeholder={placeholder}
           value={searchTerm}
           onKeyDown={handleKeyDown}
+          onClick={() => setIsOpen(true)}
           onChange={(e) => {
             const val = e.target.value;
             setSearchTerm(val);
