@@ -201,7 +201,7 @@ export const NotificationService = {
             icon: '/Taresk-JBC/icon.svg',
             badge: '/Taresk-JBC/icon.svg',
             vibrate: [200, 100, 200],
-            tag: 'taresk-bill-' + Date.now(),
+            tag: 'taresk-notif-' + Date.now(),
             renotify: true
           });
           return;
@@ -219,6 +219,58 @@ export const NotificationService = {
     } catch (e) {
       console.warn('Erro ao disparar notificação clássica:', e);
     }
+  },
+
+  /**
+   * Dispara notificação quando uma nova tarefa for atribuída ao usuário
+   */
+  notifyTaskAssigned(task, currentUser, users = []) {
+    if (!task) return;
+    if (!this.isEnabled()) return;
+    if (!this.isSupported() || Notification.permission !== 'granted') return;
+
+    // Se houver um usuário logado no dispositivo, verifica se a tarefa foi atribuída a ele
+    if (currentUser) {
+      const norm = (s) => String(s || '').toLowerCase().trim();
+      const uId = norm(currentUser.id);
+      const uName = norm(currentUser.name);
+      const tAssignee = norm(task.assignedTo);
+      const tAssigneeName = norm(task.assignedByName);
+
+      let isAssignedToCurrent = false;
+
+      // 1. Comparação direta por ID ou ID numérico (ex: "user_colab_1" ou "00001" / "1")
+      if (tAssignee && (tAssignee === uId || (parseInt(tAssignee, 10) && parseInt(tAssignee, 10) === parseInt(uId, 10)))) {
+        isAssignedToCurrent = true;
+      }
+
+      // 2. Comparação por nome
+      if (!isAssignedToCurrent && uName && (tAssignee === uName || tAssigneeName === uName || tAssignee.includes(uName) || uName.includes(tAssignee))) {
+        isAssignedToCurrent = true;
+      }
+
+      // 3. Comparação mapeando a lista de usuários
+      if (!isAssignedToCurrent && Array.isArray(users) && users.length > 0) {
+        const matched = users.find(u =>
+          norm(u.id) === tAssignee ||
+          norm(u.name) === tAssignee ||
+          (parseInt(u.id, 10) && parseInt(u.id, 10) === parseInt(tAssignee, 10))
+        );
+        if (matched && (norm(matched.id) === uId || norm(matched.name) === uName)) {
+          isAssignedToCurrent = true;
+        }
+      }
+
+      if (!isAssignedToCurrent) {
+        return; // A tarefa não é para este usuário, não notifica
+      }
+    }
+
+    const taskTitle = task.title || task.sku || 'Nova Tarefa';
+    this.sendImmediateNotification(
+      'Nova Tarefa! Confira os detalhes',
+      taskTitle
+    );
   },
 
   /**

@@ -273,6 +273,19 @@ export default function App() {
 
   // Rastreia timestamps das tarefas modificadas localmente recentemente para o polling não sobrescrever com dados antigos do Sheets
   const localTaskUpdatesRef = useRef({});
+  // Rastreia os IDs de tarefas conhecidas para detectar novas tarefas atribuídas ao usuário
+  const knownTaskIdsRef = useRef(new Set());
+  const isInitialTasksLoadedRef = useRef(false);
+
+  // Inicializa o conjunto de IDs de tarefas conhecidas com as tarefas salvas no localStorage
+  useEffect(() => {
+    if (tasks && tasks.length > 0 && knownTaskIdsRef.current.size === 0) {
+      tasks.forEach(t => {
+        if (t?.id) knownTaskIdsRef.current.add(String(t.id));
+      });
+      isInitialTasksLoadedRef.current = true;
+    }
+  }, []);
 
   // Carrega e atualiza dados do Google Sheets
   const refreshFromSheets = useCallback(async (showIndicator = false) => {
@@ -306,6 +319,24 @@ export default function App() {
           setTasks(prevTasks => {
             const now = Date.now();
             const incomingIds = new Set(sanitizedTasks.map(t => String(t.id)));
+
+            // Notifica o usuário se novas tarefas forem atribuídas a ele via sincronização do Sheets
+            if (isInitialTasksLoadedRef.current) {
+              sanitizedTasks.forEach(incomingTask => {
+                const strId = String(incomingTask.id);
+                if (!knownTaskIdsRef.current.has(strId)) {
+                  // Nova tarefa detectada!
+                  NotificationService.notifyTaskAssigned(incomingTask, currentUser, data.users || users);
+                  knownTaskIdsRef.current.add(strId);
+                }
+              });
+            } else {
+              // Primeira carga: registra todas as tarefas recebidas sem apitar alerta em lote
+              sanitizedTasks.forEach(incomingTask => {
+                if (incomingTask.id) knownTaskIdsRef.current.add(String(incomingTask.id));
+              });
+              isInitialTasksLoadedRef.current = true;
+            }
 
             // 1. Atualiza as tarefas que vieram da planilha
             const updatedIncoming = sanitizedTasks.map(incomingTask => {
@@ -410,7 +441,12 @@ export default function App() {
   // Handlers de Tarefas com Sincronização Imediata
   const handleCreateTask = async (newTask) => {
     localTaskUpdatesRef.current[newTask.id] = Date.now();
+    if (newTask?.id) knownTaskIdsRef.current.add(String(newTask.id));
     setTasks(prev => [newTask, ...prev]);
+
+    // Notifica o usuário atribuído sobre a nova tarefa criada
+    NotificationService.notifyTaskAssigned(newTask, currentUser, users);
+
     await SheetsApi.syncTask(newTask);
   };
 
@@ -585,6 +621,7 @@ export default function App() {
     setTasks(prev => prev.map(t => {
       if (t.id === taskId) {
         const updated = { ...t, assignedTo: newAssigneeId };
+        NotificationService.notifyTaskAssigned(updated, currentUser, users);
         SheetsApi.syncTask(updated);
         return updated;
       }
@@ -600,7 +637,11 @@ export default function App() {
     localTaskUpdatesRef.current[strId] = now;
     setTasks(prev => prev.map(t => {
       if (String(t.id) === strId || t.id === id) {
+        const isReassigned = updatedFields.assignedTo && updatedFields.assignedTo !== t.assignedTo;
         const updated = { ...t, ...updatedFields };
+        if (isReassigned) {
+          NotificationService.notifyTaskAssigned(updated, currentUser, users);
+        }
         SheetsApi.syncTask(updated);
         return updated;
       }
