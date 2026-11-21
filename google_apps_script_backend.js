@@ -1546,12 +1546,6 @@ function deletePlatformRecord(platOrData) {
 
   return { deleted: false };
 }
-      return { name: name, deleted: true, matchedBy: 'name' };
-    }
-  }
-
-  return { deleted: false };
-}
 
 function deleteTaskRecord(sheetName, taskOrData) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
