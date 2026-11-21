@@ -3,11 +3,11 @@ import {
   Plus, Trash2, Edit2, X, ChevronLeft, ChevronRight, ChevronDown,
   Calendar as CalendarIcon, Check, Landmark,
   CreditCard, FileText, Landmark as BankIcon, FileSpreadsheet,
-  Pin, CalendarDays
+  Pin, CalendarDays, Search
 } from 'lucide-react';
 import { fetchNationalHolidays } from '../services/holidayService';
 
-// Tipos de conta (exclusivos entre si) com seus respectivos ícones e rótulos
+// Categorias de conta (exclusivas entre si) com seus respectivos ícones e rótulos
 const ALL_BILL_TYPES = [
   { id: 'pontual', label: 'Pontual', icon: Pin, isRecurring: false },
   { id: 'mensal', label: 'Mensal', icon: CalendarDays, isRecurring: true },
@@ -17,17 +17,17 @@ const ALL_BILL_TYPES = [
   { id: 'cheque', label: 'Cheque', icon: FileSpreadsheet, isRecurring: false }
 ];
 
-// Helper para obter o ícone do tipo de conta
+// Helper para obter o ícone e informações da categoria da conta
 function getBillTypeIcon(bill) {
-  const typeId = String(bill?.billType || bill?.tipo || '').toLowerCase().trim();
-  if (typeId === 'pontual') return Pin;
-  if (typeId === 'mensal') return CalendarDays;
-  if (typeId === 'cartao' || typeId.includes('cart')) return CreditCard;
-  if (typeId === 'boleto') return FileText;
-  if (typeId === 'emprestimo' || typeId.includes('empr')) return BankIcon;
-  if (typeId === 'cheque' || typeId.includes('cheq')) return FileSpreadsheet;
+  const raw = String(bill?.categoria || bill?.billType || bill?.tipo || '').toLowerCase().trim();
+  if (raw === 'pontual') return Pin;
+  if (raw === 'mensal') return CalendarDays;
+  if (raw === 'cartao' || raw.includes('cart')) return CreditCard;
+  if (raw === 'boleto') return FileText;
+  if (raw === 'emprestimo' || raw.includes('empr')) return BankIcon;
+  if (raw === 'cheque' || raw.includes('cheq')) return FileSpreadsheet;
 
-  // Detecção inteligente para contas legadas ou cadastradas antes da coluna Tipo
+  // Detecção inteligente por palavras-chave na descrição
   const desc = (bill?.description || '').toLowerCase();
   if (desc.includes('cartão') || desc.includes('cartao') || desc.includes('mercado pago') || desc.includes('inter') || desc.includes('c6') || desc.includes('nubank') || desc.includes('picpay')) {
     return CreditCard;
@@ -44,7 +44,28 @@ function getBillTypeIcon(bill) {
   if (bill?.isRecurring || bill?.recurringType === 'monthly') {
     return CalendarDays;
   }
-  return Pin; // Default seguro
+  return Pin; // Default
+}
+
+// Normaliza o rótulo da Categoria para exibição e busca
+function getBillCategoryLabel(bill) {
+  const raw = String(bill?.categoria || bill?.billType || bill?.tipo || '').toLowerCase().trim();
+  if (raw === 'mensal') return 'Mensal';
+  if (raw === 'cartao' || raw.includes('cart')) return 'Cartão de Crédito';
+  if (raw === 'boleto') return 'Boleto';
+  if (raw === 'emprestimo' || raw.includes('empr')) return 'Empréstimo';
+  if (raw === 'cheque' || raw.includes('cheq')) return 'Cheque';
+  if (raw === 'pontual') return 'Pontual';
+
+  const desc = (bill?.description || '').toLowerCase();
+  if (desc.includes('cartão') || desc.includes('cartao') || desc.includes('mercado pago') || desc.includes('inter') || desc.includes('c6') || desc.includes('nubank') || desc.includes('picpay')) {
+    return 'Cartão de Crédito';
+  }
+  if (desc.includes('empréstimo') || desc.includes('emprestimo')) return 'Empréstimo';
+  if (desc.includes('cheque')) return 'Cheque';
+  if (desc.includes('boleto')) return 'Boleto';
+  if (bill?.isRecurring || bill?.recurringType === 'monthly') return 'Mensal';
+  return 'Pontual';
 }
 
 // Helper para verificar se uma conta de cartão de crédito está a 7 dias ou menos do vencimento no mês focado
@@ -108,6 +129,7 @@ export default function ContasView({
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonthIndex, setCurrentMonthIndex] = useState(today.getMonth()); // 0 a 11
+  const [searchQuery, setSearchQuery] = useState(''); // Barra de pesquisa de contas e categorias
 
   // Tamanho da fonte da lista de contas à direita
   const [fontSizeLevel, setFontSizeLevel] = useState(() => {
@@ -202,7 +224,7 @@ export default function ContasView({
     setEditingBill(bill);
     setShowExtraDates(false);
     setExtraDates([]);
-    const rawType = String(bill.billType || bill.tipo || '').toLowerCase().trim();
+    const rawType = String(bill.categoria || bill.billType || bill.tipo || '').toLowerCase().trim();
     let detectedType = 'pontual';
     if (rawType === 'mensal') detectedType = 'mensal';
     else if (rawType === 'cartao' || rawType.includes('cart')) detectedType = 'cartao';
@@ -215,6 +237,7 @@ export default function ContasView({
         (bill.description || '').toLowerCase().includes('cart') ? 'cartao' :
         (bill.description || '').toLowerCase().includes('empr') ? 'emprestimo' :
         (bill.description || '').toLowerCase().includes('cheq') ? 'cheque' :
+        (bill.description || '').toLowerCase().includes('boleto') ? 'boleto' :
         (bill.isRecurring || bill.recurringType === 'monthly') ? 'mensal' : 'pontual'
       );
     }
@@ -278,6 +301,7 @@ export default function ContasView({
       recurringType: isRec ? 'monthly' : 'once',
       billType: formData.billType,
       tipo: tipoLabel,
+      categoria: tipoLabel,
       status: formData.status || 'pending',
       id: editingBill ? editingBill.id : `bill_${Date.now()}_${Math.floor(Math.random() * 100000)}`
     };
@@ -350,31 +374,46 @@ export default function ContasView({
     return list;
   }, [currentMonthIndex, currentYear]);
 
-  // Contas filtradas do mês/ano atualmente selecionado
+  // Contas filtradas do mês/ano atualmente selecionado e pelo termo da barra de pesquisa
   // Se for conta mensal ou cartão de crédito (recorrente), aparece em todos os meses a partir do mês/ano de início
   const focusedMonthBills = useMemo(() => {
     const targetMonth = currentMonthIndex + 1;
     const targetYear = currentYear;
+    const searchLower = searchQuery.trim().toLowerCase();
 
     return bills
       .filter(b => {
         const bMonth = parseInt(b.month, 10) || 1;
         const bYear = parseInt(b.year, 10) || targetYear;
-        const rawType = String(b.billType || b.tipo || '').toLowerCase();
+        const rawType = String(b.categoria || b.billType || b.tipo || '').toLowerCase();
         const isRec = b.isRecurring || b.recurringType === 'monthly' || rawType === 'mensal' || rawType.includes('cart');
 
+        let matchesMonth = false;
         if (isRec) {
           // Conta recorrente (Mensal / Cartão) aparece no mês/ano inicial e em todos os meses/anos futuros
-          if (targetYear > bYear) return true;
-          if (targetYear === bYear && targetMonth >= bMonth) return true;
-          return false;
+          if (targetYear > bYear) matchesMonth = true;
+          else if (targetYear === bYear && targetMonth >= bMonth) matchesMonth = true;
+        } else {
+          // Conta de ocorrência única (Pontual, Boleto, Empréstimo, Cheque): apenas naquele mês e ano específico
+          matchesMonth = bMonth === targetMonth && (!b.year || bYear === targetYear);
         }
 
-        // Conta de ocorrência única (Pontual, Boleto, Empréstimo, Cheque): apenas naquele mês e ano específico
-        return bMonth === targetMonth && (!b.year || bYear === targetYear);
+        if (!matchesMonth) return false;
+
+        // Filtro de pesquisa por texto: busca tanto no nome da conta quanto na categoria (tipo)
+        if (searchLower) {
+          const desc = String(b.description || '').toLowerCase();
+          const catLabel = getBillCategoryLabel(b).toLowerCase();
+          const catRaw = rawType;
+          const val = String(b.value || '').toLowerCase();
+          const matchesSearch = desc.includes(searchLower) || catLabel.includes(searchLower) || catRaw.includes(searchLower) || val.includes(searchLower);
+          if (!matchesSearch) return false;
+        }
+
+        return true;
       })
       .sort((a, b) => (parseInt(a.day, 10) || 0) - (parseInt(b.day, 10) || 0));
-  }, [bills, currentMonthIndex, currentYear]);
+  }, [bills, currentMonthIndex, currentYear, searchQuery]);
 
   // Mapa de contas por "ano-mes-dia" para destacar nos blocos de calendário
   const billsByDateMap = useMemo(() => {
@@ -682,8 +721,57 @@ export default function ContasView({
           </span>
         </div>
 
-        {/* Controles: Navegação de Mês, Ajuste de Fonte e Botão de Nova Conta */}
+        {/* Controles: Barra de Pesquisa, Navegação de Mês, Ajuste de Fonte e Botão de Nova Conta */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {/* Barra de Pesquisa (à esquerda do navegador de mês) */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: '#ffffff',
+              borderRadius: '10px',
+              border: '1.5px solid #cbd5e1',
+              padding: '6px 12px',
+              minWidth: '220px'
+            }}
+          >
+            <Search size={16} color="#94a3b8" />
+            <input
+              type="text"
+              placeholder="Buscar conta ou categoria..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#1e293b',
+                width: '100%'
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                title="Limpar busca"
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  color: '#94a3b8',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
           {/* Navegador de Mês */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#ffffff', borderRadius: '10px', border: '1.5px solid #cbd5e1', padding: '2px' }}>
             <button
@@ -851,13 +939,14 @@ export default function ContasView({
                         {bill.day}
                       </div>
 
-                      {/* Descrição da Conta com Ícone do Tipo */}
+                      {/* Descrição da Conta com Ícone da Categoria */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                         {(() => {
                           const IconComp = getBillTypeIcon(bill);
+                          const catLabel = getBillCategoryLabel(bill);
                           return (
                             <div
-                              title={`Tipo: ${bill.billType || 'Boleto'}`}
+                              title={`Categoria: ${catLabel}`}
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1230,13 +1319,13 @@ export default function ContasView({
                 </div>
               </div>
 
-              {/* Seção Tipo (comportamento de rádio exclusivo: Pontual, Mensal, Boleto, Cartão de Crédito, Empréstimo, Cheque) */}
+              {/* Seção Categoria (comportamento de rádio exclusivo: Pontual, Mensal, Boleto, Cartão de Crédito, Empréstimo, Cheque) */}
               <div>
                 <label style={{ fontSize: '13px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '8px' }}>
-                  Tipo
+                  Categoria
                 </label>
 
-                {/* Linha 1 de Tipos: Pontual (com pino) e Mensal (com calendário) */}
+                {/* Linha 1 de Categorias: Pontual (com pino) e Mensal (com calendário) */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                   <button
                     type="button"
@@ -1285,7 +1374,7 @@ export default function ContasView({
                   </button>
                 </div>
 
-                {/* Linha 2 de Tipos: Boleto e Cartão de Crédito */}
+                {/* Linha 2 de Categorias: Boleto e Cartão de Crédito */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                   <button
                     type="button"

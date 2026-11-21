@@ -277,20 +277,23 @@ function setupSheets() {
     ensureIdColumn(disputeSheet, 'ID');
   }
 
-  // 10. Aba Contas (Contas a Pagar): [ID, Dia, Mês, Ano, Descrição, Valor, Status, Tipo]
+  // 10. Aba Contas (Contas a Pagar): [ID, Dia, Mês, Ano, Descrição, Valor, Status, Categoria]
   let billSheet = ss.getSheetByName(SHEETS.BILLS) || ss.getSheetByName('Contas a Pagar');
   if (!billSheet) {
     billSheet = ss.insertSheet(SHEETS.BILLS);
-    billSheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status', 'Tipo']);
+    billSheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status', 'Categoria']);
     styleHeader(billSheet);
   } else {
     ensureIdColumn(billSheet, 'ID');
-    // Garante que a coluna H tenha o cabeçalho 'Tipo'
+    // Garante que a coluna H tenha o cabeçalho 'Categoria'
     const values = billSheet.getDataRange().getValues();
     if (values.length > 0) {
       const headers = values[0].map(h => String(h).toLowerCase().trim());
-      if (headers.indexOf('tipo') === -1) {
-        billSheet.getRange(1, 8).setValue('Tipo');
+      if (headers.indexOf('categoria') === -1 && headers.indexOf('tipo') !== -1) {
+        const colIdx = headers.indexOf('tipo') + 1;
+        billSheet.getRange(1, colIdx).setValue('Categoria');
+      } else if (headers.indexOf('categoria') === -1) {
+        billSheet.getRange(1, 8).setValue('Categoria');
       }
     }
   }
@@ -2085,7 +2088,7 @@ function getBillsDataAsJson() {
   const idxDesc = headers.findIndex(h => h === 'descrição' || h === 'descricao' || h === 'description');
   const idxValor = headers.findIndex(h => h === 'valor' || h === 'value');
   const idxStatus = headers.findIndex(h => h === 'status' || h === 'situação' || h === 'situacao');
-  const idxTipo = headers.findIndex(h => h === 'tipo' || h === 'recorrente' || h === 'recorrencia' || h === 'recurring');
+  const idxTipo = headers.findIndex(h => h === 'categoria' || h === 'tipo' || h === 'recorrente' || h === 'recorrencia' || h === 'recurring');
 
   const bills = [];
   for (let i = 1; i < values.length; i++) {
@@ -2097,21 +2100,26 @@ function getBillsDataAsJson() {
     const rawTipo = idxTipo !== -1 ? String(row[idxTipo] || '').trim() : '';
     const rawTipoLower = rawTipo.toLowerCase();
     
-    // Mapeia o tipo salvo exatamente como na interface
+    // Mapeia a categoria/tipo salvo exatamente como na interface
     let billType = 'pontual';
-    if (rawTipoLower === 'mensal') billType = 'mensal';
-    else if (rawTipoLower === 'cartão de crédito' || rawTipoLower === 'cartao de credito' || rawTipoLower === 'cartao') billType = 'cartao';
-    else if (rawTipoLower === 'boleto') billType = 'boleto';
-    else if (rawTipoLower === 'empréstimo' || rawTipoLower === 'emprestimo') billType = 'emprestimo';
-    else if (rawTipoLower === 'cheque') billType = 'cheque';
-    else if (rawTipoLower === 'pontual') billType = 'pontual';
+    let categoriaLabel = 'Pontual';
+    if (rawTipoLower === 'mensal') { billType = 'mensal'; categoriaLabel = 'Mensal'; }
+    else if (rawTipoLower === 'cartão de crédito' || rawTipoLower === 'cartao de credito' || rawTipoLower === 'cartao') { billType = 'cartao'; categoriaLabel = 'Cartão de Crédito'; }
+    else if (rawTipoLower === 'boleto') { billType = 'boleto'; categoriaLabel = 'Boleto'; }
+    else if (rawTipoLower === 'empréstimo' || rawTipoLower === 'emprestimo') { billType = 'emprestimo'; categoriaLabel = 'Empréstimo'; }
+    else if (rawTipoLower === 'cheque') { billType = 'cheque'; categoriaLabel = 'Cheque'; }
+    else if (rawTipoLower === 'pontual') { billType = 'pontual'; categoriaLabel = 'Pontual'; }
     else {
       // Detecção inteligente por nome se for legado
       const descLower = desc.toLowerCase();
-      if (descLower.includes('cart') || descLower.includes('mercado pago') || descLower.includes('inter') || descLower.includes('c6') || descLower.includes('nubank')) billType = 'cartao';
-      else if (descLower.includes('empr')) billType = 'emprestimo';
-      else if (descLower.includes('cheq')) billType = 'cheque';
-      else if (rawTipoLower === 'sim' || rawTipoLower === 'true') billType = 'mensal';
+      if (descLower.includes('cart') || descLower.includes('mercado pago') || descLower.includes('inter') || descLower.includes('c6') || descLower.includes('nubank')) {
+        billType = 'cartao';
+        categoriaLabel = 'Cartão de Crédito';
+      }
+      else if (descLower.includes('empr')) { billType = 'emprestimo'; categoriaLabel = 'Empréstimo'; }
+      else if (descLower.includes('cheq')) { billType = 'cheque'; categoriaLabel = 'Cheque'; }
+      else if (descLower.includes('boleto')) { billType = 'boleto'; categoriaLabel = 'Boleto'; }
+      else if (rawTipoLower === 'sim' || rawTipoLower === 'true') { billType = 'mensal'; categoriaLabel = 'Mensal'; }
     }
 
     const isRecurring = billType === 'mensal' || billType === 'cartao';
@@ -2125,6 +2133,8 @@ function getBillsDataAsJson() {
       value: idxValor !== -1 ? (row[idxValor] !== '' && row[idxValor] !== null ? row[idxValor] : '') : '',
       status: idxStatus !== -1 && row[idxStatus] ? String(row[idxStatus]).trim() : 'pending',
       billType: billType,
+      tipo: categoriaLabel,
+      categoria: categoriaLabel,
       isRecurring: isRecurring,
       recurringType: isRecurring ? 'monthly' : 'once'
     });
@@ -2138,7 +2148,7 @@ function upsertBillRecord(bill) {
   let sheet = ss.getSheetByName(SHEETS.BILLS) || ss.getSheetByName('Contas a Pagar');
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.BILLS);
-    sheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status', 'Tipo']);
+    sheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status', 'Categoria']);
     styleHeader(sheet);
   }
 
@@ -2161,15 +2171,15 @@ function upsertBillRecord(bill) {
   const hasIdCol = idxId !== -1;
   const finalId = targetId || (hasIdCol ? ('bill_' + Date.now()) : '');
 
-  // Formata o nome do Tipo para exibição elegante na coluna da planilha
-  let tipoLabel = 'Pontual';
-  const bt = String(bill.billType || '').toLowerCase();
-  if (bt === 'cartao' || bt === 'cartão de crédito' || bt === 'cartao de credito') tipoLabel = 'Cartão de Crédito';
-  else if (bt === 'mensal') tipoLabel = 'Mensal';
-  else if (bt === 'boleto') tipoLabel = 'Boleto';
-  else if (bt === 'emprestimo' || bt === 'empréstimo') tipoLabel = 'Empréstimo';
-  else if (bt === 'cheque') tipoLabel = 'Cheque';
-  else if (bill.isRecurring || bill.recurringType === 'monthly') tipoLabel = 'Mensal';
+  // Formata o nome da Categoria para gravação elegante na coluna da planilha
+  let categoriaLabel = 'Pontual';
+  const bt = String(bill.categoria || bill.billType || bill.tipo || '').toLowerCase();
+  if (bt === 'cartao' || bt === 'cartão de crédito' || bt === 'cartao de credito') categoriaLabel = 'Cartão de Crédito';
+  else if (bt === 'mensal') categoriaLabel = 'Mensal';
+  else if (bt === 'boleto') categoriaLabel = 'Boleto';
+  else if (bt === 'emprestimo' || bt === 'empréstimo') categoriaLabel = 'Empréstimo';
+  else if (bt === 'cheque') categoriaLabel = 'Cheque';
+  else if (bill.isRecurring || bill.recurringType === 'monthly') categoriaLabel = 'Mensal';
 
   const rowData = [
     bill.day || 1,
@@ -2178,7 +2188,7 @@ function upsertBillRecord(bill) {
     bill.description || '',
     bill.value || '',
     bill.status || 'pending',
-    tipoLabel
+    categoriaLabel
   ];
 
   const fullRow = hasIdCol ? [finalId, ...rowData] : rowData;
