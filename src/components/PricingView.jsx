@@ -173,84 +173,104 @@ export default function PricingView({ products = [] }) {
         </h1>
       </div>
 
-      {/* 1. Balão de busca mais simples igual ao do produto com autocomplete estilo Excel */}
-      <div style={{ width: '320px', maxWidth: '100%', marginBottom: '20px' }}>
-        <ProductSearchAutocomplete
-          products={products}
-          value={productSearch}
-          placeholder="Buscar por SKU ou Nome..."
-          showCost={true}
-          onSelect={(p) => {
-            setSelectedProductId(p.id);
-            setProductSearch(`${p.sku} - ${p.title || p.product || ''}`);
-          }}
-        />
+      {/* Barra branca unificada contendo a Busca de SKU/Nome + Métricas do Produto */}
+      <div style={{
+        background: '#ffffff',
+        border: '1.5px solid #e2e8f0',
+        borderRadius: '16px',
+        padding: '12px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '20px',
+        flexWrap: 'wrap',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+        marginBottom: '16px'
+      }}>
+        {/* Campo de Busca de SKU/Nome dentro da barra branca */}
+        <div style={{ width: '280px', maxWidth: '100%', flexShrink: 0 }}>
+          <ProductSearchAutocomplete
+            products={products}
+            value={productSearch}
+            placeholder="Buscar por SKU ou Nome..."
+            showCost={true}
+            onSelect={(p) => {
+              setSelectedProductId(p.id);
+              setProductSearch(`${p.sku} - ${p.title || p.product || ''}`);
+            }}
+            inputStyle={{
+              borderRadius: '10px',
+              border: '1.5px solid #cbd5e1',
+              padding: '8px 12px 8px 36px',
+              fontSize: '13px'
+            }}
+          />
+        </div>
+
+        {/* Custo Base */}
+        <div>
+          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Custo Base</span>
+          <span style={{ fontSize: '16px', fontWeight: '900', color: '#0f172a' }}>
+            R$ {(typeof selectedProduct.cost === 'number' && !isNaN(selectedProduct.cost) ? selectedProduct.cost : parseFloat(String(selectedProduct.cost || 0).replace(',', '.')) || 0).toFixed(2).replace('.', ',')}
+          </span>
+        </div>
+
+        <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
+
+        {/* Medidas (CxLxA) */}
+        <div>
+          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Medidas (CxLxA)</span>
+          <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
+            {selectedProduct.length || 0} x {selectedProduct.width || 0} x {selectedProduct.height || 0} cm
+          </span>
+        </div>
+
+        <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
+
+        {/* Peso Balança */}
+        <div>
+          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Peso Balança</span>
+          <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
+            {realWeight.toFixed(2)} kg
+          </span>
+        </div>
+
+        <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
+
+        {/* Peso Cubado */}
+        <div>
+          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Peso Cubado (÷ 6000)</span>
+          <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
+            {cubicWeight.toFixed(2)} kg
+          </span>
+        </div>
+
+        <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
+
+        {/* Peso Considerado */}
+        <div style={{
+          background: '#ede9fe',
+          padding: '5px 12px',
+          borderRadius: '8px',
+          border: '1px solid #c4b5fd'
+        }}>
+          <span style={{ fontSize: '10px', fontWeight: '800', color: '#5925dc', display: 'block' }}>
+            Peso Considerado (Maior)
+          </span>
+          <span style={{ fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>
+            {consideredWeight.toFixed(2)} kg
+          </span>
+        </div>
       </div>
 
-      {/* Linha com Balão Branco de dados do Produto + Botão Precificadora Shopee Kit FORA do balão branco */}
+      {/* Botões Precificadora de Kits Shopee e Frete Próprio logo abaixo da barra branca */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '16px',
+        gap: '12px',
         flexWrap: 'wrap',
         marginBottom: '28px'
       }}>
-        {/* Balão branco dos dados do produto */}
-        <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #e2e8f0',
-          padding: '10px 18px',
-          borderRadius: '14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          flexWrap: 'wrap',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-        }}>
-          <div>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Custo Base</span>
-            <span style={{ fontSize: '16px', fontWeight: '900', color: '#0f172a' }}>
-              R$ {(typeof selectedProduct.cost === 'number' && !isNaN(selectedProduct.cost) ? selectedProduct.cost : parseFloat(String(selectedProduct.cost || 0).replace(',', '.')) || 0).toFixed(2).replace('.', ',')}
-            </span>
-          </div>
-          <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
-          <div>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Medidas (CxLxA)</span>
-            <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
-              {selectedProduct.length || 0} x {selectedProduct.width || 0} x {selectedProduct.height || 0} cm
-            </span>
-          </div>
-          <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
-          <div>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Peso Balança</span>
-            <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
-              {realWeight.toFixed(2)} kg
-            </span>
-          </div>
-          <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
-          <div>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Peso Cubado (÷ 6000)</span>
-            <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
-              {cubicWeight.toFixed(2)} kg
-            </span>
-          </div>
-          <div style={{ height: '24px', width: '1px', background: '#cbd5e1' }} />
-          <div style={{
-            background: '#ede9fe',
-            padding: '5px 10px',
-            borderRadius: '8px',
-            border: '1px solid #c4b5fd'
-          }}>
-            <span style={{ fontSize: '10px', fontWeight: '800', color: '#5925dc', display: 'block' }}>
-              Peso Considerado (Maior)
-            </span>
-            <span style={{ fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>
-              {consideredWeight.toFixed(2)} kg
-            </span>
-          </div>
-        </div>
-
-        {/* 2. Botão Precificadora de Kits Shopee FORA do balão branco */}
+        {/* Botão Precificadora de Kits Shopee */}
         <button
           type="button"
           onClick={() => setIsKitsModalOpen(true)}
@@ -276,7 +296,7 @@ export default function PricingView({ products = [] }) {
           <span>Precificadora de Kits Shopee</span>
         </button>
 
-        {/* 3. Botão Frete Próprio ao lado do botão da precificadora de kits */}
+        {/* Botão Frete Próprio */}
         <button
           type="button"
           onClick={() => setIsFreteProprioModalOpen(true)}
