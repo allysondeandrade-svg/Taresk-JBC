@@ -269,10 +269,31 @@ export const NotificationService = {
     const alreadySentIds = sentLog[todayDateString] || [];
 
     bills.forEach(bill => {
-      if (bill.status === 'paid') return; // Se já foi paga, não avisa
-
+      // Checa se a conta está paga no mês corrente de forma independente
       const bDay = parseInt(bill.day, 10);
-      const isRecurring = bill.isRecurring || bill.recurringType === 'monthly';
+      const isRecurring = bill.isRecurring || bill.recurringType === 'monthly' || String(bill.categoria || bill.billType || bill.tipo || '').toLowerCase() === 'mensal' || String(bill.categoria || bill.billType || bill.tipo || '').toLowerCase().includes('cart');
+
+      let isPaidThisMonth = false;
+      if (!isRecurring) {
+        isPaidThisMonth = bill.status === 'paid';
+      } else {
+        const monthKey = `${currentYear}_${currentMonth}`;
+        if (bill.paidMonths && typeof bill.paidMonths === 'object') {
+          if (Array.isArray(bill.paidMonths)) {
+            isPaidThisMonth = bill.paidMonths.includes(monthKey);
+          } else if (bill.paidMonths[monthKey] !== undefined) {
+            isPaidThisMonth = Boolean(bill.paidMonths[monthKey]);
+          }
+        } else {
+          const origYear = parseInt(bill.year, 10) || currentYear;
+          const origMonth = parseInt(bill.month, 10) || currentMonth;
+          if (currentYear === origYear && currentMonth === origMonth) {
+            isPaidThisMonth = bill.status === 'paid';
+          }
+        }
+      }
+
+      if (isPaidThisMonth) return; // Se já foi paga neste mês, não avisa
 
       const formatVal = bill.value ? ` ${bill.value}` : '';
       const billTitle = `${bill.description}${formatVal}`.trim();

@@ -2089,6 +2089,7 @@ function getBillsDataAsJson() {
   const idxValor = headers.findIndex(h => h === 'valor' || h === 'value');
   const idxStatus = headers.findIndex(h => h === 'status' || h === 'situação' || h === 'situacao');
   const idxTipo = headers.findIndex(h => h === 'categoria' || h === 'tipo' || h === 'recorrente' || h === 'recorrencia' || h === 'recurring');
+  const idxPaidMonths = headers.findIndex(h => h === 'paidmonths' || h.includes('paidmonths') || h.includes('mesespagos') || h.includes('histórico') || h.includes('historico'));
 
   const bills = [];
   for (let i = 1; i < values.length; i++) {
@@ -2124,6 +2125,15 @@ function getBillsDataAsJson() {
 
     const isRecurring = billType === 'mensal' || billType === 'cartao';
 
+    let paidMonthsData = {};
+    if (idxPaidMonths !== -1 && row[idxPaidMonths]) {
+      try {
+        paidMonthsData = JSON.parse(String(row[idxPaidMonths]));
+      } catch (e) {
+        paidMonthsData = {};
+      }
+    }
+
     bills.push({
       id: idxId !== -1 && row[idxId] ? String(row[idxId]).trim() : ('bill_' + i),
       day: isNaN(day) ? 1 : day,
@@ -2132,6 +2142,7 @@ function getBillsDataAsJson() {
       description: desc,
       value: idxValor !== -1 ? (row[idxValor] !== '' && row[idxValor] !== null ? row[idxValor] : '') : '',
       status: idxStatus !== -1 && row[idxStatus] ? String(row[idxStatus]).trim() : 'pending',
+      paidMonths: paidMonthsData,
       billType: billType,
       tipo: categoriaLabel,
       categoria: categoriaLabel,
@@ -2148,7 +2159,7 @@ function upsertBillRecord(bill) {
   let sheet = ss.getSheetByName(SHEETS.BILLS) || ss.getSheetByName('Contas a Pagar');
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.BILLS);
-    sheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status', 'Categoria']);
+    sheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status', 'Categoria', 'PaidMonths']);
     styleHeader(sheet);
   }
 
@@ -2181,6 +2192,12 @@ function upsertBillRecord(bill) {
   else if (bt === 'cheque') categoriaLabel = 'Cheque';
   else if (bill.isRecurring || bill.recurringType === 'monthly') categoriaLabel = 'Mensal';
 
+  const paidMonthsStr = (bill.paidMonths && typeof bill.paidMonths === 'object' && Object.keys(bill.paidMonths).length > 0)
+    ? JSON.stringify(bill.paidMonths)
+    : '';
+
+  const hasPaidMonthsCol = headers.findIndex(h => h === 'paidmonths' || h.includes('paidmonths') || h.includes('mesespagos')) !== -1;
+
   const rowData = [
     bill.day || 1,
     bill.month || 1,
@@ -2191,11 +2208,22 @@ function upsertBillRecord(bill) {
     categoriaLabel
   ];
 
+  if (hasPaidMonthsCol || paidMonthsStr) {
+    rowData.push(paidMonthsStr);
+  }
+
   const fullRow = hasIdCol ? [finalId, ...rowData] : rowData;
 
   if (rowIndex > 0) {
+    // Se a planilha ainda não tem a coluna de cabeçalho PaidMonths mas precisa salvar
+    if (paidMonthsStr && !hasPaidMonthsCol && headers.length < fullRow.length) {
+      sheet.getRange(1, fullRow.length).setValue('PaidMonths');
+    }
     sheet.getRange(rowIndex, 1, 1, fullRow.length).setValues([fullRow]);
   } else {
+    if (paidMonthsStr && !hasPaidMonthsCol && headers.length < fullRow.length) {
+      sheet.getRange(1, fullRow.length).setValue('PaidMonths');
+    }
     sheet.appendRow(fullRow);
   }
 

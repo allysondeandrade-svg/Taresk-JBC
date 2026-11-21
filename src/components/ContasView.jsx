@@ -7,6 +7,41 @@ import {
 } from 'lucide-react';
 import { fetchNationalHolidays } from '../services/holidayService';
 
+// Helper para verificar se a conta foi paga em um mês e ano específicos
+export function isBillPaidInMonth(bill, year, month) {
+  if (!bill) return false;
+  const rawType = String(bill.categoria || bill.billType || bill.tipo || '').toLowerCase();
+  const isRec = bill.isRecurring || bill.recurringType === 'monthly' || rawType === 'mensal' || rawType.includes('cart');
+
+  // Se não for conta recorrente (pontual, boleto, empréstimo, etc), usa o status direto da conta
+  if (!isRec) {
+    return bill.status === 'paid';
+  }
+
+  const monthKey = `${year}_${month}`;
+
+  // Se já possui registro específico para esse mês no paidMonths:
+  if (bill.paidMonths && typeof bill.paidMonths === 'object') {
+    if (Array.isArray(bill.paidMonths)) {
+      return bill.paidMonths.includes(monthKey);
+    }
+    if (bill.paidMonths[monthKey] !== undefined) {
+      return Boolean(bill.paidMonths[monthKey]);
+    }
+  }
+
+  // Se não tiver registro específico no paidMonths:
+  // Se for exatamente o mês original de criação da conta, herda bill.status
+  const origYear = parseInt(bill.year, 10) || year;
+  const origMonth = parseInt(bill.month, 10) || month;
+  if (year === origYear && month === origMonth) {
+    return bill.status === 'paid';
+  }
+
+  // Qualquer outro mês (futuro ou diferente) inicia como pendente (não pago) por padrão!
+  return false;
+}
+
 // Categorias de conta (exclusivas entre si) com seus respectivos ícones e rótulos
 const ALL_BILL_TYPES = [
   { id: 'pontual', label: 'Pontual', icon: Pin, isRecurring: false },
@@ -337,8 +372,37 @@ export default function ContasView({
 
   const handleToggleStatus = (bill) => {
     if (onUpdateBill) {
-      const nextStatus = bill.status === 'paid' ? 'pending' : 'paid';
-      onUpdateBill(bill.id, { ...bill, status: nextStatus });
+      const rawType = String(bill.categoria || bill.billType || bill.tipo || '').toLowerCase();
+      const isRec = bill.isRecurring || bill.recurringType === 'monthly' || rawType === 'mensal' || rawType.includes('cart');
+      const focusedMonth = currentMonthIndex + 1;
+      const focusedYear = currentYear;
+      const monthKey = `${focusedYear}_${focusedMonth}`;
+
+      if (isRec) {
+        // Para contas recorrentes (mensal, cartão), alterna apenas o status do mês/ano atualmente focado
+        const currentPaid = isBillPaidInMonth(bill, focusedYear, focusedMonth);
+        const nextPaid = !currentPaid;
+
+        const currentPaidMonths = (bill.paidMonths && typeof bill.paidMonths === 'object' && !Array.isArray(bill.paidMonths))
+          ? { ...bill.paidMonths }
+          : {};
+
+        currentPaidMonths[monthKey] = nextPaid;
+
+        const origYear = parseInt(bill.year, 10) || focusedYear;
+        const origMonth = parseInt(bill.month, 10) || focusedMonth;
+        const isOrigMonth = (focusedYear === origYear && focusedMonth === origMonth);
+
+        onUpdateBill(bill.id, {
+          ...bill,
+          paidMonths: currentPaidMonths,
+          // Se for o mês original de criação, atualiza também bill.status para manter compatibilidade
+          ...(isOrigMonth ? { status: nextPaid ? 'paid' : 'pending' } : {})
+        });
+      } else {
+        const nextStatus = bill.status === 'paid' ? 'pending' : 'paid';
+        onUpdateBill(bill.id, { ...bill, status: nextStatus });
+      }
     }
   };
 
@@ -514,12 +578,20 @@ export default function ContasView({
       const dayBills = billsByDateMap[dateKey] || [];
       const holidayName = holidaysMap[dateKey] || null;
 
+      // Filtra se existem contas pendentes e pagas especificamente neste mês
+      const pendingBills = dayBills.filter(b => !isBillPaidInMonth(b, year, monthIndex + 1));
+      const hasPendingBills = pendingBills.length > 0;
+      const allBillsPaid = dayBills.length > 0 && !hasPendingBills;
+
       calendarCells.push({
         empty: false,
         day,
         dateKey,
         bills: dayBills,
+        pendingBills,
         hasBills: dayBills.length > 0,
+        hasPendingBills,
+        allBillsPaid,
         holidayName,
         isToday: day === today.getDate() && monthIndex === today.getMonth() && year === today.getFullYear()
       });
@@ -920,7 +992,7 @@ export default function ContasView({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: fontStyles.gap }}>
               {focusedMonthBills.map((bill) => {
-                const isPaid = bill.status === 'paid';
+                const isPaid = isBillPaidInMonth(bill, currentYear, currentMonthIndex + 1);
                 const isRec = bill.isRecurring || bill.recurringType === 'monthly' || bill.billType === 'mensal' || bill.billType === 'cartao';
                 const isCard = bill.billType === 'cartao' || (bill.description || '').toLowerCase().includes('cart');
                 const displayValue = getDisplayBillValue(bill, currentYear, currentMonthIndex);
