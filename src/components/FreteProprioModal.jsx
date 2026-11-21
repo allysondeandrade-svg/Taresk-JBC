@@ -84,6 +84,7 @@ export default function FreteProprioModal({
   const [freteAmazonMask, setFreteAmazonMask] = useState('');
   const [freteMEMask, setFreteMEMask] = useState('');
   const [taxaPctInput, setTaxaPctInput] = useState('12,5'); // Padrão 12,5%
+  const [incluirFreteNaTaxa, setIncluirFreteNaTaxa] = useState(true); // Checkbox Incluir Frete
 
   // Controle de exibição das informações intermediárias (ocultas por padrão)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -97,6 +98,7 @@ export default function FreteProprioModal({
       setFreteAmazonMask('');
       setFreteMEMask('');
       setTaxaPctInput('12,5');
+      setIncluirFreteNaTaxa(true);
       setIsDetailsOpen(false);
     }
   }, [isOpen]);
@@ -117,16 +119,19 @@ export default function FreteProprioModal({
   const taxaPctNum = parseFloat(String(taxaPctInput).replace(',', '.')) || 0;
 
   // FÓRMULAS CONFORME ESPECIFICADO:
-  // 1. Valor Total = Valor do produto + Frete Amazon
+  // 1. Valor Total = Valor do produto + Frete Plataforma
   const valorTotal = valorProduto + freteAmazon;
 
-  // 2. Taxa (R$) = Valor total x Taxa (%)
-  const taxaReais = valorTotal * (taxaPctNum / 100);
+  // 2. Se marcado o Check list: Taxa (R$) = Valor Total x Taxa (%)
+  //    Se não marcado: Taxa (R$) = Valor do Produto x Taxa (%)
+  const taxaReais = incluirFreteNaTaxa
+    ? valorTotal * (taxaPctNum / 100)
+    : valorProduto * (taxaPctNum / 100);
 
   // 3. Valor a Receber = Valor Total - Taxa (R$)
   const valorAReceber = valorTotal - taxaReais;
 
-  // 4. Valor - Frete ME = Valor a Receber - Frete Melhor Envio
+  // 4. Valor - Frete Transportadora = Valor a Receber - Frete Transportadora
   const valorMenosFreteME = valorAReceber - freteME;
 
   // 5. Lucro Bruto = (Valor - Frete ME) - Custo
@@ -364,15 +369,15 @@ export default function FreteProprioModal({
               </div>
             </div>
 
-            {/* Linha Taxa (%) - O bloco vai até o final da linha e o % fica dentro do bloco aparecendo apenas ao digitar */}
+            {/* Linha Taxa (%) com Checkbox Incluir Frete */}
             <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
               <div style={{ padding: '9px 12px', fontSize: '13px', fontWeight: '700', color: '#334155' }}>
                 Taxa (%)
               </div>
-              <div style={{ padding: '6px 10px' }}>
+              <div style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                 <div style={{
                   position: 'relative',
-                  width: '100%',
+                  width: '95px',
                   display: 'flex',
                   alignItems: 'center'
                 }}>
@@ -383,7 +388,7 @@ export default function FreteProprioModal({
                     onChange={(e) => setTaxaPctInput(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '7px 28px 7px 10px',
+                      padding: '7px 24px 7px 10px',
                       borderRadius: '8px',
                       border: '1.5px solid #cbd5e1',
                       fontSize: '13px',
@@ -398,7 +403,7 @@ export default function FreteProprioModal({
                   {taxaPctInput.trim() !== '' && (
                     <span style={{
                       position: 'absolute',
-                      right: '12px',
+                      right: '10px',
                       fontSize: '13px',
                       fontWeight: '700',
                       color: '#64748b',
@@ -408,6 +413,32 @@ export default function FreteProprioModal({
                     </span>
                   )}
                 </div>
+
+                {/* Opção com checklist no canto: Incluir Frete */}
+                <label style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  marginRight: '4px'
+                }}>
+                  <span style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
+                    Incluir Frete
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={incluirFreteNaTaxa}
+                    onChange={(e) => setIncluirFreteNaTaxa(e.target.checked)}
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      accentColor: '#5925dc',
+                      cursor: 'pointer',
+                      borderRadius: '6px'
+                    }}
+                  />
+                </label>
               </div>
             </div>
 
