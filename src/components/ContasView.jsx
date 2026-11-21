@@ -702,9 +702,11 @@ export default function ContasView({
   return (
     <div style={{
       maxWidth: '1440px',
+      width: '100%',
       margin: '0 auto',
-      padding: '20px 20px 10px',
+      padding: '16px 20px 16px',
       height: '100%',
+      maxHeight: '100%',
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
@@ -867,18 +869,20 @@ export default function ContasView({
         display: 'grid',
         gridTemplateColumns: 'minmax(330px, 420px) 1fr',
         gap: '32px',
-        alignItems: 'start',
+        alignItems: 'stretch',
         flex: 1,
         minHeight: 0,
-        height: 'calc(100% - 70px)'
+        height: '100%',
+        overflow: 'hidden'
       }}>
         
-        {/* Coluna Esquerda: Calendários dos meses com rolagem/arrastar */}
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+        {/* Coluna Esquerda: Calendários dos meses com rolagem/arrastar independente */}
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
           {/* Container com scroll vertical independente para os calendários */}
           <div
             style={{
               height: '100%',
+              maxHeight: '100%',
               overflowY: 'auto',
               paddingRight: '8px',
               display: 'flex',
@@ -898,8 +902,10 @@ export default function ContasView({
           border: '1.5px solid #e2e8f0',
           boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
           height: '100%',
+          maxHeight: '100%',
           boxSizing: 'border-box',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          minHeight: 0
         }}>
           {focusedMonthBills.length === 0 ? (
             <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>

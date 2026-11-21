@@ -1062,7 +1062,17 @@ export default function App() {
 
   const isDark = appTheme === 'dark';
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? '#0b0f19' : '#f8fafc' }} className={isDark ? 'dark-mode' : ''}>
+    <div
+      style={{
+        height: '100vh',
+        maxHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: isDark ? '#0b0f19' : '#f8fafc',
+        overflow: 'hidden'
+      }}
+      className={isDark ? 'dark-mode' : ''}
+    >
       {/* Header com Abas e Perfil */}
       <Header
         activeTab={activeTab}
@@ -1078,7 +1088,15 @@ export default function App() {
 
 
       {/* Conteúdo Principal de acordo com a Aba Ativa */}
-      <main style={{ flex: 1, height: activeTab === 'contas' ? 'calc(100vh - 74px)' : 'auto', overflowY: activeTab === 'contas' ? 'hidden' : 'visible' }}>
+      <main
+        style={{
+          flex: 1,
+          height: 'calc(100vh - 74px)',
+          overflowY: activeTab === 'contas' ? 'hidden' : 'auto',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         {activeTab === 'tarefas' && (
           <TasksView
             tasks={tasks}
