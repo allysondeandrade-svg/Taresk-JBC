@@ -46,7 +46,66 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('🚀 Taresk')
     .addItem('⚡ Atualizar Colunas e Estrutura', 'setupSheets')
+    .addItem('🔑 Gerar IDs Únicos em Todas as Abas (Anti-Colisão)', 'regenerateAllUniqueIds')
     .addToUi();
+}
+
+/**
+ * Atribui IDs numéricos aleatórios únicos para todas as linhas de todas as abas
+ * eliminando de forma definitiva IDs sequenciais como 1, 2, 3... e duplicatas
+ */
+function regenerateAllUniqueIds() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetsToProcess = [
+    SHEETS.PRODUCTS,
+    SHEETS.TASKS,
+    SHEETS.COMPLETED_TASKS,
+    SHEETS.BILLS,
+    SHEETS.DISPUTES,
+    SHEETS.ANNOTATIONS,
+    SHEETS.CHECKLIST_TEMPLATES,
+    SHEETS.PLATFORMS,
+    SHEETS.USERS
+  ];
+
+  let totalUpdated = 0;
+  const existingIds = new Set();
+
+  sheetsToProcess.forEach(sheetName => {
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return;
+
+    const values = sheet.getDataRange().getValues();
+    if (values.length <= 1) return;
+
+    const headers = values[0].map(h => String(h || '').toLowerCase().trim());
+    const idxId = headers.indexOf('id');
+    if (idxId === -1) return;
+
+    for (let i = 1; i < values.length; i++) {
+      const currentId = String(values[i][idxId] || '').trim();
+      // Se não tem ID, ou é sequencial pequeno (1, 2, 0001, etc), ou já apareceu antes duplicado
+      const isShortSequential = /^\d{1,5}$/.test(currentId);
+      const isDuplicate = existingIds.has(currentId);
+      const needsNewId = !currentId || isShortSequential || isDuplicate;
+
+      if (needsNewId) {
+        let newId = '';
+        do {
+          const rand = Math.floor(1000 + Math.random() * 9000);
+          newId = String(Date.now()).slice(-6) + String(rand);
+        } while (existingIds.has(newId));
+
+        existingIds.add(newId);
+        sheet.getRange(i + 1, idxId + 1).setValue(newId);
+        totalUpdated++;
+      } else {
+        existingIds.add(currentId);
+      }
+    }
+  });
+
+  SpreadsheetApp.getUi().alert('Sucesso! Foram gerados ' + totalUpdated + ' novos IDs aleatórios únicos e anti-colisão.');
 }
 
 /**
@@ -453,23 +512,23 @@ function styleHeader(sheet) {
 }
 
 function formatToFourDigits(num) {
-  if (typeof num === 'string' && /^\d{4}$/.test(num)) return num;
+  if (typeof num === 'string' && /^\d{4,}$/.test(num)) return num;
   const parsed = parseInt(String(num || '').replace(/\D/g, ''), 10);
-  if (isNaN(parsed) || parsed < 0) return '0001';
-  return String(parsed).padStart(4, '0');
+  if (isNaN(parsed) || parsed < 0) return getNextFormattedId();
+  return String(parsed);
 }
 
 function formatToFiveDigits(num) {
-  if (typeof num === 'string' && /^\d{5}$/.test(num)) return num;
+  if (typeof num === 'string' && /^\d{5,}$/.test(num)) return num;
   const parsed = parseInt(num, 10);
-  if (isNaN(parsed) || parsed < 0) return '00001';
-  return String(parsed).padStart(5, '0');
+  if (isNaN(parsed) || parsed < 0) return getNextFormattedId();
+  return String(parsed);
 }
 
 function getNextFormattedId(sheetNames) {
-  // Gera um ID numérico único baseado no timestamp atual e um número aleatório
+  // Gera um ID numérico aleatório único baseado no timestamp atual e um número aleatório de 4 dígitos
   // garantindo unicidade absoluta sem risco de colisão entre tarefas simples, produtos ou recorrentes
-  const randomSuffix = Math.floor(100 + Math.random() * 900); // 3 dígitos aleatórios
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   return String(Date.now()).slice(-6) + String(randomSuffix);
 }
 
@@ -1146,7 +1205,7 @@ function upsertProduct(prod) {
   const targetId = String(prod.id || '').trim();
   const targetSku = String(prod.sku || prod.id || '').toUpperCase().trim();
 
-  // 1. Busca por ID exato (sem comparar números aleatórios ou converter para 5 dígitos)
+  // 1. Busca por ID exato
   if (hasIdCol && targetId && !targetId.startsWith('prod_')) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId]).trim();
@@ -1274,7 +1333,7 @@ function upsertPlatform(plat) {
   if (hasIdCol && targetId) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId]).trim();
-      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+      if (rowId && (rowId === targetId || rowId.toLowerCase() === targetId.toLowerCase())) {
         rowIndex = i + 1;
         break;
       }
@@ -1340,7 +1399,7 @@ function upsertUser(user) {
   if (hasIdCol && targetId) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId]).trim();
-      if (rowId && (rowId === targetId || formatToFiveDigits(rowId) === formatToFiveDigits(targetId))) {
+      if (rowId && (rowId === targetId || rowId.toLowerCase() === targetId.toLowerCase())) {
         rowIndex = i + 1;
         break;
       }
@@ -1400,9 +1459,10 @@ function deleteUserRecord(userOrData) {
   const idxId = headers.indexOf('id');
   const idxEmail = headers.findIndex(h => h.includes('email') || h.includes('login'));
 
-  if (idxId !== -1 && id && /^\d{5}$/.test(id)) {
+  if (idxId !== -1 && id) {
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][idxId]).trim() === id) {
+      const rowId = String(values[i][idxId]).trim();
+      if (rowId === id || rowId.toLowerCase() === id.toLowerCase()) {
         sheet.deleteRow(i + 1);
         return { id: id, deleted: true, matchedBy: 'id' };
       }
@@ -1433,9 +1493,10 @@ function deleteProductRecord(prodOrData) {
   const idxId = headers.indexOf('id');
   const idxSku = headers.indexOf('sku') !== -1 ? headers.indexOf('sku') : 0;
 
-  if (idxId !== -1 && id && /^\d{5}$/.test(id)) {
+  if (idxId !== -1 && id) {
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][idxId]).trim() === id) {
+      const rowId = String(values[i][idxId]).trim();
+      if (rowId === id || rowId.toLowerCase() === id.toLowerCase()) {
         sheet.deleteRow(i + 1);
         return { id: id, deleted: true, matchedBy: 'id' };
       }
@@ -1465,9 +1526,10 @@ function deletePlatformRecord(platOrData) {
   const idxId = headers.indexOf('id');
   const idxNome = headers.findIndex(h => h === 'nome' || h.includes('plataforma'));
 
-  if (idxId !== -1 && id && /^\d{5}$/.test(id)) {
+  if (idxId !== -1 && id) {
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][idxId]).trim() === id) {
+      const rowId = String(values[i][idxId]).trim();
+      if (rowId === id || rowId.toLowerCase() === id.toLowerCase()) {
         sheet.deleteRow(i + 1);
         return { id: id, deleted: true, matchedBy: 'id' };
       }
@@ -1478,6 +1540,12 @@ function deletePlatformRecord(platOrData) {
   for (let i = 1; i < values.length; i++) {
     if (String(values[i][colNome]).toLowerCase().trim() === name) {
       sheet.deleteRow(i + 1);
+      return { name: name, deleted: true, matchedBy: 'name' };
+    }
+  }
+
+  return { deleted: false };
+}
       return { name: name, deleted: true, matchedBy: 'name' };
     }
   }
@@ -1617,7 +1685,7 @@ function upsertChecklistTemplate(templateData) {
     const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';
     const rowName = idxName !== -1 ? String(values[i][idxName] || '').trim().toLowerCase() : '';
 
-    const isMatch = (idToMatch && (rowId === idToMatch || formatToFiveDigits(rowId) === formatToFiveDigits(idToMatch))) ||
+    const isMatch = (idToMatch && (rowId === idToMatch || rowId.toLowerCase() === idToMatch.toLowerCase())) ||
       (rowName && rowName === nameToMatch);
 
     if (isMatch) {
@@ -1664,7 +1732,7 @@ function deleteChecklistTemplateRecord(templateData) {
     const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';
     const rowName = idxName !== -1 ? String(values[i][idxName] || '').trim().toLowerCase() : '';
 
-    const isMatch = (id && (rowId === id || formatToFiveDigits(rowId) === formatToFiveDigits(id))) ||
+    const isMatch = (id && (rowId === id || rowId.toLowerCase() === id.toLowerCase())) ||
       (name && rowName === name);
 
     if (isMatch) {
@@ -1718,7 +1786,7 @@ function getAnnotationsDataAsJson() {
     }
 
     let rawId = (idxId !== -1 && r[idxId]) ? String(r[idxId]).trim() : '';
-    let formattedId = rawId ? formatToFourDigits(rawId) : formatToFourDigits(index + 1);
+    let formattedId = rawId || ('anot_' + (index + 1));
 
     let typeVal = idxTipo !== -1 && r[idxTipo] ? String(r[idxTipo]).trim() : '';
     let platVal = idxPlat !== -1 && r[idxPlat] ? String(r[idxPlat]).trim() : '';
@@ -1802,7 +1870,7 @@ function saveAnnotationRecord(annotationData) {
   if (idxId !== -1 && targetId) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId]).trim();
-      if (rowId && (rowId === targetId || formatToFourDigits(rowId) === formatToFourDigits(targetId))) {
+      if (rowId && (rowId === targetId || rowId.toLowerCase() === targetId.toLowerCase())) {
         rowIndex = i + 1;
         break;
       }
@@ -1812,17 +1880,14 @@ function saveAnnotationRecord(annotationData) {
   const hasIdCol = idxId !== -1;
 
   let finalId = '';
-  if (targetId && !targetId.startsWith('anot_')) {
-    finalId = formatToFourDigits(targetId);
-  } else {
-    let maxId = 0;
-    if (idxId !== -1) {
-      for (let i = 1; i < values.length; i++) {
-        const num = parseInt(String(values[i][idxId] || '').replace(/\D/g, ''), 10);
-        if (!isNaN(num) && num > maxId) maxId = num;
-      }
-    }
-    finalId = formatToFourDigits(maxId + 1);
+  if (rowIndex > 0 && hasIdCol) {
+    finalId = String(values[rowIndex - 1][idxId] || '').trim();
+  }
+  if (!finalId && targetId) {
+    finalId = targetId;
+  }
+  if (!finalId) {
+    finalId = getNextFormattedId([SHEETS.ANNOTATIONS]);
   }
 
   let dateStr = annotationData.date || annotationData.data || '';
@@ -1924,7 +1989,7 @@ function getDisputesDataAsJson() {
     }
 
     return {
-      id: idxId !== -1 && r[idxId] ? String(r[idxId]).trim() : formatToFiveDigits(index + 1),
+      id: idxId !== -1 && r[idxId] ? String(r[idxId]).trim() : ('disp_' + (index + 1)),
       platform: idxPlat !== -1 ? String(r[idxPlat] || '').trim() : 'SH',
       date: formattedDate,
       product: idxProd !== -1 ? String(r[idxProd] || '').trim() : '',
