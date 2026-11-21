@@ -55,9 +55,9 @@ export default function ProductsCatalogView({
 
     const prodToSave = {
       id: 'prod_' + Date.now(),
-      sku: newProduct.sku.trim().toUpperCase(),
-      title: newProduct.title.trim() || newProduct.sku.trim().toUpperCase(),
-      product: newProduct.title.trim() || newProduct.sku.trim().toUpperCase(),
+      sku: newProduct.sku.trim(),
+      title: newProduct.title.trim() || newProduct.sku.trim(),
+      product: newProduct.title.trim() || newProduct.sku.trim(),
       cost: costNum,
       width: widthNum,
       length: lengthNum,
@@ -100,9 +100,9 @@ export default function ProductsCatalogView({
     const weightNum = parseFloat(String(editForm.weight).replace(',', '.')) || 0;
 
     onUpdateProduct(id, {
-      sku: editForm.sku.trim().toUpperCase(),
-      title: editForm.title.trim() || editForm.sku.trim().toUpperCase(),
-      product: editForm.title.trim() || editForm.sku.trim().toUpperCase(),
+      sku: editForm.sku.trim(),
+      title: editForm.title.trim() || editForm.sku.trim(),
+      product: editForm.title.trim() || editForm.sku.trim(),
       cost: costNum,
       width: widthNum,
       length: lengthNum,
