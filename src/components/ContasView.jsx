@@ -44,6 +44,42 @@ function getBillTypeIcon(bill) {
   return FileText; // Default
 }
 
+// Helper para verificar se uma conta de cartão de crédito está a 7 dias ou menos do vencimento no mês focado
+function isCardInvoiceClosingSoon(bill, currentYear, currentMonthIndex) {
+  const isCard = bill.billType === 'cartao' || (bill.description || '').toLowerCase().includes('cart');
+  if (!isCard) return false;
+
+  const dueDay = parseInt(bill.day, 10) || 1;
+  const dueDate = new Date(currentYear, currentMonthIndex, dueDay);
+
+  const now = new Date();
+  const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const diffTime = dueDate.getTime() - todayZero.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  return diffDays <= 7;
+}
+
+// Helper para obter o valor a exibir na linha da conta
+function getDisplayBillValue(bill, currentYear, currentMonthIndex) {
+  const isCard = bill.billType === 'cartao' || (bill.description || '').toLowerCase().includes('cart');
+  if (!isCard) return bill.value || '';
+
+  const origYear = parseInt(bill.year, 10) || currentYear;
+  const origMonth = parseInt(bill.month, 10) || (currentMonthIndex + 1);
+
+  // Se o mês/ano focado for posterior ao mês de cadastro original da conta:
+  const isFutureMonth = (currentYear > origYear) || (currentYear === origYear && (currentMonthIndex + 1) > origMonth);
+
+  // Se for mês futuro e não foi preenchido valor customizado neste mês, deixa em branco
+  if (isFutureMonth && !bill.hasCustomMonthValue && !bill.monthValues?.[`${currentYear}_${currentMonthIndex + 1}`]) {
+    return '';
+  }
+
+  return bill.monthValues?.[`${currentYear}_${currentMonthIndex + 1}`] || bill.value || '';
+}
+
 const MONTH_NAMES = [
   'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
   'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
@@ -267,9 +303,8 @@ export default function ContasView({
   };
 
   // Gera meses sequenciais para a rolagem/arrastar:
-  // - Se o mês selecionado no topo for o mês atual ou futuro: o primeiro mês da rolagem é SEMPRE o mês atual (hoje), permitindo ver hoje e os meses futuros (ex: Nov, Dez, Jan...).
-  // - Se o usuário selecionou no topo um mês anterior (passado): a rolagem inicia daquele mês anterior selecionado para permitir ver o histórico daquele período.
-  // - Gera meses suficientes (24 meses / 2 anos) para que a coluna da esquerda acompanhe toda a extensão da lista de contas à direita sem ficar vazia.
+  // - Retorna 1 ano (12 meses) conforme solicitado.
+  // - As colunas esquerda (calendários) e direita (contas) possuem barras de rolagem independentes.
   const displayedMonths = useMemo(() => {
     const realNow = new Date();
     const realYear = realNow.getFullYear();
@@ -283,7 +318,7 @@ export default function ContasView({
     const startYear = isPastSelection ? currentYear : realYear;
 
     const list = [];
-    for (let offset = 0; offset <= 23; offset++) {
+    for (let offset = 0; offset <= 11; offset++) {
       let m = startMonth + offset;
       let y = startYear;
       while (m < 0) {
@@ -732,7 +767,15 @@ export default function ContasView({
         </div>
 
         {/* Coluna Direita: Lista de Contas com a aparência fiel à foto do usuário */}
-        <div style={{ background: '#ffffff', borderRadius: '20px', padding: '24px 28px', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '20px',
+          padding: '24px 28px',
+          border: '1.5px solid #e2e8f0',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+          maxHeight: 'calc(100vh - 180px)',
+          overflowY: 'auto'
+        }}>
           {focusedMonthBills.length === 0 ? (
             <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
               <CalendarIcon size={44} color="#cbd5e1" style={{ margin: '0 auto 12px' }} />
@@ -747,7 +790,10 @@ export default function ContasView({
             <div style={{ display: 'flex', flexDirection: 'column', gap: fontStyles.gap }}>
               {focusedMonthBills.map((bill) => {
                 const isPaid = bill.status === 'paid';
-                const isRec = bill.isRecurring || bill.recurringType === 'monthly';
+                const isRec = bill.isRecurring || bill.recurringType === 'monthly' || bill.billType === 'mensal' || bill.billType === 'cartao';
+                const isCard = bill.billType === 'cartao' || (bill.description || '').toLowerCase().includes('cart');
+                const displayValue = getDisplayBillValue(bill, currentYear, currentMonthIndex);
+                const closingSoon = isCard && !displayValue && isCardInvoiceClosingSoon(bill, currentYear, currentMonthIndex);
 
                 return (
                   <div
@@ -819,28 +865,48 @@ export default function ContasView({
                         >
                           {bill.description}
                         </span>
-                        {isRec && (
+
+                        {/* Selo Fatura Fechada (para cartões quando faltar 7 dias ou menos e ainda não tiver valor) */}
+                        {closingSoon ? (
                           <span
-                            title="Conta Mensal Recorrente"
+                            title="Fatura fechada - insira o valor desta fatura"
                             style={{
                               fontSize: '11px',
                               fontWeight: '800',
-                              color: '#6d28d9',
-                              background: '#f3e8ff',
+                              color: '#b45309',
+                              background: '#fef3c7',
+                              border: '1px solid #fde68a',
                               padding: '2px 8px',
                               borderRadius: '6px',
                               whiteSpace: 'nowrap'
                             }}
                           >
-                            Mensal
+                            Fatura Fechada
                           </span>
+                        ) : (
+                          isRec && (
+                            <span
+                              title={isCard ? 'Cartão de Crédito Recorrente' : 'Conta Mensal Recorrente'}
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: '800',
+                                color: '#6d28d9',
+                                background: '#f3e8ff',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              Mensal
+                            </span>
+                          )
                         )}
                       </div>
                     </div>
 
                     {/* Lado Direito: Valor em Real (mesma fonte, tamanho e preto) + Ações */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-                      {bill.value ? (
+                      {displayValue ? (
                         <span
                           style={{
                             fontSize: fontStyles.descFontSize,
@@ -851,7 +917,7 @@ export default function ContasView({
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          {bill.value}
+                          {displayValue}
                         </span>
                       ) : null}
 

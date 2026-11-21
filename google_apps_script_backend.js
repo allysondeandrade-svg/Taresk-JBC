@@ -2015,7 +2015,7 @@ function getBillsDataAsJson() {
   const idxDesc = headers.findIndex(h => h === 'descrição' || h === 'descricao' || h === 'description');
   const idxValor = headers.findIndex(h => h === 'valor' || h === 'value');
   const idxStatus = headers.findIndex(h => h === 'status' || h === 'situação' || h === 'situacao');
-  const idxRecorrente = headers.findIndex(h => h === 'recorrente' || h === 'recorrencia' || h === 'tipo' || h === 'recurring');
+  const idxTipo = headers.findIndex(h => h === 'tipo' || h === 'recorrente' || h === 'recorrencia' || h === 'recurring');
 
   const bills = [];
   for (let i = 1; i < values.length; i++) {
@@ -2024,8 +2024,27 @@ function getBillsDataAsJson() {
     const day = idxDia !== -1 ? parseInt(row[idxDia], 10) : 1;
     if (!desc && isNaN(day)) continue;
 
-    const recVal = idxRecorrente !== -1 ? String(row[idxRecorrente] || '').toLowerCase() : '';
-    const isRecurring = recVal === 'true' || recVal === 'mensal' || recVal === 'monthly' || recVal === 'sim' || recVal === '1';
+    const rawTipo = idxTipo !== -1 ? String(row[idxTipo] || '').trim() : '';
+    const rawTipoLower = rawTipo.toLowerCase();
+    
+    // Mapeia o tipo salvo exatamente como na interface
+    let billType = 'pontual';
+    if (rawTipoLower === 'mensal') billType = 'mensal';
+    else if (rawTipoLower === 'cartão de crédito' || rawTipoLower === 'cartao de credito' || rawTipoLower === 'cartao') billType = 'cartao';
+    else if (rawTipoLower === 'boleto') billType = 'boleto';
+    else if (rawTipoLower === 'empréstimo' || rawTipoLower === 'emprestimo') billType = 'emprestimo';
+    else if (rawTipoLower === 'cheque') billType = 'cheque';
+    else if (rawTipoLower === 'pontual') billType = 'pontual';
+    else {
+      // Detecção inteligente por nome se for legado
+      const descLower = desc.toLowerCase();
+      if (descLower.includes('cart') || descLower.includes('mercado pago') || descLower.includes('inter') || descLower.includes('c6') || descLower.includes('nubank')) billType = 'cartao';
+      else if (descLower.includes('empr')) billType = 'emprestimo';
+      else if (descLower.includes('cheq')) billType = 'cheque';
+      else if (rawTipoLower === 'sim' || rawTipoLower === 'true') billType = 'mensal';
+    }
+
+    const isRecurring = billType === 'mensal' || billType === 'cartao';
 
     bills.push({
       id: idxId !== -1 && row[idxId] ? String(row[idxId]).trim() : ('bill_' + i),
@@ -2035,6 +2054,7 @@ function getBillsDataAsJson() {
       description: desc,
       value: idxValor !== -1 ? (row[idxValor] !== '' && row[idxValor] !== null ? row[idxValor] : '') : '',
       status: idxStatus !== -1 && row[idxStatus] ? String(row[idxStatus]).trim() : 'pending',
+      billType: billType,
       isRecurring: isRecurring,
       recurringType: isRecurring ? 'monthly' : 'once'
     });
@@ -2048,7 +2068,7 @@ function upsertBillRecord(bill) {
   let sheet = ss.getSheetByName(SHEETS.BILLS) || ss.getSheetByName('Contas a Pagar');
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.BILLS);
-    sheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status']);
+    sheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status', 'Tipo']);
     styleHeader(sheet);
   }
 
@@ -2071,7 +2091,15 @@ function upsertBillRecord(bill) {
   const hasIdCol = idxId !== -1;
   const finalId = targetId || (hasIdCol ? ('bill_' + Date.now()) : '');
 
-  const isRec = bill.isRecurring || bill.recurringType === 'monthly';
+  // Formata o nome do Tipo para exibição elegante na coluna da planilha
+  let tipoLabel = 'Pontual';
+  const bt = String(bill.billType || '').toLowerCase();
+  if (bt === 'cartao' || bt === 'cartão de crédito' || bt === 'cartao de credito') tipoLabel = 'Cartão de Crédito';
+  else if (bt === 'mensal') tipoLabel = 'Mensal';
+  else if (bt === 'boleto') tipoLabel = 'Boleto';
+  else if (bt === 'emprestimo' || bt === 'empréstimo') tipoLabel = 'Empréstimo';
+  else if (bt === 'cheque') tipoLabel = 'Cheque';
+  else if (bill.isRecurring || bill.recurringType === 'monthly') tipoLabel = 'Mensal';
 
   const rowData = [
     bill.day || 1,
@@ -2080,7 +2108,7 @@ function upsertBillRecord(bill) {
     bill.description || '',
     bill.value || '',
     bill.status || 'pending',
-    isRec ? 'Mensal' : 'Pontual'
+    tipoLabel
   ];
 
   const fullRow = hasIdCol ? [finalId, ...rowData] : rowData;
