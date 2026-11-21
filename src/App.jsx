@@ -1078,7 +1078,7 @@ export default function App() {
 
 
       {/* Conteúdo Principal de acordo com a Aba Ativa */}
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: 1, height: activeTab === 'contas' ? 'calc(100vh - 74px)' : 'auto', overflowY: activeTab === 'contas' ? 'hidden' : 'visible' }}>
         {activeTab === 'tarefas' && (
           <TasksView
             tasks={tasks}
