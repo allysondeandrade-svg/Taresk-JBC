@@ -366,7 +366,17 @@ export default function App() {
           setAnnotations(data.annotations);
         }
         if (Array.isArray(data.bills)) {
-          setBills(data.bills);
+          // Deduplica por id e preserva qualquer conta recente
+          const seenBillIds = new Set();
+          const cleanBills = [];
+          for (const b of data.bills) {
+            const bIdStr = String(b.id || '');
+            if (!bIdStr || !seenBillIds.has(bIdStr)) {
+              if (bIdStr) seenBillIds.add(bIdStr);
+              cleanBills.push(b);
+            }
+          }
+          setBills(cleanBills);
         }
         setLastSyncTime(new Date());
       }

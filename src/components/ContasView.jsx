@@ -19,17 +19,17 @@ const ALL_BILL_TYPES = [
 
 // Helper para obter o ícone do tipo de conta
 function getBillTypeIcon(bill) {
-  const typeId = bill?.billType || '';
+  const typeId = String(bill?.billType || bill?.tipo || '').toLowerCase().trim();
   if (typeId === 'pontual') return Pin;
   if (typeId === 'mensal') return CalendarDays;
-  if (typeId === 'cartao') return CreditCard;
+  if (typeId === 'cartao' || typeId.includes('cart')) return CreditCard;
   if (typeId === 'boleto') return FileText;
-  if (typeId === 'emprestimo') return BankIcon;
-  if (typeId === 'cheque') return FileSpreadsheet;
+  if (typeId === 'emprestimo' || typeId.includes('empr')) return BankIcon;
+  if (typeId === 'cheque' || typeId.includes('cheq')) return FileSpreadsheet;
 
-  // Detecção inteligente para contas já cadastradas
+  // Detecção inteligente para contas legadas ou cadastradas antes da coluna Tipo
   const desc = (bill?.description || '').toLowerCase();
-  if (desc.includes('cartão') || desc.includes('cartao') || desc.includes('mercado pago') || desc.includes('inter') || desc.includes('c6')) {
+  if (desc.includes('cartão') || desc.includes('cartao') || desc.includes('mercado pago') || desc.includes('inter') || desc.includes('c6') || desc.includes('nubank') || desc.includes('picpay')) {
     return CreditCard;
   }
   if (desc.includes('empréstimo') || desc.includes('emprestimo') || desc.includes('banco') || desc.includes('financiamento')) {
@@ -38,10 +38,13 @@ function getBillTypeIcon(bill) {
   if (desc.includes('cheque')) {
     return FileSpreadsheet;
   }
+  if (desc.includes('boleto')) {
+    return FileText;
+  }
   if (bill?.isRecurring || bill?.recurringType === 'monthly') {
     return CalendarDays;
   }
-  return FileText; // Default
+  return Pin; // Default seguro
 }
 
 // Helper para verificar se uma conta de cartão de crédito está a 7 dias ou menos do vencimento no mês focado
@@ -199,12 +202,22 @@ export default function ContasView({
     setEditingBill(bill);
     setShowExtraDates(false);
     setExtraDates([]);
-    const detectedType = bill.billType || (
-      (bill.description || '').toLowerCase().includes('cart') ? 'cartao' :
-      (bill.description || '').toLowerCase().includes('empr') ? 'emprestimo' :
-      (bill.description || '').toLowerCase().includes('cheq') ? 'cheque' :
-      (bill.isRecurring || bill.recurringType === 'monthly') ? 'mensal' : 'pontual'
-    );
+    const rawType = String(bill.billType || bill.tipo || '').toLowerCase().trim();
+    let detectedType = 'pontual';
+    if (rawType === 'mensal') detectedType = 'mensal';
+    else if (rawType === 'cartao' || rawType.includes('cart')) detectedType = 'cartao';
+    else if (rawType === 'boleto') detectedType = 'boleto';
+    else if (rawType === 'emprestimo' || rawType.includes('empr')) detectedType = 'emprestimo';
+    else if (rawType === 'cheque' || rawType.includes('cheq')) detectedType = 'cheque';
+    else if (rawType === 'pontual') detectedType = 'pontual';
+    else {
+      detectedType = (
+        (bill.description || '').toLowerCase().includes('cart') ? 'cartao' :
+        (bill.description || '').toLowerCase().includes('empr') ? 'emprestimo' :
+        (bill.description || '').toLowerCase().includes('cheq') ? 'cheque' :
+        (bill.isRecurring || bill.recurringType === 'monthly') ? 'mensal' : 'pontual'
+      );
+    }
     setFormData({
       description: bill.description || '',
       day: String(bill.day || today.getDate()).padStart(2, '0'),
@@ -252,6 +265,8 @@ export default function ContasView({
     }
 
     const isRec = formData.billType === 'mensal' || formData.billType === 'cartao';
+    const tipoItem = ALL_BILL_TYPES.find(t => t.id === formData.billType);
+    const tipoLabel = tipoItem ? tipoItem.label : 'Pontual';
 
     const basePayload = {
       description: formData.description.trim(),
@@ -262,8 +277,9 @@ export default function ContasView({
       isRecurring: isRec,
       recurringType: isRec ? 'monthly' : 'once',
       billType: formData.billType,
+      tipo: tipoLabel,
       status: formData.status || 'pending',
-      id: editingBill ? editingBill.id : `bill_${Date.now()}`
+      id: editingBill ? editingBill.id : `bill_${Date.now()}_${Math.floor(Math.random() * 100000)}`
     };
 
     if (editingBill) {
@@ -276,7 +292,7 @@ export default function ContasView({
         extraDates.forEach((ed, idx) => {
           const extraPayload = {
             ...basePayload,
-            id: `bill_${Date.now()}_${idx + 1}`,
+            id: `bill_${Date.now()}_${idx + 1}_${Math.floor(Math.random() * 100000)}`,
             day: parseInt(ed.day, 10) || basePayload.day,
             month: parseInt(ed.month, 10) || basePayload.month,
             year: parseInt(ed.year, 10) || basePayload.year
@@ -344,7 +360,8 @@ export default function ContasView({
       .filter(b => {
         const bMonth = parseInt(b.month, 10) || 1;
         const bYear = parseInt(b.year, 10) || targetYear;
-        const isRec = b.isRecurring || b.recurringType === 'monthly' || b.billType === 'mensal' || b.billType === 'cartao';
+        const rawType = String(b.billType || b.tipo || '').toLowerCase();
+        const isRec = b.isRecurring || b.recurringType === 'monthly' || rawType === 'mensal' || rawType.includes('cart');
 
         if (isRec) {
           // Conta recorrente (Mensal / Cartão) aparece no mês/ano inicial e em todos os meses/anos futuros
@@ -366,7 +383,8 @@ export default function ContasView({
       const bDay = parseInt(b.day, 10) || 1;
       const bMonth = parseInt(b.month, 10) || 1;
       const bYear = parseInt(b.year, 10) || currentYear;
-      const isRec = b.isRecurring || b.recurringType === 'monthly' || b.billType === 'mensal' || b.billType === 'cartao';
+      const rawType = String(b.billType || b.tipo || '').toLowerCase();
+      const isRec = b.isRecurring || b.recurringType === 'monthly' || rawType === 'mensal' || rawType.includes('cart');
 
       if (isRec) {
         // Espalha para os meses exibidos se a data for igual ou posterior ao início da recorrência

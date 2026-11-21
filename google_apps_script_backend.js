@@ -218,16 +218,22 @@ function setupSheets() {
     ensureIdColumn(disputeSheet, 'ID');
   }
 
-  // 10. Aba Contas (Contas a Pagar): [ID, Dia, Mês, Ano, Descrição, Valor, Status, Recorrente]
+  // 10. Aba Contas (Contas a Pagar): [ID, Dia, Mês, Ano, Descrição, Valor, Status, Tipo]
   let billSheet = ss.getSheetByName(SHEETS.BILLS) || ss.getSheetByName('Contas a Pagar');
   if (!billSheet) {
     billSheet = ss.insertSheet(SHEETS.BILLS);
-    billSheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status', 'Recorrente']);
-    billSheet.appendRow(['bill_1', 5, 11, 2026, 'Boleto Grenada', 'R$ 1.000,00', 'pending', 'Não']);
-    billSheet.appendRow(['bill_2', 16, 11, 2026, 'Conta de Água', 'R$ 150,00', 'pending', 'Mensal']);
+    billSheet.appendRow(['ID', 'Dia', 'Mês', 'Ano', 'Descrição', 'Valor', 'Status', 'Tipo']);
     styleHeader(billSheet);
   } else {
     ensureIdColumn(billSheet, 'ID');
+    // Garante que a coluna H tenha o cabeçalho 'Tipo'
+    const values = billSheet.getDataRange().getValues();
+    if (values.length > 0) {
+      const headers = values[0].map(h => String(h).toLowerCase().trim());
+      if (headers.indexOf('tipo') === -1) {
+        billSheet.getRange(1, 8).setValue('Tipo');
+      }
+    }
   }
 
   Logger.log('Todas as abas do Taresk foram configuradas e corrigidas com sucesso!');
@@ -1876,7 +1882,7 @@ function deleteAnnotationRecord(data) {
 
   for (let i = 1; i < values.length; i++) {
     const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';
-    if (rowId && (rowId === targetId || (rowId.match(/^\d+$/) && targetId.match(/^\d+$/) && formatToFiveDigits(rowId) === formatToFiveDigits(targetId)))) {
+    if (rowId && (rowId === targetId || String(rowId).toLowerCase() === targetId.toLowerCase())) {
       sheet.deleteRow(i + 1);
       return { deleted: true, id: targetId };
     }
@@ -1949,7 +1955,7 @@ function upsertDisputeRecord(dispute) {
   if (idxId !== -1 && targetId) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId] || '').trim();
-      if (rowId && (rowId === targetId || (rowId.match(/^\d+$/) && targetId.match(/^\d+$/) && formatToFiveDigits(rowId) === formatToFiveDigits(targetId)))) {
+      if (rowId && (rowId === targetId || String(rowId).toLowerCase() === targetId.toLowerCase())) {
         rowIndex = i + 1;
         break;
       }
@@ -1995,7 +2001,7 @@ function deleteDisputeRecord(disputeData) {
 
   for (let i = 1; i < values.length; i++) {
     const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';
-    if (rowId && (rowId === targetId || (rowId.match(/^\d+$/) && targetId.match(/^\d+$/) && formatToFiveDigits(rowId) === formatToFiveDigits(targetId)))) {
+    if (rowId && (rowId === targetId || String(rowId).toLowerCase() === targetId.toLowerCase())) {
       sheet.deleteRow(i + 1);
       return { deleted: true, id: targetId };
     }
@@ -2086,7 +2092,7 @@ function upsertBillRecord(bill) {
   if (idxId !== -1 && targetId) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId] || '').trim();
-      if (rowId && (rowId === targetId || (rowId.match(/^\d+$/) && targetId.match(/^\d+$/) && formatToFiveDigits(rowId) === formatToFiveDigits(targetId)))) {
+      if (rowId && (rowId === targetId || String(rowId).toLowerCase() === targetId.toLowerCase())) {
         rowIndex = i + 1;
         break;
       }
@@ -2141,7 +2147,7 @@ function deleteBillRecord(billData) {
 
   for (let i = 1; i < values.length; i++) {
     const rowId = idxId !== -1 ? String(values[i][idxId] || '').trim() : '';
-    if (rowId && (rowId === targetId || (rowId.match(/^\d+$/) && targetId.match(/^\d+$/) && formatToFiveDigits(rowId) === formatToFiveDigits(targetId)))) {
+    if (rowId && (rowId === targetId || String(rowId).toLowerCase() === targetId.toLowerCase())) {
       sheet.deleteRow(i + 1);
       return { deleted: true, id: targetId };
     }
