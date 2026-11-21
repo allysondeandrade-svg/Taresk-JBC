@@ -302,10 +302,13 @@ export default function App() {
             };
           });
 
-          // Mescla com tarefas locais que tenham atualizações muito recentes (últimos 30 segundos)
+          // Mescla com tarefas locais garantindo que tarefas recém-criadas localmente não sejam perdidas
           setTasks(prevTasks => {
             const now = Date.now();
-            return sanitizedTasks.map(incomingTask => {
+            const incomingIds = new Set(sanitizedTasks.map(t => String(t.id)));
+
+            // 1. Atualiza as tarefas que vieram da planilha
+            const updatedIncoming = sanitizedTasks.map(incomingTask => {
               const localMatch = prevTasks.find(pt => {
                 if (pt.id && incomingTask.id && (String(pt.id) === String(incomingTask.id) || parseInt(pt.id, 10) === parseInt(incomingTask.id, 10))) {
                   return true;
@@ -319,6 +322,15 @@ export default function App() {
               }
               return incomingTask;
             });
+
+            // 2. Preserva tarefas locais criadas recentemente que ainda não constem no snapshot da planilha
+            const pendingLocalTasks = prevTasks.filter(pt => {
+              const isMissingFromIncoming = !incomingIds.has(String(pt.id));
+              const isRecent = (now - (localTaskUpdatesRef.current[pt.id] || 0) < 60000);
+              return isMissingFromIncoming && isRecent;
+            });
+
+            return [...pendingLocalTasks, ...updatedIncoming];
           });
         }
         if (Array.isArray(data.completedTasks)) setCompletedTasks(data.completedTasks);
@@ -386,10 +398,10 @@ export default function App() {
   };
 
   // Handlers de Tarefas com Sincronização Imediata
-  const handleCreateTask = (newTask) => {
+  const handleCreateTask = async (newTask) => {
     localTaskUpdatesRef.current[newTask.id] = Date.now();
     setTasks(prev => [newTask, ...prev]);
-    SheetsApi.syncTask(newTask);
+    await SheetsApi.syncTask(newTask);
   };
 
   const handleDuplicateTask = (taskToDuplicate) => {
