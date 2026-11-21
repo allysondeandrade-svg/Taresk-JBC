@@ -122,6 +122,15 @@ export default function ProductSearchAutocomplete({
     }
   };
 
+  // Manipula clique no input: se já houver algo escrito, limpa para que o usuário possa digitar direto
+  const handleClick = () => {
+    if (searchTerm) {
+      setSearchTerm('');
+      if (onChange) onChange('');
+    }
+    setIsOpen(true);
+  };
+
   return (
     <div
       ref={containerRef}
@@ -138,7 +147,7 @@ export default function ProductSearchAutocomplete({
           placeholder={placeholder}
           value={searchTerm}
           onKeyDown={handleKeyDown}
-          onClick={() => setIsOpen(true)}
+          onClick={handleClick}
           onChange={(e) => {
             const val = e.target.value;
             setSearchTerm(val);
