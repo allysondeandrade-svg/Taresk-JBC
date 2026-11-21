@@ -95,7 +95,8 @@ function getMarginTheme(margemPct) {
 export default function ShopeeKitsModal({
   isOpen,
   onClose,
-  product = {},
+  product = null,
+  initialProduct = null,
   products = []
 }) {
   // Produto selecionado no autocomplete de produtos
@@ -114,11 +115,12 @@ export default function ShopeeKitsModal({
   // Quando abrir o modal, inicia vazio (ou com produto passado se fornecido explicitamente com id)
   useEffect(() => {
     if (isOpen) {
-      if (product && product.id) {
-        setSelectedProd(product);
-        const label = `${product.sku} - ${product.title || product.product || ''}`;
+      const p = initialProduct || product;
+      if (p && p.id) {
+        setSelectedProd(p);
+        const label = `${p.sku} - ${p.title || p.product || ''}`;
         setProductSearchText(label);
-        const rawCost = typeof product.cost === 'number' ? product.cost : parseFloat(String(product.cost || 0).replace(',', '.')) || 0;
+        const rawCost = typeof p.cost === 'number' ? p.cost : parseFloat(String(p.cost || 0).replace(',', '.')) || 0;
         setCustoStr(formatBRL(rawCost));
         const initialPrice = rawCost > 0 ? (rawCost * 2) : 45.00;
         setPrecoUnStr(formatBRL(initialPrice));
@@ -129,7 +131,7 @@ export default function ShopeeKitsModal({
         setPrecoUnStr('');
       }
     }
-  }, [product, isOpen]);
+  }, [isOpen]);
 
   // Ao selecionar um produto no autocomplete
   const handleSelectProduct = (chosen) => {
