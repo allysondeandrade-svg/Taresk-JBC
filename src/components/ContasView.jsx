@@ -166,12 +166,25 @@ export default function ContasView({
     }
   };
 
-  // Gera meses sequenciais para a rolagem/arrastar com o mês atual em foco no topo
+  // Gera meses sequenciais para a rolagem/arrastar:
+  // - Se o mês selecionado no topo for o mês atual ou futuro: o primeiro mês da rolagem é SEMPRE o mês atual (hoje), permitindo ver hoje e os meses futuros (ex: Nov, Dez, Jan...).
+  // - Se o usuário selecionou no topo um mês anterior (passado): a rolagem inicia daquele mês anterior selecionado para permitir ver o histórico daquele período.
   const displayedMonths = useMemo(() => {
+    const realNow = new Date();
+    const realYear = realNow.getFullYear();
+    const realMonth = realNow.getMonth();
+
+    // Compara se a data selecionada no topo é anterior ao mês real atual
+    const isPastSelection = (currentYear < realYear) || (currentYear === realYear && currentMonthIndex < realMonth);
+
+    // Se for anterior, inicia do mês anterior selecionado; se for o atual ou futuro, inicia do mês real atual
+    const startMonth = isPastSelection ? currentMonthIndex : realMonth;
+    const startYear = isPastSelection ? currentYear : realYear;
+
     const list = [];
     for (let offset = 0; offset <= 11; offset++) {
-      let m = currentMonthIndex + offset;
-      let y = currentYear;
+      let m = startMonth + offset;
+      let y = startYear;
       while (m < 0) {
         m += 12;
         y -= 1;
