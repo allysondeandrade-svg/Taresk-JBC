@@ -1093,6 +1093,7 @@ export default function App() {
           flex: 1,
           height: 'calc(100vh - 74px)',
           overflowY: activeTab === 'contas' ? 'hidden' : 'auto',
+          scrollbarGutter: 'stable',
           display: 'flex',
           flexDirection: 'column'
         }}

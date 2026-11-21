@@ -387,7 +387,9 @@ export default function DisputesView({
           flexWrap: 'wrap',
           gap: '12px',
           marginBottom: '20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '240px' }}>
@@ -550,7 +552,9 @@ export default function DisputesView({
           borderRadius: '16px',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
           border: '1.5px solid #e2e8f0',
-          overflowX: 'auto'
+          overflowX: 'auto',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '950px' }}>

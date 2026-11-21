@@ -195,7 +195,7 @@ export default function ProductsCatalogView({
       <div style={{
         background: '#ffffff',
         borderRadius: '16px',
-        padding: '12px 18px',
+        padding: '14px 20px',
         border: '1px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
@@ -203,7 +203,9 @@ export default function ProductsCatalogView({
         flexWrap: 'wrap',
         gap: '12px',
         marginBottom: '20px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         {/* Campo de Busca Rápida por SKU ou Nome com Autocomplete estilo Excel */}
         <div style={{ width: '320px', maxWidth: '100%' }}>
@@ -458,8 +460,10 @@ export default function ProductsCatalogView({
         background: '#ffffff',
         borderRadius: '16px',
         overflowX: 'auto',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+        border: '1.5px solid #e2e8f0',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '940px' }}>
           <thead>

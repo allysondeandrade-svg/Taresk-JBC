@@ -585,7 +585,7 @@ export default function TasksView({
       <div style={{
         background: '#ffffff',
         borderRadius: '16px',
-        padding: '12px 18px',
+        padding: '14px 20px',
         border: '1px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
@@ -593,7 +593,9 @@ export default function TasksView({
         flexWrap: 'wrap',
         gap: '12px',
         marginBottom: '20px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         {/* Lado Esquerdo: Filtro por Usuários + Filtros de Status, Mês e Período */}
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', flex: 1 }}>

@@ -161,7 +161,14 @@ export default function PricingView({ products = [] }) {
       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif"
     }}>
       {/* Título da Aba no canto superior esquerdo padronizado */}
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px',
+        marginBottom: '24px'
+      }}>
         <h1 style={{
           margin: 0,
           fontSize: '28px',
@@ -171,20 +178,24 @@ export default function PricingView({ products = [] }) {
         }}>
           Precificadora
         </h1>
+        {/* Espaço reservado para alinhamento com os botões redondos de ação */}
+        <div style={{ width: '42px', height: '42px', flexShrink: 0 }} />
       </div>
 
       {/* Barra branca unificada contendo a Busca de SKU/Nome + Métricas do Produto */}
       <div style={{
         background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        border: '1px solid #e2e8f0',
         borderRadius: '16px',
-        padding: '12px 18px',
+        padding: '14px 20px',
         display: 'flex',
         alignItems: 'center',
         gap: '20px',
         flexWrap: 'wrap',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-        marginBottom: '16px'
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        marginBottom: '20px',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         {/* Campo de Busca de SKU/Nome dentro da barra branca */}
         <div style={{ width: '280px', maxWidth: '100%', flexShrink: 0 }}>

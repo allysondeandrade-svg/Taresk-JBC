@@ -581,15 +581,17 @@ export default function AnnotationsView({
       <div style={{
         background: '#ffffff',
         borderRadius: '16px',
-        padding: '16px 20px',
+        padding: '14px 20px',
         border: '1px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '14px',
+        gap: '12px',
         marginBottom: '20px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         {/* Filtros lado a lado */}
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', width: '100%', justifyContent: 'space-between' }}>
@@ -751,10 +753,12 @@ export default function AnnotationsView({
           DATA | TIPO | PLATAFORMA | PEDIDO | VALOR | OBSERVAÇÃO | USUÁRIO | AÇÕES */}
       <div style={{
         background: '#ffffff',
-        borderRadius: '20px',
-        border: '1px solid #e2e8f0',
+        borderRadius: '16px',
+        border: '1.5px solid #e2e8f0',
         overflow: 'hidden',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
