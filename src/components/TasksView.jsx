@@ -228,22 +228,38 @@ export default function TasksView({
   };
 
   function getAssignee(userId) {
-    if (!userId) return { id: null, name: '', avatar: '' };
+    if (!userId && userId !== 0) return { id: null, name: '', avatar: '' };
     const norm = (s) => String(s || '').toLowerCase().trim();
     const target = norm(userId);
     const parsedTargetNum = parseInt(target, 10);
 
+    // 1. Busca primeiro se bate exatamente com ID, Nome ou Email
     const found = users.find(u => {
       const uId = norm(u.id);
       const uName = norm(u.name);
       const uEmail = norm(u.email);
       if (uId === target || uName === target || uEmail === target) return true;
       if (!isNaN(parsedTargetNum) && parseInt(uId, 10) === parsedTargetNum) return true;
-      if (uName.includes(target) || target.includes(uName)) return true;
       return false;
     });
 
-    return found || { id: null, name: String(userId), avatar: '👤' };
+    if (found) return found;
+
+    // 2. Se for um número ordinal ou sequencial (ex: 1, 2, 3), pode ser o índice do usuário na lista de usuários
+    if (!isNaN(parsedTargetNum) && parsedTargetNum >= 1 && parsedTargetNum <= users.length) {
+      const indexUser = users[parsedTargetNum - 1];
+      if (indexUser) return indexUser;
+    }
+
+    // 3. Busca por substring no nome
+    const partialMatch = users.find(u => {
+      const uName = norm(u.name);
+      return uName.includes(target) || target.includes(uName);
+    });
+
+    if (partialMatch) return partialMatch;
+
+    return { id: null, name: String(userId), avatar: '👤' };
   }
 
   function getTaskPlatforms(task) {
@@ -847,7 +863,7 @@ export default function TasksView({
                   color: '#475569'
                 }}>
                   <User size={12} color="#64748b" />
-                  <span>{assignee.name || task.assignedByName || 'Colaborador'}</span>
+                  <span>{assignee.name || (task.assignedByName && !/^\d+$/.test(task.assignedByName) ? task.assignedByName : 'Colaborador')}</span>
                 </div>
               </div>
 

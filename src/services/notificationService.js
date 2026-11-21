@@ -5,8 +5,137 @@
 
 const STORAGE_KEY_ENABLED = 'taresk_notifications_enabled';
 const STORAGE_KEY_SENT_LOG = 'taresk_notifications_sent_log'; // Registra notificações já disparadas no dia
+const STORAGE_KEY_SOUND = 'taresk_notifications_sound'; // 'chime' | 'bell' | 'cash' | 'alert' | 'none'
+const STORAGE_KEY_TIME = 'taresk_notifications_time'; // formato 'HH:MM', padrão '08:00'
+
+// Sons disponíveis com tons sintéticos da Web Audio API
+export const NOTIFICATION_SOUNDS = [
+  { id: 'chime', name: '🎵 Chime Moderno (Padrão)', desc: 'Tom duplo suave e agradável' },
+  { id: 'bell', name: '🔔 Sino de Cristal', desc: 'Sino ressonante e elegante' },
+  { id: 'cash', name: '💰 Moedas / Caixa', desc: 'Som de moedas e caixa registradora' },
+  { id: 'alert', name: '⚡ Alerta Enérgico', desc: 'Tom triplo para chamar atenção' },
+  { id: 'none', name: '🔕 Silencioso', desc: 'Apenas aviso visual sem som' }
+];
 
 export const NotificationService = {
+  /**
+   * Toca o som de notificação selecionado usando Web Audio API
+   */
+  playSound(soundId = null) {
+    const selected = soundId || localStorage.getItem(STORAGE_KEY_SOUND) || 'chime';
+    if (selected === 'none') return;
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      const now = ctx.currentTime;
+
+      if (selected === 'bell') {
+        // Sino de cristal com decay longo
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now); // Nota Lá (A5)
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 1.2);
+      } else if (selected === 'cash') {
+        // Moedas / Caixa registradora
+        const freqs = [987.77, 1318.51, 1760.00]; // B5, E6, A6
+        freqs.forEach((f, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, now + (idx * 0.08));
+          gain.gain.setValueAtTime(0.25, now + (idx * 0.08));
+          gain.gain.exponentialRampToValueAtTime(0.001, now + (idx * 0.08) + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + (idx * 0.08));
+          osc.stop(now + (idx * 0.08) + 0.35);
+        });
+      } else if (selected === 'alert') {
+        // Alerta Triplo enfático
+        [523.25, 659.25, 783.99].forEach((f, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, now + (idx * 0.1));
+          gain.gain.setValueAtTime(0.25, now + (idx * 0.1));
+          gain.gain.exponentialRampToValueAtTime(0.001, now + (idx * 0.1) + 0.2);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + (idx * 0.1));
+          osc.stop(now + (idx * 0.1) + 0.2);
+        });
+      } else {
+        // 'chime' (Padrão) - dois acordes ascendentes
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, now); // D5
+        gain1.gain.setValueAtTime(0.25, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.4);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(880, now + 0.12); // A5
+        gain2.gain.setValueAtTime(0.25, now + 0.12);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.12);
+        osc2.stop(now + 0.7);
+      }
+    } catch (e) {
+      console.warn('AudioContext playback error:', e);
+    }
+  },
+
+  /**
+   * Retorna o som configurado
+   */
+  getSound() {
+    return localStorage.getItem(STORAGE_KEY_SOUND) || 'chime';
+  },
+
+  /**
+   * Salva o som escolhido
+   */
+  setSound(soundId) {
+    localStorage.setItem(STORAGE_KEY_SOUND, soundId);
+    this.playSound(soundId);
+  },
+
+  /**
+   * Retorna o horário configurado para disparar as notificações (ex: "08:00")
+   */
+  getNotificationTime() {
+    return localStorage.getItem(STORAGE_KEY_TIME) || '08:00';
+  },
+
+  /**
+   * Salva o horário desejado para as notificações
+   */
+  setNotificationTime(timeStr) {
+    if (timeStr) {
+      localStorage.setItem(STORAGE_KEY_TIME, timeStr);
+    }
+  },
   /**
    * Verifica se o navegador tem suporte a notificações
    */
@@ -60,6 +189,9 @@ export const NotificationService = {
   async sendImmediateNotification(title, body) {
     if (!this.isSupported() || Notification.permission !== 'granted') return;
 
+    // Toca o som configurado
+    this.playSound();
+
     try {
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.ready;
@@ -96,6 +228,18 @@ export const NotificationService = {
     if (!this.isEnabled()) return;
     if (!this.isSupported() || Notification.permission !== 'granted') return;
     if (!Array.isArray(bills) || bills.length === 0) return;
+
+    // Checa o horário configurado pelo usuário (ex: '08:00')
+    const configuredTime = this.getNotificationTime();
+    const [cfgHour, cfgMin] = (configuredTime || '08:00').split(':').map(Number);
+    const now = new Date();
+    const currentMinutesFromMidnight = now.getHours() * 60 + now.getMinutes();
+    const targetMinutesFromMidnight = (isNaN(cfgHour) ? 8 : cfgHour) * 60 + (isNaN(cfgMin) ? 0 : cfgMin);
+
+    // Se o horário atual ainda for anterior ao horário configurado, aguarda chegar o horário
+    if (currentMinutesFromMidnight < targetMinutesFromMidnight) {
+      return;
+    }
 
     const today = new Date();
     const currentDay = today.getDate();

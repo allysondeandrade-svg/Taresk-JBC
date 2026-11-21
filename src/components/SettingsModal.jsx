@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown, Monitor, Smartphone, Bell, Users, Globe } from 'lucide-react';
-import { NotificationService } from '../services/notificationService';
+import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown, Monitor, Smartphone, Bell, Users, Globe, Volume2, Clock } from 'lucide-react';
+import { NotificationService, NOTIFICATION_SOUNDS } from '../services/notificationService';
 import UsersCatalogTab from './UsersCatalogTab';
 import PlatformsCatalogTab from './PlatformsCatalogTab';
 
@@ -49,6 +49,8 @@ export default function SettingsModal({
   const [checklistItems, setChecklistItems] = useState(defaultChecklistItems);
   const [newChecklistLabel, setNewChecklistLabel] = useState('');
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => NotificationService.isEnabled());
+  const [selectedSound, setSelectedSound] = useState(() => NotificationService.getSound());
+  const [notificationTime, setNotificationTime] = useState(() => NotificationService.getNotificationTime());
   const [notifStatusMsg, setNotifStatusMsg] = useState('');
 
   if (!isOpen) return null;
@@ -823,6 +825,153 @@ export default function SettingsModal({
                   <Check size={16} /> {notifStatusMsg}
                 </div>
               )}
+
+              {/* Seção 1: Horário da Notificação */}
+              <div style={{
+                background: '#f8fafc',
+                borderRadius: '16px',
+                border: '1.5px solid #e2e8f0',
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: '#ede9fe',
+                    color: '#6d28d9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Clock size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
+                      Horário do Alerta Diário
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>
+                      Horário em que o aplicativo avisará sobre as contas do dia
+                    </div>
+                  </div>
+                </div>
+
+                <input
+                  type="time"
+                  value={notificationTime}
+                  onChange={(e) => {
+                    setNotificationTime(e.target.value);
+                    NotificationService.setNotificationTime(e.target.value);
+                    setNotifStatusMsg(`Horário atualizado para às ${e.target.value}`);
+                    setTimeout(() => setNotifStatusMsg(''), 2500);
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    color: '#1e293b',
+                    background: '#ffffff',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Seção 2: Som da Notificação */}
+              <div style={{
+                background: '#f8fafc',
+                borderRadius: '16px',
+                border: '1.5px solid #e2e8f0',
+                padding: '16px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      background: '#ede9fe',
+                      color: '#6d28d9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Volume2 size={20} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
+                        Toque / Som da Notificação
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>
+                        Escolha o efeito sonoro ao receber o aviso
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    title="Ouvir som selecionado"
+                    onClick={() => NotificationService.playSound(selectedSound)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      background: '#ede9fe',
+                      border: '1px solid #ddd6fe',
+                      color: '#6d28d9',
+                      fontSize: '12px',
+                      fontWeight: '800',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Volume2 size={15} /> Testar Som
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                  {NOTIFICATION_SOUNDS.map(snd => {
+                    const isSndSelected = selectedSound === snd.id;
+                    return (
+                      <button
+                        key={snd.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSound(snd.id);
+                          NotificationService.setSound(snd.id);
+                        }}
+                        style={{
+                          padding: '10px',
+                          borderRadius: '10px',
+                          border: isSndSelected ? '2px solid #5925dc' : '1px solid #cbd5e1',
+                          background: isSndSelected ? '#ecebfa' : '#ffffff',
+                          color: isSndSelected ? '#5925dc' : '#475569',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ fontSize: '12px', fontWeight: '800' }}>
+                          {snd.name}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                          {snd.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               <div style={{
                 background: '#eff6ff',
