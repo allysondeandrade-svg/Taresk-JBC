@@ -682,18 +682,32 @@ export default function ConciliacaoView({
               return parseInt(String(q).replace(/[^0-9]/g, ''), 10) || 0;
             };
 
-            // Mapeamento dos usuários:
-            // João -> Izabela
-            // Jeremias -> Jere
-            // Johnathan -> John
+            // Mapeamento exato conforme as Plataformas Relacionadas de cada usuário:
+            // 1. Allyson:
+            //    - Shopee JBC, Mercado Livre JBC (Mercado L JBC), Magalu JBC, Amazon Allyson, Nuvemshop
+            // 2. Jeremias (Jere):
+            //    - Amazon JBC, Shopee Jeremias (Shopee Jere), Mercado Livre Jeremias (Mercado L Jere), Amazon Jeremias (Amazon Jere), Magalu Jeremias (Magalu Jere), Shopee Allyson
+            // 3. João (Izabela):
+            //    - Shopee Izabela, Mercado Livre Izabela (Mercado L Izabela)
+            // 4. Johnathan:
+            //    - Shopee Johnathan (Shopee John)
             const userConfigs = [
               {
-                id: 'izabela',
-                displayName: 'Izabela',
-                subtitle: 'Usuário: João',
-                avatar: '👩‍💼',
-                color: '#ec4899',
-                keywords: ['izabela', 'izabel', 'joao', 'joão']
+                id: 'allyson',
+                displayName: 'Allyson',
+                subtitle: 'Admin / Loja',
+                avatar: '👑',
+                color: '#f59e0b',
+                matcher: (plat) => {
+                  const p = plat.toLowerCase().replace(/\s+/g, ' ').trim();
+                  // Shopee JBC, Mercado Livre JBC, Magalu JBC, Amazon Allyson, Nuvemshop
+                  if (p.includes('shopee') && p.includes('jbc')) return true;
+                  if ((p.includes('mercado') || p.includes('ml')) && p.includes('jbc')) return true;
+                  if (p.includes('magalu') && p.includes('jbc')) return true;
+                  if (p.includes('amazon') && p.includes('allyson')) return true;
+                  if (p.includes('nuvem') || p.includes('nuvemshop')) return true;
+                  return false;
+                }
               },
               {
                 id: 'jeremias',
@@ -701,7 +715,30 @@ export default function ConciliacaoView({
                 subtitle: 'Apelido: Jere',
                 avatar: '👨‍💼',
                 color: '#3b82f6',
-                keywords: ['jere', 'jeremias']
+                matcher: (plat) => {
+                  const p = plat.toLowerCase().replace(/\s+/g, ' ').trim();
+                  // Amazon JBC, Shopee Jeremias/Jere, Mercado Livre Jeremias/Jere, Amazon Jeremias/Jere, Magalu Jeremias/Jere, Shopee Allyson
+                  if (p.includes('amazon') && p.includes('jbc')) return true;
+                  if (p.includes('shopee') && (p.includes('jere') || p.includes('jeremias'))) return true;
+                  if ((p.includes('mercado') || p.includes('ml')) && (p.includes('jere') || p.includes('jeremias'))) return true;
+                  if (p.includes('amazon') && (p.includes('jere') || p.includes('jeremias'))) return true;
+                  if (p.includes('magalu') && (p.includes('jere') || p.includes('jeremias'))) return true;
+                  if (p.includes('shopee') && p.includes('allyson')) return true;
+                  return false;
+                }
+              },
+              {
+                id: 'joao',
+                displayName: 'João (Izabela)',
+                subtitle: 'Plataformas Izabela',
+                avatar: '👩‍💼',
+                color: '#ec4899',
+                matcher: (plat) => {
+                  const p = plat.toLowerCase().replace(/\s+/g, ' ').trim();
+                  // Shopee Izabela, Mercado Livre Izabela
+                  if (p.includes('izabela') || p.includes('izabel') || p.includes('joao') || p.includes('joão')) return true;
+                  return false;
+                }
               },
               {
                 id: 'johnathan',
@@ -709,25 +746,19 @@ export default function ConciliacaoView({
                 subtitle: 'Apelido: John',
                 avatar: '👨‍💻',
                 color: '#8b5cf6',
-                keywords: ['john', 'johnathan']
-              },
-              {
-                id: 'allyson',
-                displayName: 'Allyson',
-                subtitle: 'Admin / Loja',
-                avatar: '👑',
-                color: '#f59e0b',
-                keywords: ['allyson']
+                matcher: (plat) => {
+                  const p = plat.toLowerCase().replace(/\s+/g, ' ').trim();
+                  // Shopee Johnathan / Shopee John
+                  if (p.includes('john') || p.includes('johnathan')) return true;
+                  return false;
+                }
               }
             ];
 
             const rows = (financialData.resumo || []).filter(r => !r.isTotal && String(r.plataforma).toUpperCase() !== 'TOTAL');
 
             const usersSummary = userConfigs.map(cfg => {
-              const matchedRows = rows.filter(r => {
-                const p = String(r.plataforma || '').toLowerCase();
-                return cfg.keywords.some(k => p.includes(k));
-              });
+              const matchedRows = rows.filter(r => cfg.matcher(String(r.plataforma || '')));
 
               const totalFaturamento = matchedRows.reduce((acc, r) => acc + parseVal(r.faturamento), 0);
               const totalDescontos = matchedRows.reduce((acc, r) => acc + parseVal(r.descontos), 0);
