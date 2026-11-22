@@ -1,6 +1,58 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Edit2, Check, Package, Eye, EyeOff } from 'lucide-react';
 import ProductSearchAutocomplete from './ProductSearchAutocomplete';
+import {
+  calculateShopee,
+  calculateMercadoLivre,
+  calculateAmazon,
+  calculateMagalu,
+  findPriceForTargetMargin
+} from '../utils/pricingCalculators';
+
+// Helper de estilo da margem líquida da Precificadora:
+// < 10% = Vermelho
+// 10% a 14.99% = Amarelo / Dourado
+// >= 15% = Verde
+function getMarginBadgeStyle(marginVal) {
+  let num = 0;
+  if (typeof marginVal === 'number') {
+    num = marginVal;
+  } else {
+    const clean = String(marginVal || '').replace('%', '').replace(',', '.').trim();
+    num = parseFloat(clean) || 0;
+  }
+
+  const rounded = Math.round(num * 10) / 10;
+
+  if (rounded < 10) {
+    return {
+      bg: '#fee2e2',
+      border: '#fca5a5',
+      color: '#b91c1c',
+      formatted: `${Math.round(rounded)}%`
+    };
+  } else if (rounded < 15) {
+    return {
+      bg: '#fef3c7',
+      border: '#fcd34d',
+      color: '#b45309',
+      formatted: `${Math.round(rounded)}%`
+    };
+  } else {
+    return {
+      bg: '#dcfce7',
+      border: '#86efac',
+      color: '#15803d',
+      formatted: `${Math.round(rounded)}%`
+    };
+  }
+}
+
+// Formata número para R$ XX,YY
+function formatBrlNumber(num) {
+  const n = typeof num === 'number' ? num : parseFloat(num) || 0;
+  return `R$ ${n.toFixed(2).replace('.', ',')}`;
+}
 
 export default function ProductsCatalogView({
   products = [],
@@ -39,6 +91,78 @@ export default function ProductsCatalogView({
 
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
+
+  // Armazena preços editados inline por produto e canal: { [productId]: { shopee: 29.9, mercadoLivre: 35.0, ... } }
+  const [productChannelPrices, setProductChannelPrices] = useState(() => {
+    try {
+      const saved = localStorage.getItem('taresk_product_channel_prices');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  // Atualiza e persiste o preço de venda do marketplace para um produto
+  const handleUpdateProductPrice = (productId, channelKey, newPrice) => {
+    const updated = {
+      ...productChannelPrices,
+      [productId]: {
+        ...(productChannelPrices[productId] || {}),
+        [channelKey]: newPrice
+      }
+    };
+    setProductChannelPrices(updated);
+    try {
+      localStorage.setItem('taresk_product_channel_prices', JSON.stringify(updated));
+    } catch (e) {}
+
+    // Salva também no objeto do produto caso seja persistido via onUpdateProduct
+    const targetProd = products.find(p => p.id === productId);
+    if (targetProd && onUpdateProduct) {
+      const updatedChannelPrices = {
+        ...(targetProd.channelPrices || {}),
+        [channelKey]: newPrice
+      };
+      onUpdateProduct(productId, {
+        ...targetProd,
+        channelPrices: updatedChannelPrices
+      });
+    }
+  };
+
+  // Helper que obtém o preço atual (digitado pelo usuário ou calculado para 15% de margem padrão da precificadora)
+  const getProductPriceAndMargin = (prod, channelKey) => {
+    const cost = typeof prod.cost === 'number' && !isNaN(prod.cost)
+      ? prod.cost
+      : parseFloat(String(prod.cost || 0).replace(',', '.')) || 0;
+
+    const savedPrice = productChannelPrices[prod.id]?.[channelKey] ?? prod.channelPrices?.[channelKey];
+
+    let calcFn;
+    if (channelKey === 'shopee') {
+      calcFn = (p, c) => calculateShopee(p, c);
+    } else if (channelKey === 'mercadoLivre') {
+      calcFn = (p, c, pObj) => calculateMercadoLivre(p, c, pObj, 16.5);
+    } else if (channelKey === 'amazon') {
+      calcFn = (p, c, pObj) => calculateAmazon(p, c, pObj, 15.0);
+    } else if (channelKey === 'magalu') {
+      calcFn = (p, c, pObj) => calculateMagalu(p, c, pObj, 16.0);
+    }
+
+    let finalPrice = 0;
+    if (savedPrice !== undefined && savedPrice !== null && !isNaN(savedPrice) && savedPrice > 0) {
+      finalPrice = parseFloat(savedPrice);
+    } else {
+      // Se ainda não houver preço digitado, calcula automaticamente o preço para atingir 15% de margem líquida
+      finalPrice = findPriceForTargetMargin(calcFn, cost, prod, null, 15.0);
+    }
+
+    const calcResult = calcFn ? calcFn(finalPrice, cost, prod) : { margemLiquida: 0 };
+    return {
+      price: finalPrice,
+      margin: calcResult.margemLiquida || 0
+    };
+  };
 
   const handleSaveNew = (e) => {
     e.preventDefault();
@@ -465,31 +589,79 @@ export default function ProductsCatalogView({
         width: '100%',
         boxSizing: 'border-box'
       }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '940px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '950px' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 SKU
               </th>
-              <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Produto
               </th>
-              <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 14px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Custo
               </th>
-              <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Largura
               </th>
-              <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Comp
               </th>
-              <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Altura
               </th>
-              <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Peso
               </th>
-              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: '700', color: '#64748b', textAlign: 'right', whiteSpace: 'nowrap' }}>
+              {/* Coluna Shopee com Ícone Oficial */}
+              <th style={{ padding: '10px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img
+                    src="./icon_shopee.png"
+                    alt="Shopee"
+                    title="Shopee"
+                    style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '6px' }}
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                </div>
+              </th>
+              {/* Coluna Mercado Livre com Ícone Oficial */}
+              <th style={{ padding: '10px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img
+                    src="./icon_mercadolivre.png"
+                    alt="Mercado Livre"
+                    title="Mercado Livre"
+                    style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '6px' }}
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                </div>
+              </th>
+              {/* Coluna Magalu com Ícone Oficial */}
+              <th style={{ padding: '10px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img
+                    src="./icon_magalu.png"
+                    alt="Magalu"
+                    title="Magalu"
+                    style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '6px' }}
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                </div>
+              </th>
+              {/* Coluna Amazon com Ícone Oficial */}
+              <th style={{ padding: '10px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img
+                    src="./icon_amazon.png"
+                    alt="Amazon"
+                    title="Amazon"
+                    style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '6px' }}
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                </div>
+              </th>
+              <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: '700', color: '#64748b', textAlign: 'right', whiteSpace: 'nowrap' }}>
                 Ações
               </th>
             </tr>
@@ -625,74 +797,233 @@ export default function ProductsCatalogView({
                       )}
                     </td>
 
-                    {/* Coluna Peso (+ Exibição colapsável das plataformas se ativadas pelo olho) */}
-                    <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
+                    {/* Coluna Peso */}
+                    <td style={{ padding: '16px 12px', whiteSpace: 'nowrap' }}>
                       {isEditing ? (
                         <input
                           type="number"
                           step="0.01"
                           value={editForm.weight}
                           onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
-                          style={{ width: '80px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600' }}
+                          style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600' }}
                         />
                       ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
-                            {prod.weight || 0} kg
-                          </span>
-
-                          {/* Se plataformas estiverem visíveis ou ocultas */}
-                          {isPlatVisible ? (
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                              {platforms.map((plat) => {
-                                const isActive = isProductPlatformActive(prod, plat);
-                                const platColor = plat.color || '#5925dc';
-                                const shortName = plat.name?.length <= 8 ? plat.name : (
-                                  plat.name.includes(' ')
-                                    ? plat.name.split(' ').map(w => w[0]).join('').slice(0, 3)
-                                    : plat.name.slice(0, 4)
-                                );
-
-                                return (
-                                  <button
-                                    key={plat.id}
-                                    type="button"
-                                    onClick={() => handleToggleProductPlatform(prod, plat.id)}
-                                    title={isActive ? `${plat.name}: Já cadastrado (Clique para desmarcar)` : `${plat.name}: Não cadastrado (Clique para marcar)`}
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      padding: '3px 8px',
-                                      borderRadius: '6px',
-                                      border: isActive ? `1.5px solid ${platColor}` : '1.5px solid #cbd5e1',
-                                      background: isActive ? platColor : '#f1f5f9',
-                                      color: isActive ? '#ffffff' : '#64748b',
-                                      fontSize: '11px',
-                                      fontWeight: '700',
-                                      cursor: 'pointer',
-                                      transition: 'all 0.15s ease'
-                                    }}
-                                  >
-                                    <span style={{
-                                      width: '6px',
-                                      height: '6px',
-                                      borderRadius: '50%',
-                                      background: isActive ? '#ffffff' : '#94a3b8',
-                                      display: 'inline-block'
-                                    }} />
-                                    <span>{shortName}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
-                              Oculto (clique no olho para ver)
-                            </span>
-                          )}
-                        </div>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
+                          {prod.weight || 0} kg
+                        </span>
                       )}
+                    </td>
+
+                    {/* Coluna SHOPEE (Preço R$ 00,00 e Margem 00% com regras da precificadora) */}
+                    <td style={{ padding: '12px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      {(() => {
+                        const { price, margin } = getProductPriceAndMargin(prod, 'shopee');
+                        const badgeStyle = getMarginBadgeStyle(margin);
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>R$</span>
+                              <input
+                                type="text"
+                                defaultValue={price > 0 ? price.toFixed(2).replace('.', ',') : ''}
+                                placeholder="0,00"
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
+                                  handleUpdateProductPrice(prod.id, 'shopee', val);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                style={{
+                                  width: '58px',
+                                  padding: '2px 4px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  fontSize: '12px',
+                                  fontWeight: '700',
+                                  color: '#0f172a',
+                                  textAlign: 'center',
+                                  outline: 'none'
+                                }}
+                              />
+                            </div>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              background: badgeStyle.bg,
+                              color: badgeStyle.color,
+                              border: `1px solid ${badgeStyle.border}`
+                            }}>
+                              {badgeStyle.formatted}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </td>
+
+                    {/* Coluna MERCADO LIVRE (Preço R$ 00,00 e Margem 00% com regras da precificadora) */}
+                    <td style={{ padding: '12px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      {(() => {
+                        const { price, margin } = getProductPriceAndMargin(prod, 'mercadoLivre');
+                        const badgeStyle = getMarginBadgeStyle(margin);
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>R$</span>
+                              <input
+                                type="text"
+                                defaultValue={price > 0 ? price.toFixed(2).replace('.', ',') : ''}
+                                placeholder="0,00"
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
+                                  handleUpdateProductPrice(prod.id, 'mercadoLivre', val);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                style={{
+                                  width: '58px',
+                                  padding: '2px 4px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  fontSize: '12px',
+                                  fontWeight: '700',
+                                  color: '#0f172a',
+                                  textAlign: 'center',
+                                  outline: 'none'
+                                }}
+                              />
+                            </div>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              background: badgeStyle.bg,
+                              color: badgeStyle.color,
+                              border: `1px solid ${badgeStyle.border}`
+                            }}>
+                              {badgeStyle.formatted}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </td>
+
+                    {/* Coluna MAGALU (Preço R$ 00,00 e Margem 00% com regras da precificadora) */}
+                    <td style={{ padding: '12px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      {(() => {
+                        const { price, margin } = getProductPriceAndMargin(prod, 'magalu');
+                        const badgeStyle = getMarginBadgeStyle(margin);
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>R$</span>
+                              <input
+                                type="text"
+                                defaultValue={price > 0 ? price.toFixed(2).replace('.', ',') : ''}
+                                placeholder="0,00"
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
+                                  handleUpdateProductPrice(prod.id, 'magalu', val);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                style={{
+                                  width: '58px',
+                                  padding: '2px 4px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  fontSize: '12px',
+                                  fontWeight: '700',
+                                  color: '#0f172a',
+                                  textAlign: 'center',
+                                  outline: 'none'
+                                }}
+                              />
+                            </div>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              background: badgeStyle.bg,
+                              color: badgeStyle.color,
+                              border: `1px solid ${badgeStyle.border}`
+                            }}>
+                              {badgeStyle.formatted}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </td>
+
+                    {/* Coluna AMAZON (Preço R$ 00,00 e Margem 00% com regras da precificadora) */}
+                    <td style={{ padding: '12px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      {(() => {
+                        const { price, margin } = getProductPriceAndMargin(prod, 'amazon');
+                        const badgeStyle = getMarginBadgeStyle(margin);
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>R$</span>
+                              <input
+                                type="text"
+                                defaultValue={price > 0 ? price.toFixed(2).replace('.', ',') : ''}
+                                placeholder="0,00"
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
+                                  handleUpdateProductPrice(prod.id, 'amazon', val);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                style={{
+                                  width: '58px',
+                                  padding: '2px 4px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  fontSize: '12px',
+                                  fontWeight: '700',
+                                  color: '#0f172a',
+                                  textAlign: 'center',
+                                  outline: 'none'
+                                }}
+                              />
+                            </div>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              background: badgeStyle.bg,
+                              color: badgeStyle.color,
+                              border: `1px solid ${badgeStyle.border}`
+                            }}>
+                              {badgeStyle.formatted}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Ações: Olho, Editar, Excluir como na imagem */}
