@@ -137,34 +137,51 @@ export default function ConciliacaoView({
   const [pedidosSearch, setPedidosSearch] = useState('');
   const [pedidosMarketplaceFilter, setPedidosMarketplaceFilter] = useState('all');
 
-  // Ordem personalizada das colunas na subaba Pedidos
+  // Ordem e visibilidade personalizada das colunas na subaba Pedidos
   const DEFAULT_PEDIDOS_COLUMNS = [
-    { id: 'marketplace', label: 'Marketplace', width: '160px' },
-    { id: 'unid', label: 'Unid', width: '70px', align: 'center' },
-    { id: 'produto', label: 'Produto', width: '220px' },
-    { id: 'preco', label: 'Preço', width: '110px', align: 'right' },
-    { id: 'recebido', label: 'Recebido', width: '110px', align: 'right' },
-    { id: 'lucroBruto', label: 'Lucro Bruto', width: '120px', align: 'right' },
-    { id: 'comissao', label: 'Comissão', width: '110px', align: 'right' },
-    { id: 'lucroLiquido', label: 'Lucro Líq', width: '110px', align: 'right' },
-    { id: 'pago', label: 'P', width: '60px', align: 'center' },
-    { id: 'pedido', label: 'Pedido', width: '180px' },
-    { id: 'situacao', label: 'Situação', width: '110px' },
-    { id: 'entrega', label: 'Entrega', width: '150px' },
-    { id: 'margem', label: 'Margem', width: '110px', align: 'center' }
+    { id: 'marketplace', label: 'Marketplace', width: '160px', visible: true },
+    { id: 'unid', label: 'Unid', width: '70px', align: 'center', visible: true },
+    { id: 'produto', label: 'Produto', width: '220px', visible: true },
+    { id: 'preco', label: 'Preço', width: '110px', align: 'right', visible: true },
+    { id: 'recebido', label: 'Recebido', width: '110px', align: 'right', visible: true },
+    { id: 'lucroBruto', label: 'Lucro Bruto', width: '120px', align: 'right', visible: true },
+    { id: 'comissao', label: 'Comissão', width: '110px', align: 'right', visible: true },
+    { id: 'lucroLiquido', label: 'Lucro Líq', width: '110px', align: 'right', visible: true },
+    { id: 'pago', label: 'P', width: '60px', align: 'center', visible: true },
+    { id: 'pedido', label: 'Pedido', width: '180px', visible: true },
+    { id: 'situacao', label: 'Situação', width: '110px', visible: true },
+    { id: 'entrega', label: 'Entrega', width: '150px', visible: true },
+    { id: 'margem', label: 'Margem', width: '110px', align: 'center', visible: true }
   ];
 
   const [pedidosColumns, setPedidosColumns] = useState(() => {
     try {
-      const saved = localStorage.getItem('taresk_pedidos_col_order');
-      if (saved) return JSON.parse(saved);
+      const saved = localStorage.getItem('taresk_pedidos_col_order_v2') || localStorage.getItem('taresk_pedidos_col_order');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Garante que todas as colunas padrão existam e tenham campo visible
+          const merged = parsed.map(c => ({
+            ...DEFAULT_PEDIDOS_COLUMNS.find(dc => dc.id === c.id) || {},
+            ...c,
+            visible: c.visible !== undefined ? c.visible : true
+          }));
+          // Adiciona colunas que possam faltar
+          DEFAULT_PEDIDOS_COLUMNS.forEach(dc => {
+            if (!merged.some(m => m.id === dc.id)) {
+              merged.push({ ...dc, visible: true });
+            }
+          });
+          return merged;
+        }
+      }
     } catch (e) {}
     return DEFAULT_PEDIDOS_COLUMNS;
   });
 
   const [isColumnOrganizerOpen, setIsColumnOrganizerOpen] = useState(false);
 
-  // Mover coluna para a esquerda/cima
+  // Mover coluna para a esquerda/cima (-1) ou direita/baixo (+1)
   const handleMoveColumn = (index, direction) => {
     const newIdx = index + direction;
     if (newIdx < 0 || newIdx >= pedidosColumns.length) return;
@@ -172,13 +189,46 @@ export default function ConciliacaoView({
     const [moved] = updated.splice(index, 1);
     updated.splice(newIdx, 0, moved);
     setPedidosColumns(updated);
-    localStorage.setItem('taresk_pedidos_col_order', JSON.stringify(updated));
+    localStorage.setItem('taresk_pedidos_col_order_v2', JSON.stringify(updated));
+  };
+
+  // Alternar visibilidade de uma coluna (mostrar / ocultar)
+  const handleToggleColumnVisibility = (colId) => {
+    // Não permite ocultar todas as colunas (mantém pelo menos uma visível)
+    const visibleCount = pedidosColumns.filter(c => c.visible !== false).length;
+    const targetCol = pedidosColumns.find(c => c.id === colId);
+    if (targetCol && targetCol.visible !== false && visibleCount <= 1) {
+      alert('Pelo menos uma coluna deve permanecer visível.');
+      return;
+    }
+
+    const updated = pedidosColumns.map(col => {
+      if (col.id === colId) {
+        return { ...col, visible: col.visible === false ? true : false };
+      }
+      return col;
+    });
+    setPedidosColumns(updated);
+    localStorage.setItem('taresk_pedidos_col_order_v2', JSON.stringify(updated));
+  };
+
+  // Mostrar todas as colunas
+  const handleShowAllColumns = () => {
+    const updated = pedidosColumns.map(col => ({ ...col, visible: true }));
+    setPedidosColumns(updated);
+    localStorage.setItem('taresk_pedidos_col_order_v2', JSON.stringify(updated));
   };
 
   const handleResetColumnOrder = () => {
     setPedidosColumns(DEFAULT_PEDIDOS_COLUMNS);
+    localStorage.removeItem('taresk_pedidos_col_order_v2');
     localStorage.removeItem('taresk_pedidos_col_order');
   };
+
+  // Colunas atualmente visíveis para renderização da tabela
+  const visiblePedidosColumns = useMemo(() => {
+    return pedidosColumns.filter(col => col.visible !== false);
+  }, [pedidosColumns]);
 
   // Carrega dados da planilha via SheetsApi
   const loadFinancialDataFromSheets = async (sheetName) => {
@@ -679,7 +729,7 @@ export default function ConciliacaoView({
                 </select>
               </div>
 
-              {/* Botão de Organizar Ordem das Colunas */}
+              {/* Botão de Organizar / Ocultar Colunas */}
               <button
                 type="button"
                 onClick={() => setIsColumnOrganizerOpen(!isColumnOrganizerOpen)}
@@ -699,7 +749,7 @@ export default function ConciliacaoView({
                 }}
               >
                 <SlidersHorizontal size={14} />
-                Ordem das Colunas
+                Editar Colunas ({visiblePedidosColumns.length}/{pedidosColumns.length})
               </button>
 
               <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748b' }}>
@@ -708,7 +758,7 @@ export default function ConciliacaoView({
             </div>
           </div>
 
-          {/* Painel Colapsável de Reordenação de Colunas */}
+          {/* Painel Colapsável de Reordenação e Visibilidade de Colunas */}
           {isColumnOrganizerOpen && (
             <div style={{
               background: '#ffffff',
@@ -718,77 +768,139 @@ export default function ConciliacaoView({
               boxShadow: '0 4px 12px rgba(99, 102, 241, 0.08)',
               marginBottom: '20px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
-                  Ajuste a ordem das colunas clicando nas setas (◄ / ►):
-                </span>
-                <button
-                  type="button"
-                  onClick={handleResetColumnOrder}
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    color: '#6366f1',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textDecoration: 'underline'
-                  }}
-                >
-                  Restaurar Ordem Padrão
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
+                    Personalizar Colunas da Planilha:
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>
+                    Use as setas ◄ / ► para reordenar e o olho para exibir/ocultar
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={handleShowAllColumns}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: '#059669',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Eye size={12} />
+                    Mostrar Todas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetColumnOrder}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: '#6366f1',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Restaurar Padrão
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {pedidosColumns.map((col, idx) => (
-                  <div
-                    key={col.id}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: '#f8fafc',
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      color: '#1e293b'
-                    }}
-                  >
-                    <button
-                      type="button"
-                      disabled={idx === 0}
-                      onClick={() => handleMoveColumn(idx, -1)}
+                {pedidosColumns.map((col, idx) => {
+                  const isVisible = col.visible !== false;
+                  return (
+                    <div
+                      key={col.id}
                       style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: idx === 0 ? 'default' : 'pointer',
-                        color: idx === 0 ? '#cbd5e1' : '#5925dc',
-                        padding: '0 2px'
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: isVisible ? '#f8fafc' : '#f1f5f9',
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        border: isVisible ? '1.5px solid #cbd5e1' : '1px dashed #cbd5e1',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        color: isVisible ? '#1e293b' : '#94a3b8',
+                        opacity: isVisible ? 1 : 0.65,
+                        transition: 'all 0.15s ease'
                       }}
                     >
-                      <ArrowLeft size={13} />
-                    </button>
+                      {/* Seta Esquerda */}
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={() => handleMoveColumn(idx, -1)}
+                        title="Mover para a esquerda"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: idx === 0 ? 'default' : 'pointer',
+                          color: idx === 0 ? '#cbd5e1' : '#5925dc',
+                          padding: '0 2px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <ArrowLeft size={13} />
+                      </button>
 
-                    <span>{col.label}</span>
+                      {/* Nome da Coluna */}
+                      <span style={{ textDecoration: isVisible ? 'none' : 'line-through' }}>
+                        {col.label}
+                      </span>
 
-                    <button
-                      type="button"
-                      disabled={idx === pedidosColumns.length - 1}
-                      onClick={() => handleMoveColumn(idx, 1)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: idx === pedidosColumns.length - 1 ? 'default' : 'pointer',
-                        color: idx === pedidosColumns.length - 1 ? '#cbd5e1' : '#5925dc',
-                        padding: '0 2px'
-                      }}
-                    >
-                      <ArrowRight size={13} />
-                    </button>
-                  </div>
-                ))}
+                      {/* Seta Direita */}
+                      <button
+                        type="button"
+                        disabled={idx === pedidosColumns.length - 1}
+                        onClick={() => handleMoveColumn(idx, 1)}
+                        title="Mover para a direita"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: idx === pedidosColumns.length - 1 ? 'default' : 'pointer',
+                          color: idx === pedidosColumns.length - 1 ? '#cbd5e1' : '#5925dc',
+                          padding: '0 2px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <ArrowRight size={13} />
+                      </button>
+
+                      {/* Botão de Alternar Visibilidade (Olho) */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleColumnVisibility(col.id)}
+                        title={isVisible ? 'Ocultar esta coluna' : 'Mostrar esta coluna'}
+                        style={{
+                          background: isVisible ? '#ede9fe' : '#e2e8f0',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          color: isVisible ? '#5925dc' : '#64748b',
+                          padding: '3px 5px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          marginLeft: '2px',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {isVisible ? <Eye size={13} /> : <EyeOff size={13} />}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -806,12 +918,12 @@ export default function ConciliacaoView({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1100px' }}>
               <thead>
                 <tr style={{ background: '#581c87', color: '#ffffff', textAlign: 'center' }}>
-                  <th colSpan={pedidosColumns.length} style={{ padding: '12px 16px', fontSize: '14px', fontWeight: '900', letterSpacing: '1px' }}>
+                  <th colSpan={visiblePedidosColumns.length} style={{ padding: '12px 16px', fontSize: '14px', fontWeight: '900', letterSpacing: '1px' }}>
                     MARKETPLACES — DETALHAMENTO DE PEDIDOS ({selectedMonth})
                   </th>
                 </tr>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                  {pedidosColumns.map((col) => (
+                  {visiblePedidosColumns.map((col) => (
                     <th
                       key={col.id}
                       style={{
@@ -832,7 +944,7 @@ export default function ConciliacaoView({
               <tbody>
                 {filteredPedidos.length === 0 ? (
                   <tr>
-                    <td colSpan={pedidosColumns.length} style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+                    <td colSpan={visiblePedidosColumns.length} style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
                       Nenhum pedido encontrado para os filtros selecionados.
                     </td>
                   </tr>
@@ -851,7 +963,7 @@ export default function ConciliacaoView({
                           color: '#334155'
                         }}
                       >
-                        {pedidosColumns.map((col) => {
+                        {visiblePedidosColumns.map((col) => {
                           if (col.id === 'marketplace') {
                             return (
                               <td key={col.id} style={{ padding: '10px 16px' }}>
