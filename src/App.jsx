@@ -381,7 +381,8 @@ export default function App() {
             width: parseNum(p.width),
             length: parseNum(p.length),
             height: parseNum(p.height),
-            weight: parseNum(p.weight)
+            weight: parseNum(p.weight),
+            channelPrices: p.channelPrices && typeof p.channelPrices === 'object' ? p.channelPrices : {}
           }));
           setProducts(sanitizedProducts);
         }

@@ -143,15 +143,15 @@ function setupSheets() {
     ensureIdColumn(userSheet, 'ID');
   }
 
-  // 2. Aba Produtos: [ID, SKU, Produto, Foto, Custo, Largura, Comprimento, Altura, Peso]
+  // 2. Aba Produtos: [ID, SKU, Produto, Foto, Custo, Largura, Comprimento, Altura, Peso, PrecosMarketplaces_JSON]
   let prodSheet = ss.getSheetByName(SHEETS.PRODUCTS);
   if (!prodSheet) {
     prodSheet = ss.insertSheet(SHEETS.PRODUCTS);
-    prodSheet.appendRow(['ID', 'SKU', 'Produto', 'Foto', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso']);
-    prodSheet.appendRow(['00001', 'FOG-02-BOC', 'Fogão 2 Bocas Alta Pressão Inox', '', 145.00, 32, 54, 18, 4.80]);
-    prodSheet.appendRow(['00002', 'PAN-ELE-05L', 'Panela Elétrica Multifunção 5L Inox', '', 120.00, 30, 30, 35, 3.50]);
-    prodSheet.appendRow(['00003', 'VENT-COL-40', 'Ventilador Coluna 40cm Turbo Silencioso', '', 89.90, 45, 45, 130, 5.20]);
-    prodSheet.appendRow(['00004', 'FRIT-AIR-4L', 'Fritadeira Air Fryer 4L Digital Preto', '', 185.00, 33, 33, 38, 4.60]);
+    prodSheet.appendRow(['ID', 'SKU', 'Produto', 'Foto', 'Custo', 'Largura', 'Comprimento', 'Altura', 'Peso', 'PrecosMarketplaces_JSON']);
+    prodSheet.appendRow(['00001', 'FOG-02-BOC', 'Fogão 2 Bocas Alta Pressão Inox', '', 145.00, 32, 54, 18, 4.80, '{}']);
+    prodSheet.appendRow(['00002', 'PAN-ELE-05L', 'Panela Elétrica Multifunção 5L Inox', '', 120.00, 30, 30, 35, 3.50, '{}']);
+    prodSheet.appendRow(['00003', 'VENT-COL-40', 'Ventilador Coluna 40cm Turbo Silencioso', '', 89.90, 45, 45, 130, 5.20, '{}']);
+    prodSheet.appendRow(['00004', 'FRIT-AIR-4L', 'Fritadeira Air Fryer 4L Digital Preto', '', 185.00, 33, 33, 38, 4.60, '{}']);
     styleHeader(prodSheet);
   } else {
     ensureIdColumn(prodSheet, 'ID');
@@ -478,6 +478,14 @@ function ensureProductHeaders(sheet) {
     const insertIndex = idxProd !== -1 ? (idxProd + 2) : (idxSku !== -1 ? (idxSku + 2) : 3);
     sheet.insertColumnAfter(insertIndex - 1);
     sheet.getRange(1, insertIndex).setValue('Foto');
+    lastCol = Math.max(sheet.getLastColumn(), 1);
+    headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').toLowerCase().trim());
+  }
+
+  // Garante a coluna PrecosMarketplaces_JSON na aba Produtos para salvar os preços de Shopee, ML, Magalu, Amazon etc.
+  const hasChannelPrices = headers.some(h => h.includes('precos') || h.includes('channelprices') || h.includes('marketplaces_precos'));
+  if (!hasChannelPrices) {
+    sheet.getRange(1, lastCol + 1).setValue('PrecosMarketplaces_JSON');
   }
 
   styleHeader(sheet);
@@ -841,12 +849,26 @@ function getProductsDataAsJson() {
   const idxComp = headers.findIndex(h => h.includes('comp'));
   const idxAltura = headers.indexOf('altura');
   const idxPeso = headers.indexOf('peso');
+  const idxPrecos = headers.findIndex(h => h.includes('precos') || h.includes('channelprices') || h.includes('marketplaces_precos'));
 
   return rows.map((r, i) => {
     const rawId = idxId !== -1 && r[idxId] ? String(r[idxId]).trim() : '';
     const sku = idxSku !== -1 ? String(r[idxSku] || '').trim() : String(r[0] || '').trim();
     const titulo = idxTitulo !== -1 && r[idxTitulo] ? String(r[idxTitulo]).trim() : '';
     const rawFoto = idxFoto !== -1 && r[idxFoto] ? String(r[idxFoto]).trim() : '';
+
+    let channelPrices = {};
+    if (idxPrecos !== -1 && r[idxPrecos]) {
+      try {
+        if (typeof r[idxPrecos] === 'string' && (r[idxPrecos].trim().startsWith('{') || r[idxPrecos].trim().startsWith('['))) {
+          channelPrices = JSON.parse(r[idxPrecos]);
+        } else if (typeof r[idxPrecos] === 'object') {
+          channelPrices = r[idxPrecos];
+        }
+      } catch (errJson) {
+        channelPrices = {};
+      }
+    }
 
     return {
       id: rawId || sku || ('prod_' + (i + 1)),
@@ -858,7 +880,8 @@ function getProductsDataAsJson() {
       width: idxLargura !== -1 ? parseBrazilianNumber(r[idxLargura]) : 0,
       length: idxComp !== -1 ? parseBrazilianNumber(r[idxComp]) : 0,
       height: idxAltura !== -1 ? parseBrazilianNumber(r[idxAltura]) : 0,
-      weight: idxPeso !== -1 ? parseBrazilianNumber(r[idxPeso]) : 0
+      weight: idxPeso !== -1 ? parseBrazilianNumber(r[idxPeso]) : 0,
+      channelPrices: channelPrices
     };
   });
 }
@@ -1259,6 +1282,9 @@ function upsertProduct(prod) {
   const hasProdutoCol = headers.some(h => h === 'produto' || h.includes('produto') || h.includes('titulo') || h.includes('título') || h.includes('nome'));
   const prodNomeVal = prod.product || prod.title || prod.nome || prod.descricao || prod.sku || '';
 
+  const hasPrecosCol = headers.some(h => h.includes('precos') || h.includes('channelprices') || h.includes('marketplaces_precos'));
+  const precosVal = JSON.stringify(prod.channelPrices || {});
+
   let baseData = [];
   if (hasProdutoCol && hasFotoCol) {
     baseData = [
@@ -1300,6 +1326,10 @@ function upsertProduct(prod) {
       parseBrazilianNumber(prod.height),
       parseBrazilianNumber(prod.weight)
     ];
+  }
+
+  if (hasPrecosCol) {
+    baseData.push(precosVal);
   }
 
   const rowData = hasIdCol ? [finalId, ...baseData] : baseData;
