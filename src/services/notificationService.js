@@ -274,7 +274,13 @@ export const NotificationService = {
   },
 
   /**
-   * Verifica a lista de contas e dispara alertas para hoje e amanhã
+   * Verifica a lista de contas e dispara no máximo UMA única notificação por dia,
+   * alertando apenas contas com vencimento em:
+   * - Ontem (atrasada há exatamente 1 dia)
+   * - Hoje (vencendo no dia)
+   * - Amanhã (vencendo no dia seguinte)
+   * Se a conta venceu há 2 dias ou mais (anteontem ou antes), NÃO notifica.
+   * Se houver mais de uma conta para pagar, resume todas em uma única mensagem (ex: "Aluguel, Boleto Grenada, Dinheiro Express").
    */
   checkAndNotifyBills(bills = []) {
     if (!this.isEnabled()) return;
@@ -298,13 +304,12 @@ export const NotificationService = {
     const currentMonth = today.getMonth() + 1; // 1 a 12
     const currentYear = today.getFullYear();
 
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowDay = tomorrow.getDate();
-    const tomorrowMonth = tomorrow.getMonth() + 1;
-    const tomorrowYear = tomorrow.getFullYear();
+    // Data de hoje zerada em meia-noite para comparações de dias exatos
+    const todayMidnight = new Date(currentYear, currentMonth - 1, currentDay, 0, 0, 0, 0);
 
-    // Obtém log de notificações já enviadas hoje para não duplicar spam
+    const todayDateString = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+
+    // Obtém log de notificações já enviadas hoje para garantir no máximo 1 notificação diária
     let sentLog = {};
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SENT_LOG);
@@ -313,18 +318,25 @@ export const NotificationService = {
       sentLog = {};
     }
 
-    const todayDateString = `${currentYear}-${currentMonth}-${currentDay}`;
-    if (!sentLog[todayDateString]) {
-      sentLog = { [todayDateString]: [] }; // Limpa dias anteriores
+    // Se já foi enviada a notificação diária de hoje, não manda outra
+    if (sentLog[todayDateString] && sentLog[todayDateString].length > 0) {
+      return;
     }
 
-    const alreadySentIds = sentLog[todayDateString] || [];
+    // Coleta as contas elegíveis nos 3 dias permitidos (ontem, hoje, amanhã)
+    const billsYesterday = [];
+    const billsToday = [];
+    const billsTomorrow = [];
 
     bills.forEach(bill => {
-      // Checa se a conta está paga no mês corrente de forma independente
       const bDay = parseInt(bill.day, 10);
-      const isRecurring = bill.isRecurring || bill.recurringType === 'monthly' || String(bill.categoria || bill.billType || bill.tipo || '').toLowerCase() === 'mensal' || String(bill.categoria || bill.billType || bill.tipo || '').toLowerCase().includes('cart');
+      if (isNaN(bDay) || bDay < 1 || bDay > 31) return;
 
+      const isRecurring = bill.isRecurring || bill.recurringType === 'monthly' ||
+        String(bill.categoria || bill.billType || bill.tipo || '').toLowerCase() === 'mensal' ||
+        String(bill.categoria || bill.billType || bill.tipo || '').toLowerCase().includes('cart');
+
+      // 1. Checa se já está paga no mês corrente
       let isPaidThisMonth = false;
       if (!isRecurring) {
         isPaidThisMonth = bill.status === 'paid';
@@ -345,85 +357,85 @@ export const NotificationService = {
         }
       }
 
-      if (isPaidThisMonth) return; // Se já foi paga neste mês, não avisa
+      if (isPaidThisMonth) return; // Conta já paga neste mês: ignorar
 
-      const formatVal = bill.value ? ` ${bill.value}` : '';
-      const billTitle = `${bill.description}${formatVal}`.trim();
-
-      // Formatação no padrão solicitado:
-      // Exemplo Foto 2:
-      // Linha de Título: "⚠️ Hoje 20/11" ou "🟢 Amanhã 21/11" ou "🚨 Atrasado 19/11"
-      // Linha de Conteúdo (Body): "Aluguel R$ 850,00"
-      const ddToday = String(currentDay).padStart(2, '0');
-      const mmToday = String(currentMonth).padStart(2, '0');
-      const ddTomorrow = String(tomorrowDay).padStart(2, '0');
-      const mmTomorrow = String(tomorrowMonth).padStart(2, '0');
-
-      // 1. Checa se está ATRASADA (não marcada como paga e dia já passou)
-      let isOverdue = false;
-      let overdueDateStr = '';
-
+      // Determina a data de vencimento exata da conta para comparação
+      let billDate;
       if (isRecurring) {
-        // Se for recorrente mensal, se o dia da conta for menor que o dia atual do mês vigente
-        if (bDay < currentDay) {
-          isOverdue = true;
-          overdueDateStr = `${String(bDay).padStart(2, '0')}/${mmToday}`;
+        // Para recorrente, avalia no mês atual.
+        // Tratamento de virada de mês (ex: dia 1 no final do mês ou dia 31 no começo do mês)
+        billDate = new Date(currentYear, currentMonth - 1, bDay, 0, 0, 0, 0);
+
+        // Se hoje for dia 1 e a conta for do dia anterior (último dia do mês anterior)
+        if (currentDay === 1 && bDay >= 28) {
+          billDate = new Date(currentYear, currentMonth - 2, bDay, 0, 0, 0, 0);
+        }
+        // Se a conta for dia 1 e hoje for o último dia do mês (vence amanhã no próximo mês)
+        const daysInCurrentMonth = new Date(currentYear, currentMonth, 0).getDate();
+        if (currentDay === daysInCurrentMonth && bDay === 1) {
+          billDate = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
         }
       } else {
-        const bMonth = parseInt(bill.month, 10);
+        const bMonth = parseInt(bill.month, 10) || currentMonth;
         const bYear = parseInt(bill.year, 10) || currentYear;
-        const billDate = new Date(bYear, bMonth - 1, bDay, 23, 59, 59);
-        if (billDate < today && !(bDay === currentDay && bMonth === currentMonth && bYear === currentYear)) {
-          isOverdue = true;
-          overdueDateStr = `${String(bDay).padStart(2, '0')}/${String(bMonth).padStart(2, '0')}`;
-        }
+        billDate = new Date(bYear, bMonth - 1, bDay, 0, 0, 0, 0);
       }
 
-      if (isOverdue) {
-        const notifId = `overdue_${bill.id}_${todayDateString}`;
-        if (!alreadySentIds.includes(notifId)) {
-          this.sendImmediateNotification(
-            `🚨 Atrasado ${overdueDateStr}`,
-            billTitle
-          );
-          alreadySentIds.push(notifId);
-        }
+      // Calcula a diferença exata em dias inteiros:
+      // diffDays = -1 -> Venceu ontem
+      // diffDays = 0  -> Vence hoje
+      // diffDays = 1  -> Vence amanhã
+      // diffDays <= -2 -> Venceu anteontem ou antes (NÃO notificar)
+      // diffDays >= 2  -> Vence depois de amanhã (NÃO notificar)
+      const diffMs = billDate.getTime() - todayMidnight.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      const billDesc = String(bill.description || 'Conta').trim();
+      const formatVal = bill.value ? ` (${bill.value})` : '';
+      const billLabel = `${billDesc}${formatVal}`;
+
+      if (diffDays === 0) {
+        billsToday.push(billLabel);
+      } else if (diffDays === 1) {
+        billsTomorrow.push(billLabel);
+      } else if (diffDays === -1) {
+        billsYesterday.push(billLabel);
       }
-
-      // 2. Checa se vence HOJE
-      const isToday = isRecurring
-        ? bDay === currentDay
-        : (bDay === currentDay && parseInt(bill.month, 10) === currentMonth && (!bill.year || parseInt(bill.year, 10) === currentYear));
-
-      if (isToday) {
-        const notifId = `today_${bill.id}_${todayDateString}`;
-        if (!alreadySentIds.includes(notifId)) {
-          this.sendImmediateNotification(
-            `⚠️ Hoje ${ddToday}/${mmToday}`,
-            billTitle
-          );
-          alreadySentIds.push(notifId);
-        }
-      }
-
-      // 3. Checa se vence AMANHÃ (dia anterior ao vencimento)
-      const isTomorrow = isRecurring
-        ? bDay === tomorrowDay
-        : (bDay === tomorrowDay && parseInt(bill.month, 10) === tomorrowMonth && (!bill.year || parseInt(bill.year, 10) === tomorrowYear));
-
-      if (isTomorrow) {
-        const notifId = `tomorrow_${bill.id}_${todayDateString}`;
-        if (!alreadySentIds.includes(notifId)) {
-          this.sendImmediateNotification(
-            `🟢 Amanhã ${ddTomorrow}/${mmTomorrow}`,
-            billTitle
-          );
-          alreadySentIds.push(notifId);
-        }
-      }
+      // Se diffDays <= -2 (passou 2 dias ou mais) ou diffDays > 1: ignorado conforme regra!
     });
 
-    sentLog[todayDateString] = alreadySentIds;
+    const totalEligible = billsYesterday.length + billsToday.length + billsTomorrow.length;
+    if (totalEligible === 0) return;
+
+    // Constrói uma ÚNICA notificação resumindo todas as contas dos 3 dias
+    let title = '🔔 Lembrete de Contas a Pagar';
+    const bodyParts = [];
+
+    if (billsToday.length > 0) {
+      bodyParts.push(`⚠️ Hoje: ${billsToday.join(', ')}`);
+    }
+    if (billsTomorrow.length > 0) {
+      bodyParts.push(`🟢 Amanhã: ${billsTomorrow.join(', ')}`);
+    }
+    if (billsYesterday.length > 0) {
+      bodyParts.push(`🚨 Ontem (pendente): ${billsYesterday.join(', ')}`);
+    }
+
+    if (billsToday.length > 0 && billsTomorrow.length === 0 && billsYesterday.length === 0) {
+      title = `⚠️ Contas para Pagar Hoje (${billsToday.length})`;
+    } else if (billsTomorrow.length > 0 && billsToday.length === 0 && billsYesterday.length === 0) {
+      title = `🟢 Contas de Amanhã (${billsTomorrow.length})`;
+    } else if (billsYesterday.length > 0 && billsToday.length === 0 && billsTomorrow.length === 0) {
+      title = `🚨 Contas Pendentes de Ontem (${billsYesterday.length})`;
+    }
+
+    const notificationBody = bodyParts.join('\n');
+
+    // Dispara a única notificação do dia
+    this.sendImmediateNotification(title, notificationBody);
+
+    // Registra no sentLog para garantir que NÃO mande mais de uma mensagem no mesmo dia
+    sentLog = { [todayDateString]: ['daily_bills_summary_sent'] };
     try {
       localStorage.setItem(STORAGE_KEY_SENT_LOG, JSON.stringify(sentLog));
     } catch (e) {}
