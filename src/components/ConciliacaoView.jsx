@@ -522,7 +522,7 @@ export default function ConciliacaoView({
       {/* 1. SUBABA RESUMO (FOTO 1): B1:J16 com Cores Oficiais do Taresk */}
       {/* ========================================================================= */}
       {activeSubTab === 'resumo' && (
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           {/* Tabela do Resumo dentro do container padronizado de ponta a ponta */}
           <div style={{
             background: '#ffffff',
@@ -660,6 +660,291 @@ export default function ConciliacaoView({
               </tbody>
             </table>
           </div>
+
+          {/* 1.2 Tabela de Comissões por Usuário */}
+          {(() => {
+            const parseVal = (v) => {
+              if (typeof v === 'number') return isNaN(v) ? 0 : v;
+              if (!v || v === '-') return 0;
+              const s = String(v).replace('R$', '').replace(/\s/g, '').trim();
+              if (s.includes('.') && s.includes(',')) {
+                return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
+              }
+              if (s.includes(',')) {
+                return parseFloat(s.replace(',', '.')) || 0;
+              }
+              return parseFloat(s) || 0;
+            };
+
+            const parseQtd = (q) => {
+              if (typeof q === 'number') return isNaN(q) ? 0 : q;
+              if (!q || q === '-') return 0;
+              return parseInt(String(q).replace(/[^0-9]/g, ''), 10) || 0;
+            };
+
+            // Mapeamento dos usuários:
+            // João -> Izabela
+            // Jeremias -> Jere
+            // Johnathan -> John
+            const userConfigs = [
+              {
+                id: 'izabela',
+                displayName: 'Izabela',
+                subtitle: 'Usuário: João',
+                avatar: '👩‍💼',
+                color: '#ec4899',
+                keywords: ['izabela', 'izabel', 'joao', 'joão']
+              },
+              {
+                id: 'jeremias',
+                displayName: 'Jeremias',
+                subtitle: 'Apelido: Jere',
+                avatar: '👨‍💼',
+                color: '#3b82f6',
+                keywords: ['jere', 'jeremias']
+              },
+              {
+                id: 'johnathan',
+                displayName: 'Johnathan',
+                subtitle: 'Apelido: John',
+                avatar: '👨‍💻',
+                color: '#8b5cf6',
+                keywords: ['john', 'johnathan']
+              },
+              {
+                id: 'allyson',
+                displayName: 'Allyson',
+                subtitle: 'Admin / Loja',
+                avatar: '👑',
+                color: '#f59e0b',
+                keywords: ['allyson']
+              }
+            ];
+
+            const rows = (financialData.resumo || []).filter(r => !r.isTotal && String(r.plataforma).toUpperCase() !== 'TOTAL');
+
+            const usersSummary = userConfigs.map(cfg => {
+              const matchedRows = rows.filter(r => {
+                const p = String(r.plataforma || '').toLowerCase();
+                return cfg.keywords.some(k => p.includes(k));
+              });
+
+              const totalFaturamento = matchedRows.reduce((acc, r) => acc + parseVal(r.faturamento), 0);
+              const totalDescontos = matchedRows.reduce((acc, r) => acc + parseVal(r.descontos), 0);
+              const totalRecebido = matchedRows.reduce((acc, r) => acc + parseVal(r.recebido), 0);
+              const totalLucroBruto = matchedRows.reduce((acc, r) => acc + parseVal(r.lucroBruto), 0);
+              const totalComissao = matchedRows.reduce((acc, r) => acc + parseVal(r.comissao), 0);
+              const totalLucroLiquido = matchedRows.reduce((acc, r) => acc + parseVal(r.lucroLiquido), 0);
+              const totalQtd = matchedRows.reduce((acc, r) => acc + parseQtd(r.qtd), 0);
+
+              return {
+                ...cfg,
+                platformsCount: matchedRows.length,
+                matchedRows,
+                faturamento: totalFaturamento,
+                descontos: totalDescontos,
+                recebido: totalRecebido,
+                lucroBruto: totalLucroBruto,
+                comissao: totalComissao,
+                lucroLiquido: totalLucroLiquido,
+                qtd: totalQtd
+              };
+            });
+
+            const totalGeralComissao = usersSummary.reduce((acc, u) => acc + u.comissao, 0);
+            const totalGeralFaturamento = usersSummary.reduce((acc, u) => acc + u.faturamento, 0);
+            const totalGeralQtd = usersSummary.reduce((acc, u) => acc + u.qtd, 0);
+
+            return (
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                border: '1.5px solid #e2e8f0',
+                overflowX: 'auto',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                width: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '950px' }}>
+                  <thead>
+                    <tr style={{ background: '#581c87', color: '#ffffff', textAlign: 'center' }}>
+                      <th colSpan="8" style={{ padding: '12px 16px', fontSize: '14px', fontWeight: '900', letterSpacing: '1px' }}>
+                        COMISSÕES POR USUÁRIO — RESUMO ({selectedMonth})
+                      </th>
+                    </tr>
+                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                      <th style={{ padding: '14px 18px', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>Usuário</th>
+                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>Plataformas Associadas</th>
+                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right' }}>Faturamento</th>
+                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right' }}>Recebido</th>
+                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right' }}>Lucro Bruto</th>
+                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right' }}>Comissão Ganha</th>
+                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right' }}>Lucro Líq. Loja</th>
+                      <th style={{ padding: '14px 18px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'center' }}>Pedidos (Qtd)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersSummary.map((u, uIdx) => {
+                      const isNegative = u.comissao < 0;
+                      return (
+                        <tr
+                          key={u.id}
+                          style={{
+                            background: uIdx % 2 === 0 ? '#ffffff' : '#fafafa',
+                            borderBottom: '1px solid #f1f5f9',
+                            fontSize: '13px',
+                            color: '#334155'
+                          }}
+                        >
+                          {/* Usuário */}
+                          <td style={{ padding: '14px 18px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '20px' }}>{u.avatar}</span>
+                              <div>
+                                <div style={{ fontWeight: '800', fontSize: '14px', color: '#0f172a' }}>
+                                  {u.displayName}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>
+                                  {u.subtitle}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Plataformas Associadas */}
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {u.matchedRows.length > 0 ? (
+                                u.matchedRows.map((mr, mrIdx) => {
+                                  const tagStyle = getPlatformTagStyle(mr.plataforma);
+                                  return (
+                                    <span
+                                      key={mrIdx}
+                                      style={{
+                                        display: 'inline-block',
+                                        padding: '3px 8px',
+                                        borderRadius: '6px',
+                                        background: tagStyle.bg,
+                                        color: tagStyle.color,
+                                        border: `1px solid ${tagStyle.border}`,
+                                        fontSize: '11px',
+                                        fontWeight: '700'
+                                      }}
+                                    >
+                                      {mr.plataforma}
+                                    </span>
+                                  );
+                                })
+                              ) : (
+                                <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
+                                  Nenhuma no período
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Faturamento */}
+                          <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: '600' }}>
+                            {formatBrl(u.faturamento)}
+                          </td>
+
+                          {/* Recebido */}
+                          <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: '600' }}>
+                            {formatBrl(u.recebido)}
+                          </td>
+
+                          {/* Lucro Bruto */}
+                          <td style={{
+                            padding: '14px 16px',
+                            textAlign: 'right',
+                            fontVariantNumeric: 'tabular-nums',
+                            fontWeight: '600',
+                            color: u.lucroBruto < 0 ? '#dc2626' : '#1e293b'
+                          }}>
+                            {formatBrl(u.lucroBruto)}
+                          </td>
+
+                          {/* Comissão Ganha com Destaque */}
+                          <td style={{
+                            padding: '14px 16px',
+                            textAlign: 'right',
+                            fontVariantNumeric: 'tabular-nums'
+                          }}>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              fontWeight: '900',
+                              fontSize: '13px',
+                              background: isNegative ? '#fee2e2' : '#ecfdf5',
+                              color: isNegative ? '#dc2626' : '#059669',
+                              border: `1px solid ${isNegative ? '#fca5a5' : '#a7f3d0'}`
+                            }}>
+                              {formatBrl(u.comissao)}
+                            </span>
+                          </td>
+
+                          {/* Lucro Líquido Loja */}
+                          <td style={{
+                            padding: '14px 16px',
+                            textAlign: 'right',
+                            fontVariantNumeric: 'tabular-nums',
+                            fontWeight: '700',
+                            color: u.lucroLiquido < 0 ? '#dc2626' : '#0f172a'
+                          }}>
+                            {formatBrl(u.lucroLiquido)}
+                          </td>
+
+                          {/* Quantidade */}
+                          <td style={{ padding: '14px 18px', textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: '800' }}>
+                            {u.qtd}
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {/* Linha de Total das Comissões */}
+                    <tr style={{ background: '#f1f5f9', borderTop: '2px solid #cbd5e1', fontWeight: '900', fontSize: '13px', color: '#0f172a' }}>
+                      <td style={{ padding: '14px 18px', letterSpacing: '0.5px' }}>
+                        TOTAL COMISSÕES
+                      </td>
+                      <td style={{ padding: '14px 16px', color: '#64748b', fontSize: '12px' }}>
+                        {usersSummary.length} Usuários
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        {formatBrl(totalGeralFaturamento)}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        {formatBrl(usersSummary.reduce((acc, u) => acc + u.recebido, 0))}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        {formatBrl(usersSummary.reduce((acc, u) => acc + u.lucroBruto, 0))}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 10px',
+                          borderRadius: '8px',
+                          background: '#581c87',
+                          color: '#ffffff',
+                          fontWeight: '900',
+                          fontSize: '13px'
+                        }}>
+                          {formatBrl(totalGeralComissao)}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        {formatBrl(usersSummary.reduce((acc, u) => acc + u.lucroLiquido, 0))}
+                      </td>
+                      <td style={{ padding: '14px 18px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                        {totalGeralQtd}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
         </div>
       )}
 
