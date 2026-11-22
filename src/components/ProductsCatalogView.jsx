@@ -1106,7 +1106,7 @@ export default function ProductsCatalogView({
                       })()}
                     </td>
 
-                    {/* Ações: Olho, Editar, Excluir como na imagem */}
+                    {/* Ações: Editar, Excluir como na imagem */}
                     <td style={{ padding: '16px 24px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {isEditing ? (
                         <button
@@ -1129,24 +1129,6 @@ export default function ProductsCatalogView({
                         </button>
                       ) : (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                          <button
-                            onClick={() => toggleProductPlatformsVisibility(prod.id)}
-                            title={isPlatVisible ? "Ocultar plataformas" : "Ver plataformas cadastradas"}
-                            style={{
-                              padding: '6px 8px',
-                              borderRadius: '8px',
-                              background: isPlatVisible ? '#ede9fe' : '#f8fafc',
-                              color: isPlatVisible ? '#6d28d9' : '#94a3b8',
-                              border: '1px solid #e2e8f0',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            {isPlatVisible ? <EyeOff size={15} /> : <Eye size={15} />}
-                          </button>
                           <button
                             onClick={() => startEdit(prod)}
                             title="Editar"
