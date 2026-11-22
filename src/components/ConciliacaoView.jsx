@@ -345,7 +345,7 @@ export default function ConciliacaoView({
       padding: '24px 20px',
       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif"
     }}>
-      {/* Cabeçalho Superior Padronizado: Nome da aba 'Financeiro' alinhado milimetricamente à esquerda com as demais abas */}
+      {/* Cabeçalho Superior Padronizado: Nome da aba 'Financeiro' alinhado no canto superior esquerdo idêntico a Tarefas, Disputas, etc. */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -354,18 +354,19 @@ export default function ConciliacaoView({
         gap: '16px',
         marginBottom: '24px'
       }}>
-        {/* Título 'Financeiro' + Subabas estilizadas como nas fotos enviadas */}
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <h1 style={{
-            margin: 0,
-            fontSize: '28px',
-            fontWeight: '900',
-            color: '#1e293b',
-            letterSpacing: '-0.5px'
-          }}>
-            Financeiro
-          </h1>
+        {/* Título 'Financeiro' isolado no canto superior esquerdo + Subabas pills */}
+        <h1 style={{
+          margin: 0,
+          fontSize: '28px',
+          fontWeight: '900',
+          color: '#1e293b',
+          letterSpacing: '-0.5px'
+        }}>
+          Financeiro
+        </h1>
 
+        {/* Centro/Direita: Seletor de Subabas (Resumo | Pedidos | Checklist) e Filtro de Mês + Atualizar */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           {/* Seletor de Subabas no estilo visual das fotos do usuário (Pills arredondadas) */}
           <div style={{
             display: 'inline-flex',
@@ -430,90 +431,90 @@ export default function ConciliacaoView({
               Checklist
             </button>
           </div>
-        </div>
 
-        {/* Lado Direito do Cabeçalho: Filtro de Mês da Planilha (Nov 26, Dez 26, Jan 27...) + Botão Atualizar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Seletor dinâmico de Mês (Abas da planilha) */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: '#ffffff',
-            padding: '6px 14px',
-            borderRadius: '12px',
-            border: '1.5px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
-          }}>
-            <Calendar size={15} color="#5925dc" />
-            <span style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>Mês:</span>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                fontSize: '13px',
-                fontWeight: '800',
-                color: '#1e293b',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              {availableMonths.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Botão para recarregar da planilha */}
-          <button
-            type="button"
-            onClick={() => loadFinancialDataFromSheets(selectedMonth)}
-            title="Atualizar dados da planilha"
-            style={{
+          {/* Lado Direito do Cabeçalho: Filtro de Mês da Planilha (Nov 26, Dez 26, Jan 27...) + Botão Atualizar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Seletor dinâmico de Mês (Abas da planilha) */}
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
+              gap: '8px',
+              background: '#ffffff',
+              padding: '6px 14px',
               borderRadius: '12px',
               border: '1.5px solid #e2e8f0',
-              background: '#ffffff',
-              color: '#475569',
-              fontSize: '12px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <RefreshCw size={14} className={isLoadingFinancial ? 'spin-animation' : ''} />
-            {isLoadingFinancial ? 'Carregando...' : 'Atualizar'}
-          </button>
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+            }}>
+              <Calendar size={15} color="#5925dc" />
+              <span style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>Mês:</span>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: '13px',
+                  fontWeight: '800',
+                  color: '#1e293b',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {availableMonths.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
 
-          {activeSubTab === 'checklist' && (
+            {/* Botão para recarregar da planilha */}
             <button
               type="button"
-              onClick={handleClearAllChecklists}
+              onClick={() => loadFinancialDataFromSheets(selectedMonth)}
+              title="Atualizar dados da planilha"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 padding: '8px 14px',
                 borderRadius: '12px',
-                border: '1.5px solid #fca5a5',
-                background: '#fef2f2',
-                color: '#dc2626',
+                border: '1.5px solid #e2e8f0',
+                background: '#ffffff',
+                color: '#475569',
                 fontSize: '12px',
                 fontWeight: '700',
                 cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                 transition: 'all 0.15s ease'
               }}
             >
-              <RotateCcw size={14} />
-              Limpar Checklists
+              <RefreshCw size={14} className={isLoadingFinancial ? 'spin-animation' : ''} />
+              {isLoadingFinancial ? 'Carregando...' : 'Atualizar'}
             </button>
-          )}
+
+            {activeSubTab === 'checklist' && (
+              <button
+                type="button"
+                onClick={handleClearAllChecklists}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #fca5a5',
+                  background: '#fef2f2',
+                  color: '#dc2626',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <RotateCcw size={14} />
+                Limpar Checklists
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

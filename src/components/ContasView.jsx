@@ -776,7 +776,7 @@ export default function ContasView({
       maxWidth: '1440px',
       width: '100%',
       margin: '0 auto',
-      padding: '16px 20px 16px',
+      padding: '24px 20px 16px',
       height: '100%',
       maxHeight: '100%',
       boxSizing: 'border-box',
@@ -793,7 +793,7 @@ export default function ContasView({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '16px',
-          marginBottom: '16px',
+          marginBottom: '24px',
           flexShrink: 0
         }}
       >
