@@ -819,13 +819,21 @@ export default function ProductsCatalogView({
                       {(() => {
                         const { price, margin } = getProductPriceAndMargin(prod, 'shopee');
                         const badgeStyle = getMarginBadgeStyle(margin);
+                        const priceFormatted = price > 0 ? price.toFixed(2).replace('.', ',') : '';
                         return (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>R$</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'baseline',
+                              gap: '2px',
+                              cursor: 'pointer'
+                            }}>
+                              <span style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.3px' }}>
+                                R$
+                              </span>
                               <input
                                 type="text"
-                                defaultValue={price > 0 ? price.toFixed(2).replace('.', ',') : ''}
+                                defaultValue={priceFormatted}
                                 placeholder="0,00"
                                 onBlur={(e) => {
                                   const val = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
@@ -837,28 +845,36 @@ export default function ProductsCatalogView({
                                   }
                                 }}
                                 style={{
-                                  width: '58px',
-                                  padding: '2px 4px',
-                                  borderRadius: '4px',
-                                  border: '1px solid #cbd5e1',
-                                  background: '#ffffff',
-                                  fontSize: '12px',
-                                  fontWeight: '700',
+                                  width: '52px',
+                                  padding: '1px 2px',
+                                  margin: 0,
+                                  border: 'none',
+                                  borderBottom: '1px dashed transparent',
+                                  background: 'transparent',
+                                  fontSize: '15px',
+                                  fontWeight: '900',
                                   color: '#0f172a',
-                                  textAlign: 'center',
-                                  outline: 'none'
+                                  textAlign: 'left',
+                                  outline: 'none',
+                                  fontFamily: 'inherit',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onFocus={(e) => {
+                                  e.currentTarget.style.borderBottom = '1.5px solid #5925dc';
+                                  e.currentTarget.style.background = '#f8fafc';
+                                  e.currentTarget.select();
                                 }}
                               />
                             </div>
                             <span style={{
                               display: 'inline-block',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: '800',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '900',
                               background: badgeStyle.bg,
                               color: badgeStyle.color,
-                              border: `1px solid ${badgeStyle.border}`
+                              border: `1.5px solid ${badgeStyle.border}`
                             }}>
                               {badgeStyle.formatted}
                             </span>
@@ -872,13 +888,21 @@ export default function ProductsCatalogView({
                       {(() => {
                         const { price, margin } = getProductPriceAndMargin(prod, 'mercadoLivre');
                         const badgeStyle = getMarginBadgeStyle(margin);
+                        const priceFormatted = price > 0 ? price.toFixed(2).replace('.', ',') : '';
                         return (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>R$</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'baseline',
+                              gap: '2px',
+                              cursor: 'pointer'
+                            }}>
+                              <span style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.3px' }}>
+                                R$
+                              </span>
                               <input
                                 type="text"
-                                defaultValue={price > 0 ? price.toFixed(2).replace('.', ',') : ''}
+                                defaultValue={priceFormatted}
                                 placeholder="0,00"
                                 onBlur={(e) => {
                                   const val = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
@@ -890,28 +914,36 @@ export default function ProductsCatalogView({
                                   }
                                 }}
                                 style={{
-                                  width: '58px',
-                                  padding: '2px 4px',
-                                  borderRadius: '4px',
-                                  border: '1px solid #cbd5e1',
-                                  background: '#ffffff',
-                                  fontSize: '12px',
-                                  fontWeight: '700',
+                                  width: '52px',
+                                  padding: '1px 2px',
+                                  margin: 0,
+                                  border: 'none',
+                                  borderBottom: '1px dashed transparent',
+                                  background: 'transparent',
+                                  fontSize: '15px',
+                                  fontWeight: '900',
                                   color: '#0f172a',
-                                  textAlign: 'center',
-                                  outline: 'none'
+                                  textAlign: 'left',
+                                  outline: 'none',
+                                  fontFamily: 'inherit',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onFocus={(e) => {
+                                  e.currentTarget.style.borderBottom = '1.5px solid #5925dc';
+                                  e.currentTarget.style.background = '#f8fafc';
+                                  e.currentTarget.select();
                                 }}
                               />
                             </div>
                             <span style={{
                               display: 'inline-block',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: '800',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '900',
                               background: badgeStyle.bg,
                               color: badgeStyle.color,
-                              border: `1px solid ${badgeStyle.border}`
+                              border: `1.5px solid ${badgeStyle.border}`
                             }}>
                               {badgeStyle.formatted}
                             </span>
@@ -925,13 +957,21 @@ export default function ProductsCatalogView({
                       {(() => {
                         const { price, margin } = getProductPriceAndMargin(prod, 'magalu');
                         const badgeStyle = getMarginBadgeStyle(margin);
+                        const priceFormatted = price > 0 ? price.toFixed(2).replace('.', ',') : '';
                         return (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>R$</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'baseline',
+                              gap: '2px',
+                              cursor: 'pointer'
+                            }}>
+                              <span style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.3px' }}>
+                                R$
+                              </span>
                               <input
                                 type="text"
-                                defaultValue={price > 0 ? price.toFixed(2).replace('.', ',') : ''}
+                                defaultValue={priceFormatted}
                                 placeholder="0,00"
                                 onBlur={(e) => {
                                   const val = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
@@ -943,28 +983,36 @@ export default function ProductsCatalogView({
                                   }
                                 }}
                                 style={{
-                                  width: '58px',
-                                  padding: '2px 4px',
-                                  borderRadius: '4px',
-                                  border: '1px solid #cbd5e1',
-                                  background: '#ffffff',
-                                  fontSize: '12px',
-                                  fontWeight: '700',
+                                  width: '52px',
+                                  padding: '1px 2px',
+                                  margin: 0,
+                                  border: 'none',
+                                  borderBottom: '1px dashed transparent',
+                                  background: 'transparent',
+                                  fontSize: '15px',
+                                  fontWeight: '900',
                                   color: '#0f172a',
-                                  textAlign: 'center',
-                                  outline: 'none'
+                                  textAlign: 'left',
+                                  outline: 'none',
+                                  fontFamily: 'inherit',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onFocus={(e) => {
+                                  e.currentTarget.style.borderBottom = '1.5px solid #5925dc';
+                                  e.currentTarget.style.background = '#f8fafc';
+                                  e.currentTarget.select();
                                 }}
                               />
                             </div>
                             <span style={{
                               display: 'inline-block',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: '800',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '900',
                               background: badgeStyle.bg,
                               color: badgeStyle.color,
-                              border: `1px solid ${badgeStyle.border}`
+                              border: `1.5px solid ${badgeStyle.border}`
                             }}>
                               {badgeStyle.formatted}
                             </span>
@@ -978,13 +1026,21 @@ export default function ProductsCatalogView({
                       {(() => {
                         const { price, margin } = getProductPriceAndMargin(prod, 'amazon');
                         const badgeStyle = getMarginBadgeStyle(margin);
+                        const priceFormatted = price > 0 ? price.toFixed(2).replace('.', ',') : '';
                         return (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>R$</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'baseline',
+                              gap: '2px',
+                              cursor: 'pointer'
+                            }}>
+                              <span style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.3px' }}>
+                                R$
+                              </span>
                               <input
                                 type="text"
-                                defaultValue={price > 0 ? price.toFixed(2).replace('.', ',') : ''}
+                                defaultValue={priceFormatted}
                                 placeholder="0,00"
                                 onBlur={(e) => {
                                   const val = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
@@ -996,28 +1052,36 @@ export default function ProductsCatalogView({
                                   }
                                 }}
                                 style={{
-                                  width: '58px',
-                                  padding: '2px 4px',
-                                  borderRadius: '4px',
-                                  border: '1px solid #cbd5e1',
-                                  background: '#ffffff',
-                                  fontSize: '12px',
-                                  fontWeight: '700',
+                                  width: '52px',
+                                  padding: '1px 2px',
+                                  margin: 0,
+                                  border: 'none',
+                                  borderBottom: '1px dashed transparent',
+                                  background: 'transparent',
+                                  fontSize: '15px',
+                                  fontWeight: '900',
                                   color: '#0f172a',
-                                  textAlign: 'center',
-                                  outline: 'none'
+                                  textAlign: 'left',
+                                  outline: 'none',
+                                  fontFamily: 'inherit',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onFocus={(e) => {
+                                  e.currentTarget.style.borderBottom = '1.5px solid #5925dc';
+                                  e.currentTarget.style.background = '#f8fafc';
+                                  e.currentTarget.select();
                                 }}
                               />
                             </div>
                             <span style={{
                               display: 'inline-block',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: '800',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '900',
                               background: badgeStyle.bg,
                               color: badgeStyle.color,
-                              border: `1px solid ${badgeStyle.border}`
+                              border: `1.5px solid ${badgeStyle.border}`
                             }}>
                               {badgeStyle.formatted}
                             </span>
