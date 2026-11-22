@@ -916,7 +916,7 @@ export default function ConciliacaoView({
             width: '100%',
             boxSizing: 'border-box'
           }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1100px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '950px' }}>
               <thead>
                 <tr style={{ background: '#581c87', color: '#ffffff', textAlign: 'center' }}>
                   <th colSpan={visiblePedidosColumns.length} style={{ padding: '12px 16px', fontSize: '14px', fontWeight: '900', letterSpacing: '1px' }}>
