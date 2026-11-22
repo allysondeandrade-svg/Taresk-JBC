@@ -661,46 +661,31 @@ export default function ConciliacaoView({
             </table>
           </div>
 
-          {/* 1.2 Tabela de Comissões por Usuário */}
+          {/* 1.2 Tabela de Comissões dos Vendedores */}
           {(() => {
             const parseVal = (v) => {
               if (typeof v === 'number') return isNaN(v) ? 0 : v;
               if (!v || v === '-') return 0;
-              const s = String(v).replace('R$', '').replace(/\s/g, '').trim();
-              if (s.includes('.') && s.includes(',')) {
-                return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
-              }
-              if (s.includes(',')) {
-                return parseFloat(s.replace(',', '.')) || 0;
-              }
-              return parseFloat(s) || 0;
+              const isNeg = String(v).includes('-');
+              const clean = String(v).replace(/[^0-9,]/g, '').trim();
+              if (!clean) return 0;
+              const num = parseFloat(clean.replace(',', '.')) || 0;
+              return isNeg ? -num : num;
             };
 
-            const parseQtd = (q) => {
-              if (typeof q === 'number') return isNaN(q) ? 0 : q;
-              if (!q || q === '-') return 0;
-              return parseInt(String(q).replace(/[^0-9]/g, ''), 10) || 0;
-            };
-
-            // Mapeamento exato conforme as Plataformas Relacionadas de cada usuário:
-            // 1. Allyson:
-            //    - Shopee JBC, Mercado Livre JBC (Mercado L JBC), Magalu JBC, Amazon Allyson, Nuvemshop
-            // 2. Jeremias (Jere):
-            //    - Amazon JBC, Shopee Jeremias (Shopee Jere), Mercado Livre Jeremias (Mercado L Jere), Amazon Jeremias (Amazon Jere), Magalu Jeremias (Magalu Jere), Shopee Allyson
-            // 3. João (Izabela):
-            //    - Shopee Izabela, Mercado Livre Izabela (Mercado L Izabela)
-            // 4. Johnathan:
-            //    - Shopee Johnathan (Shopee John)
+            // Mapeamento dos usuários conforme as Plataformas Relacionadas:
+            // 1. Allyson: Shopee JBC, Mercado Livre JBC (Mercado L JBC), Magalu JBC, Amazon Allyson, Nuvemshop
+            // 2. Jeremias: Amazon JBC, Shopee Jeremias (Shopee Jere), Mercado Livre Jeremias (Mercado L Jere), Amazon Jeremias (Amazon Jere), Magalu Jeremias (Magalu Jere), Shopee Allyson
+            // 3. João (Izabela): Shopee Izabela, Mercado Livre Izabela (Mercado L Izabela)
+            // 4. Johnathan: Shopee Johnathan (Shopee John)
             const userConfigs = [
               {
                 id: 'allyson',
                 displayName: 'Allyson',
                 subtitle: 'Admin / Loja',
                 avatar: '👑',
-                color: '#f59e0b',
                 matcher: (plat) => {
                   const p = plat.toLowerCase().replace(/\s+/g, ' ').trim();
-                  // Shopee JBC, Mercado Livre JBC, Magalu JBC, Amazon Allyson, Nuvemshop
                   if (p.includes('shopee') && p.includes('jbc')) return true;
                   if ((p.includes('mercado') || p.includes('ml')) && p.includes('jbc')) return true;
                   if (p.includes('magalu') && p.includes('jbc')) return true;
@@ -714,10 +699,8 @@ export default function ConciliacaoView({
                 displayName: 'Jeremias',
                 subtitle: 'Apelido: Jere',
                 avatar: '👨‍💼',
-                color: '#3b82f6',
                 matcher: (plat) => {
                   const p = plat.toLowerCase().replace(/\s+/g, ' ').trim();
-                  // Amazon JBC, Shopee Jeremias/Jere, Mercado Livre Jeremias/Jere, Amazon Jeremias/Jere, Magalu Jeremias/Jere, Shopee Allyson
                   if (p.includes('amazon') && p.includes('jbc')) return true;
                   if (p.includes('shopee') && (p.includes('jere') || p.includes('jeremias'))) return true;
                   if ((p.includes('mercado') || p.includes('ml')) && (p.includes('jere') || p.includes('jeremias'))) return true;
@@ -732,10 +715,8 @@ export default function ConciliacaoView({
                 displayName: 'João (Izabela)',
                 subtitle: 'Plataformas Izabela',
                 avatar: '👩‍💼',
-                color: '#ec4899',
                 matcher: (plat) => {
                   const p = plat.toLowerCase().replace(/\s+/g, ' ').trim();
-                  // Shopee Izabela, Mercado Livre Izabela
                   if (p.includes('izabela') || p.includes('izabel') || p.includes('joao') || p.includes('joão')) return true;
                   return false;
                 }
@@ -745,10 +726,8 @@ export default function ConciliacaoView({
                 displayName: 'Johnathan',
                 subtitle: 'Apelido: John',
                 avatar: '👨‍💻',
-                color: '#8b5cf6',
                 matcher: (plat) => {
                   const p = plat.toLowerCase().replace(/\s+/g, ' ').trim();
-                  // Shopee Johnathan / Shopee John
                   if (p.includes('john') || p.includes('johnathan')) return true;
                   return false;
                 }
@@ -759,32 +738,16 @@ export default function ConciliacaoView({
 
             const usersSummary = userConfigs.map(cfg => {
               const matchedRows = rows.filter(r => cfg.matcher(String(r.plataforma || '')));
-
-              const totalFaturamento = matchedRows.reduce((acc, r) => acc + parseVal(r.faturamento), 0);
-              const totalDescontos = matchedRows.reduce((acc, r) => acc + parseVal(r.descontos), 0);
-              const totalRecebido = matchedRows.reduce((acc, r) => acc + parseVal(r.recebido), 0);
-              const totalLucroBruto = matchedRows.reduce((acc, r) => acc + parseVal(r.lucroBruto), 0);
               const totalComissao = matchedRows.reduce((acc, r) => acc + parseVal(r.comissao), 0);
-              const totalLucroLiquido = matchedRows.reduce((acc, r) => acc + parseVal(r.lucroLiquido), 0);
-              const totalQtd = matchedRows.reduce((acc, r) => acc + parseQtd(r.qtd), 0);
 
               return {
                 ...cfg,
-                platformsCount: matchedRows.length,
                 matchedRows,
-                faturamento: totalFaturamento,
-                descontos: totalDescontos,
-                recebido: totalRecebido,
-                lucroBruto: totalLucroBruto,
-                comissao: totalComissao,
-                lucroLiquido: totalLucroLiquido,
-                qtd: totalQtd
+                comissao: totalComissao
               };
             });
 
             const totalGeralComissao = usersSummary.reduce((acc, u) => acc + u.comissao, 0);
-            const totalGeralFaturamento = usersSummary.reduce((acc, u) => acc + u.faturamento, 0);
-            const totalGeralQtd = usersSummary.reduce((acc, u) => acc + u.qtd, 0);
 
             return (
               <div style={{
@@ -796,22 +759,17 @@ export default function ConciliacaoView({
                 width: '100%',
                 boxSizing: 'border-box'
               }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '950px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                   <thead>
                     <tr style={{ background: '#581c87', color: '#ffffff', textAlign: 'center' }}>
-                      <th colSpan="8" style={{ padding: '12px 16px', fontSize: '14px', fontWeight: '900', letterSpacing: '1px' }}>
-                        COMISSÕES POR USUÁRIO — RESUMO ({selectedMonth})
+                      <th colSpan="3" style={{ padding: '12px 16px', fontSize: '14px', fontWeight: '900', letterSpacing: '1px' }}>
+                        COMISSÃO DOS VENDEDORES ({selectedMonth})
                       </th>
                     </tr>
                     <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                      <th style={{ padding: '14px 18px', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>Usuário</th>
+                      <th style={{ padding: '14px 20px', fontSize: '13px', fontWeight: '800', color: '#0f172a', width: '240px' }}>Vendedor</th>
                       <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>Plataformas Associadas</th>
-                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right' }}>Faturamento</th>
-                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right' }}>Recebido</th>
-                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right' }}>Lucro Bruto</th>
-                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right' }}>Comissão Ganha</th>
-                      <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right' }}>Lucro Líq. Loja</th>
-                      <th style={{ padding: '14px 18px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'center' }}>Pedidos (Qtd)</th>
+                      <th style={{ padding: '14px 20px', fontSize: '13px', fontWeight: '800', color: '#0f172a', textAlign: 'right', width: '180px' }}>Comissão</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -827,8 +785,8 @@ export default function ConciliacaoView({
                             color: '#334155'
                           }}
                         >
-                          {/* Usuário */}
-                          <td style={{ padding: '14px 18px' }}>
+                          {/* Vendedor */}
+                          <td style={{ padding: '14px 20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                               <span style={{ fontSize: '20px' }}>{u.avatar}</span>
                               <div>
@@ -853,7 +811,7 @@ export default function ConciliacaoView({
                                       key={mrIdx}
                                       style={{
                                         display: 'inline-block',
-                                        padding: '3px 8px',
+                                        padding: '4px 9px',
                                         borderRadius: '6px',
                                         background: tagStyle.bg,
                                         color: tagStyle.color,
@@ -874,101 +832,49 @@ export default function ConciliacaoView({
                             </div>
                           </td>
 
-                          {/* Faturamento */}
-                          <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: '600' }}>
-                            {formatBrl(u.faturamento)}
-                          </td>
-
-                          {/* Recebido */}
-                          <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: '600' }}>
-                            {formatBrl(u.recebido)}
-                          </td>
-
-                          {/* Lucro Bruto */}
+                          {/* Comissão do Vendedor */}
                           <td style={{
-                            padding: '14px 16px',
-                            textAlign: 'right',
-                            fontVariantNumeric: 'tabular-nums',
-                            fontWeight: '600',
-                            color: u.lucroBruto < 0 ? '#dc2626' : '#1e293b'
-                          }}>
-                            {formatBrl(u.lucroBruto)}
-                          </td>
-
-                          {/* Comissão Ganha com Destaque */}
-                          <td style={{
-                            padding: '14px 16px',
+                            padding: '14px 20px',
                             textAlign: 'right',
                             fontVariantNumeric: 'tabular-nums'
                           }}>
                             <span style={{
                               display: 'inline-block',
-                              padding: '4px 10px',
+                              padding: '5px 12px',
                               borderRadius: '8px',
                               fontWeight: '900',
-                              fontSize: '13px',
+                              fontSize: '14px',
                               background: isNegative ? '#fee2e2' : '#ecfdf5',
                               color: isNegative ? '#dc2626' : '#059669',
-                              border: `1px solid ${isNegative ? '#fca5a5' : '#a7f3d0'}`
+                              border: `1.5px solid ${isNegative ? '#fca5a5' : '#a7f3d0'}`
                             }}>
                               {formatBrl(u.comissao)}
                             </span>
-                          </td>
-
-                          {/* Lucro Líquido Loja */}
-                          <td style={{
-                            padding: '14px 16px',
-                            textAlign: 'right',
-                            fontVariantNumeric: 'tabular-nums',
-                            fontWeight: '700',
-                            color: u.lucroLiquido < 0 ? '#dc2626' : '#0f172a'
-                          }}>
-                            {formatBrl(u.lucroLiquido)}
-                          </td>
-
-                          {/* Quantidade */}
-                          <td style={{ padding: '14px 18px', textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: '800' }}>
-                            {u.qtd}
                           </td>
                         </tr>
                       );
                     })}
 
-                    {/* Linha de Total das Comissões */}
+                    {/* Linha de Total */}
                     <tr style={{ background: '#f1f5f9', borderTop: '2px solid #cbd5e1', fontWeight: '900', fontSize: '13px', color: '#0f172a' }}>
-                      <td style={{ padding: '14px 18px', letterSpacing: '0.5px' }}>
+                      <td style={{ padding: '14px 20px', letterSpacing: '0.5px' }}>
                         TOTAL COMISSÕES
                       </td>
                       <td style={{ padding: '14px 16px', color: '#64748b', fontSize: '12px' }}>
-                        {usersSummary.length} Usuários
+                        {usersSummary.length} Vendedores
                       </td>
-                      <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                        {formatBrl(totalGeralFaturamento)}
-                      </td>
-                      <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                        {formatBrl(usersSummary.reduce((acc, u) => acc + u.recebido, 0))}
-                      </td>
-                      <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                        {formatBrl(usersSummary.reduce((acc, u) => acc + u.lucroBruto, 0))}
-                      </td>
-                      <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      <td style={{ padding: '14px 20px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                         <span style={{
                           display: 'inline-block',
-                          padding: '4px 10px',
+                          padding: '5px 14px',
                           borderRadius: '8px',
                           background: '#581c87',
                           color: '#ffffff',
                           fontWeight: '900',
-                          fontSize: '13px'
+                          fontSize: '14px'
                         }}>
                           {formatBrl(totalGeralComissao)}
                         </span>
-                      </td>
-                      <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                        {formatBrl(usersSummary.reduce((acc, u) => acc + u.lucroLiquido, 0))}
-                      </td>
-                      <td style={{ padding: '14px 18px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
-                        {totalGeralQtd}
                       </td>
                     </tr>
                   </tbody>
