@@ -601,16 +601,16 @@ export default function ProductsCatalogView({
               <th style={{ padding: '16px 14px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                 Custo
               </th>
-              <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                Largura
+              <th style={{ padding: '16px 6px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                Larg
               </th>
-              <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 6px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap', textAlign: 'center' }}>
                 Comp
               </th>
-              <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 6px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap', textAlign: 'center' }}>
                 Altura
               </th>
-              <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+              <th style={{ padding: '16px 6px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap', textAlign: 'center' }}>
                 Peso
               </th>
               {/* Coluna Shopee com Ícone Oficial */}
@@ -746,15 +746,15 @@ export default function ProductsCatalogView({
                       )}
                     </td>
 
-                    {/* Coluna Largura */}
-                    <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
+                    {/* Coluna Larg */}
+                    <td style={{ padding: '16px 6px', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {isEditing ? (
                         <input
                           type="number"
                           step="0.1"
                           value={editForm.width}
                           onChange={(e) => setEditForm({ ...editForm, width: e.target.value })}
-                          style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600' }}
+                          style={{ width: '56px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600', textAlign: 'center' }}
                         />
                       ) : (
                         <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
@@ -764,14 +764,14 @@ export default function ProductsCatalogView({
                     </td>
 
                     {/* Coluna Comp */}
-                    <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '16px 6px', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {isEditing ? (
                         <input
                           type="number"
                           step="0.1"
                           value={editForm.length}
                           onChange={(e) => setEditForm({ ...editForm, length: e.target.value })}
-                          style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600' }}
+                          style={{ width: '56px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600', textAlign: 'center' }}
                         />
                       ) : (
                         <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
@@ -781,14 +781,14 @@ export default function ProductsCatalogView({
                     </td>
 
                     {/* Coluna Altura */}
-                    <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '16px 6px', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {isEditing ? (
                         <input
                           type="number"
                           step="0.1"
                           value={editForm.height}
                           onChange={(e) => setEditForm({ ...editForm, height: e.target.value })}
-                          style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600' }}
+                          style={{ width: '56px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600', textAlign: 'center' }}
                         />
                       ) : (
                         <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
@@ -798,14 +798,14 @@ export default function ProductsCatalogView({
                     </td>
 
                     {/* Coluna Peso */}
-                    <td style={{ padding: '16px 12px', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '16px 6px', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {isEditing ? (
                         <input
                           type="number"
                           step="0.01"
                           value={editForm.weight}
                           onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
-                          style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600' }}
+                          style={{ width: '58px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600', textAlign: 'center' }}
                         />
                       ) : (
                         <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
