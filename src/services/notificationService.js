@@ -274,13 +274,15 @@ export const NotificationService = {
   },
 
   /**
-   * Verifica a lista de contas e dispara no máximo UMA única notificação por dia,
-   * alertando apenas contas com vencimento em:
-   * - Ontem (atrasada há exatamente 1 dia)
-   * - Hoje (vencendo no dia)
-   * - Amanhã (vencendo no dia seguinte)
-   * Se a conta venceu há 2 dias ou mais (anteontem ou antes), NÃO notifica.
-   * Se houver mais de uma conta para pagar, resume todas em uma única mensagem (ex: "Aluguel, Boleto Grenada, Dinheiro Express").
+   * Verifica a lista de contas e dispara alertas segmentados por dia de vencimento:
+   * - 1 notificação agrupada para todas as contas pendentes de ONTEM (venceu há 1 dia)
+   * - 1 notificação agrupada para todas as contas de HOJE (vencendo no dia)
+   * - 1 notificação agrupada para todas as contas de AMANHÃ (vencendo no dia seguinte)
+   * 
+   * Regras estritas:
+   * 1. Se a conta venceu há 2 dias ou mais (anteontem ou antes), NÃO notifica.
+   * 2. Se houver mais de uma conta para o mesmo dia de vencimento, todas são agrupadas em uma ÚNICA mensagem separadas por vírgula (ex: "Aluguel, Boleto Grenada, Dinheiro Express").
+   * 3. Cada grupo (ontem, hoje, amanhã) só é enviado no máximo 1 vez por dia.
    */
   checkAndNotifyBills(bills = []) {
     if (!this.isEnabled()) return;
@@ -309,7 +311,7 @@ export const NotificationService = {
 
     const todayDateString = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
 
-    // Obtém log de notificações já enviadas hoje para garantir no máximo 1 notificação diária
+    // Obtém log de notificações já enviadas hoje para não duplicar o mesmo grupo no mesmo dia
     let sentLog = {};
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SENT_LOG);
@@ -318,10 +320,10 @@ export const NotificationService = {
       sentLog = {};
     }
 
-    // Se já foi enviada a notificação diária de hoje, não manda outra
-    if (sentLog[todayDateString] && sentLog[todayDateString].length > 0) {
-      return;
+    if (!sentLog[todayDateString]) {
+      sentLog = { [todayDateString]: [] };
     }
+    const alreadySentGroups = sentLog[todayDateString] || [];
 
     // Coleta as contas elegíveis nos 3 dias permitidos (ontem, hoje, amanhã)
     const billsYesterday = [];
@@ -362,8 +364,7 @@ export const NotificationService = {
       // Determina a data de vencimento exata da conta para comparação
       let billDate;
       if (isRecurring) {
-        // Para recorrente, avalia no mês atual.
-        // Tratamento de virada de mês (ex: dia 1 no final do mês ou dia 31 no começo do mês)
+        // Para recorrente, avalia no mês atual com tratamento de virada de mês
         billDate = new Date(currentYear, currentMonth - 1, bDay, 0, 0, 0, 0);
 
         // Se hoje for dia 1 e a conta for do dia anterior (último dia do mês anterior)
@@ -382,10 +383,10 @@ export const NotificationService = {
       }
 
       // Calcula a diferença exata em dias inteiros:
-      // diffDays = -1 -> Venceu ontem
+      // diffDays = -1 -> Venceu ontem (atrasada há 1 dia)
       // diffDays = 0  -> Vence hoje
       // diffDays = 1  -> Vence amanhã
-      // diffDays <= -2 -> Venceu anteontem ou antes (NÃO notificar)
+      // diffDays <= -2 -> Venceu há 2 dias ou mais (anteontem ou antes: NÃO notificar)
       // diffDays >= 2  -> Vence depois de amanhã (NÃO notificar)
       const diffMs = billDate.getTime() - todayMidnight.getTime();
       const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
@@ -394,48 +395,55 @@ export const NotificationService = {
       const formatVal = bill.value ? ` (${bill.value})` : '';
       const billLabel = `${billDesc}${formatVal}`;
 
-      if (diffDays === 0) {
+      if (diffDays === -1) {
+        billsYesterday.push(billLabel);
+      } else if (diffDays === 0) {
         billsToday.push(billLabel);
       } else if (diffDays === 1) {
         billsTomorrow.push(billLabel);
-      } else if (diffDays === -1) {
-        billsYesterday.push(billLabel);
       }
       // Se diffDays <= -2 (passou 2 dias ou mais) ou diffDays > 1: ignorado conforme regra!
     });
 
-    const totalEligible = billsYesterday.length + billsToday.length + billsTomorrow.length;
-    if (totalEligible === 0) return;
+    const ddToday = String(currentDay).padStart(2, '0');
+    const mmToday = String(currentMonth).padStart(2, '0');
 
-    // Constrói uma ÚNICA notificação resumindo todas as contas dos 3 dias
-    let title = '🔔 Lembrete de Contas a Pagar';
-    const bodyParts = [];
+    const yesterdayObj = new Date(today);
+    yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+    const ddYesterday = String(yesterdayObj.getDate()).padStart(2, '0');
+    const mmYesterday = String(yesterdayObj.getMonth() + 1).padStart(2, '0');
 
-    if (billsToday.length > 0) {
-      bodyParts.push(`⚠️ Hoje: ${billsToday.join(', ')}`);
-    }
-    if (billsTomorrow.length > 0) {
-      bodyParts.push(`🟢 Amanhã: ${billsTomorrow.join(', ')}`);
-    }
-    if (billsYesterday.length > 0) {
-      bodyParts.push(`🚨 Ontem (pendente): ${billsYesterday.join(', ')}`);
-    }
+    const tomorrowObj = new Date(today);
+    tomorrowObj.setDate(tomorrowObj.getDate() + 1);
+    const ddTomorrow = String(tomorrowObj.getDate()).padStart(2, '0');
+    const mmTomorrow = String(tomorrowObj.getMonth() + 1).padStart(2, '0');
 
-    if (billsToday.length > 0 && billsTomorrow.length === 0 && billsYesterday.length === 0) {
-      title = `⚠️ Contas para Pagar Hoje (${billsToday.length})`;
-    } else if (billsTomorrow.length > 0 && billsToday.length === 0 && billsYesterday.length === 0) {
-      title = `🟢 Contas de Amanhã (${billsTomorrow.length})`;
-    } else if (billsYesterday.length > 0 && billsToday.length === 0 && billsTomorrow.length === 0) {
-      title = `🚨 Contas Pendentes de Ontem (${billsYesterday.length})`;
+    // 1. Notificação das contas de ONTEM (todas as contas atrasadas de ontem reunidas em 1 única notificação)
+    if (billsYesterday.length > 0 && !alreadySentGroups.includes('group_yesterday')) {
+      const title = `🚨 Contas Pendentes de Ontem (${ddYesterday}/${mmYesterday})`;
+      const body = billsYesterday.join(', ');
+      this.sendImmediateNotification(title, body);
+      alreadySentGroups.push('group_yesterday');
     }
 
-    const notificationBody = bodyParts.join('\n');
+    // 2. Notificação das contas de HOJE (todas as contas de hoje reunidas em 1 única notificação)
+    if (billsToday.length > 0 && !alreadySentGroups.includes('group_today')) {
+      const title = `⚠️ Contas de Hoje (${ddToday}/${mmToday})`;
+      const body = billsToday.join(', ');
+      this.sendImmediateNotification(title, body);
+      alreadySentGroups.push('group_today');
+    }
 
-    // Dispara a única notificação do dia
-    this.sendImmediateNotification(title, notificationBody);
+    // 3. Notificação das contas de AMANHÃ (todas as contas de amanhã reunidas em 1 única notificação)
+    if (billsTomorrow.length > 0 && !alreadySentGroups.includes('group_tomorrow')) {
+      const title = `🟢 Contas de Amanhã (${ddTomorrow}/${mmTomorrow})`;
+      const body = billsTomorrow.join(', ');
+      this.sendImmediateNotification(title, body);
+      alreadySentGroups.push('group_tomorrow');
+    }
 
-    // Registra no sentLog para garantir que NÃO mande mais de uma mensagem no mesmo dia
-    sentLog = { [todayDateString]: ['daily_bills_summary_sent'] };
+    // Salva o registro dos grupos disparados hoje
+    sentLog[todayDateString] = alreadySentGroups;
     try {
       localStorage.setItem(STORAGE_KEY_SENT_LOG, JSON.stringify(sentLog));
     } catch (e) {}
