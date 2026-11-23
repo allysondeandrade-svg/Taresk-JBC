@@ -1382,6 +1382,32 @@ export default function MobileAppView({
                       })()}
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {/* Botão Finalizar se o checklist estiver marcado */}
+                        {task.checklist && task.checklist.length > 0 && task.checklist.every(c => c.completed) && taskSubTab === 'atuais' && (
+                          <button
+                            type="button"
+                            onClick={() => onFinishTask(task)}
+                            title="Finalizar Tarefa"
+                            style={{
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '4px 10px',
+                              borderRadius: '9999px',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.35)',
+                              marginRight: '2px'
+                            }}
+                          >
+                            🎉 Concluir
+                          </button>
+                        )}
+
                         {onDuplicateTask && (
                           <button
                             onClick={() => onDuplicateTask(task)}
@@ -1642,7 +1668,7 @@ export default function MobileAppView({
                       {isSpecial && <span style={{ color: '#d97706', marginLeft: '4px' }}>⭐</span>}
                     </div>
 
-                    {(progressPercent === 100 || (isSpecial && totalChecks === 0)) && taskSubTab === 'atuais' && (
+                    {((progressPercent === 100 || (isSpecial && totalChecks === 0)) || (task.checklist && task.checklist.length > 0 && task.checklist.every(c => c.completed))) && taskSubTab === 'atuais' && (
                       <button
                         onClick={() => onFinishTask(task)}
                         style={{
@@ -1653,7 +1679,8 @@ export default function MobileAppView({
                           borderRadius: '9999px',
                           fontSize: '11px',
                           fontWeight: '800',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 6px rgba(16, 185, 129, 0.35)'
                         }}
                       >
                         🎉 Concluir
@@ -1963,6 +1990,32 @@ export default function MobileAppView({
                         })()}
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '6px' }}>
+                          {/* Botão Finalizar adicional no rodapé caso 100% ou todo checklist concluído */}
+                          {((progressPercent === 100 || (isSpecial && totalChecks === 0)) || (task.checklist && task.checklist.length > 0 && task.checklist.every(c => c.completed))) && taskSubTab === 'atuais' && (
+                            <button
+                              type="button"
+                              onClick={() => onFinishTask(task)}
+                              title="Concluir Tarefa"
+                              style={{
+                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '3px 8px',
+                                borderRadius: '9999px',
+                                fontSize: '10px',
+                                fontWeight: '800',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.35)',
+                                marginRight: '2px'
+                              }}
+                            >
+                              🎉 Concluir
+                            </button>
+                          )}
+
                           {onDuplicateTask && (
                             <button
                               onClick={() => onDuplicateTask(task)}
