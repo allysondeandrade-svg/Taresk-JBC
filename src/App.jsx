@@ -258,18 +258,18 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('taresk_bills', JSON.stringify(bills));
-    // Dispara checagem de notificações ao alterar contas
-    NotificationService.checkAndNotifyBills(bills);
-  }, [bills]);
+    // Dispara checagem de notificações ao alterar contas (exclusivo para Allyson)
+    NotificationService.checkAndNotifyBills(bills, currentUser);
+  }, [bills, currentUser]);
 
   // Checagem periódica diária de notificações de contas a pagar (a cada 30 minutos em background)
   useEffect(() => {
-    NotificationService.checkAndNotifyBills(bills);
+    NotificationService.checkAndNotifyBills(bills, currentUser);
     const interval = setInterval(() => {
-      NotificationService.checkAndNotifyBills(bills);
+      NotificationService.checkAndNotifyBills(bills, currentUser);
     }, 30 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [bills]);
+  }, [bills, currentUser]);
 
   // Rastreia timestamps das tarefas modificadas localmente recentemente para o polling não sobrescrever com dados antigos do Sheets
   const localTaskUpdatesRef = useRef({});

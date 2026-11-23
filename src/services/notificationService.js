@@ -274,17 +274,50 @@ export const NotificationService = {
   },
 
   /**
+   * Helper para verificar se um usuário logado é o administrador Allyson
+   */
+  isAllysonAdmin(user) {
+    if (!user) {
+      try {
+        const saved = localStorage.getItem('taresk_current_user');
+        if (saved) user = JSON.parse(saved);
+      } catch (e) {}
+    }
+    if (!user) return false;
+    const name = String(user.name || '').toLowerCase().trim();
+    const email = String(user.email || '').toLowerCase().trim();
+    const role = String(user.role || '').toLowerCase().trim();
+
+    return (
+      role === 'premium_admin' ||
+      role === 'admin' ||
+      name.includes('allyson') ||
+      email.includes('allyson') ||
+      email.includes('eletrojbc') ||
+      email === 'allysondeandrade@gmail.com'
+    );
+  },
+
+  /**
    * Verifica a lista de contas e dispara alertas segmentados por dia de vencimento:
    * - 1 notificação agrupada para todas as contas pendentes de ONTEM (venceu há 1 dia)
    * - 1 notificação agrupada para todas as contas de HOJE (vencendo no dia)
    * - 1 notificação agrupada para todas as contas de AMANHÃ (vencendo no dia seguinte)
    * 
    * Regras estritas:
-   * 1. Se a conta venceu há 2 dias ou mais (anteontem ou antes), NÃO notifica.
-   * 2. Se houver mais de uma conta para o mesmo dia de vencimento, todas são agrupadas em uma ÚNICA mensagem separadas por vírgula (ex: "Aluguel, Boleto Grenada, Dinheiro Express").
-   * 3. Cada grupo (ontem, hoje, amanhã) só é enviado no máximo 1 vez por dia.
+   * 1. EXCLUSIVO PARA O ADMIN ALLYSON: Os demais usuários NÃO recebem notificações de contas a pagar (apenas tarefas).
+   * 2. Se a conta venceu há 2 dias ou mais (anteontem ou antes), NÃO notifica.
+   * 3. Se houver mais de uma conta para o mesmo dia de vencimento, todas são agrupadas em uma ÚNICA mensagem separadas por vírgula (ex: "Aluguel, Boleto Grenada, Dinheiro Express").
+   * 4. Cada grupo (ontem, hoje, amanhã) só é enviado no máximo 1 vez por dia.
    */
-  checkAndNotifyBills(bills = []) {
+  checkAndNotifyBills(bills = [], currentUser = null) {
+    // REGRA DE SEGURANÇA E PRIVACIDADE:
+    // As notificações de contas a pagar são enviadas APENAS para o admin Allyson.
+    // Os demais usuários recebem apenas notificações de novas tarefas atribuídas a eles.
+    if (!this.isAllysonAdmin(currentUser)) {
+      return;
+    }
+
     if (!this.isEnabled()) return;
     if (!this.isSupported() || Notification.permission !== 'granted') return;
     if (!Array.isArray(bills) || bills.length === 0) return;
