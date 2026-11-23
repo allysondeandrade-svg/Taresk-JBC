@@ -216,11 +216,19 @@ export const SheetsApi = {
   },
 
   /**
-   * Exclui um produto da planilha
+   * Exclui um produto da planilha (envia id, sku e título para garantir exclusão perfeita)
    */
-  async deleteProduct(productId) {
+  async deleteProduct(prodOrId) {
     const url = this.getUrl();
     if (!url) return false;
+
+    const payloadData = typeof prodOrId === 'object' && prodOrId !== null
+      ? {
+          id: prodOrId.id,
+          sku: prodOrId.sku || prodOrId.id,
+          title: prodOrId.title || prodOrId.product || prodOrId.nome || ''
+        }
+      : { id: prodOrId, sku: prodOrId };
 
     try {
       await fetch(url, {
@@ -228,7 +236,7 @@ export const SheetsApi = {
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           action: 'deleteProduct',
-          data: { id: productId }
+          data: payloadData
         })
       });
       return true;

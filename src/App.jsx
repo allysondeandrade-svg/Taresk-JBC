@@ -888,9 +888,22 @@ export default function App() {
     }));
   };
 
-  const handleDeleteProduct = (id) => {
-    setProducts(products.filter(p => p.id !== id));
-    SheetsApi.deleteProduct(id);
+  const handleDeleteProduct = (prodOrId) => {
+    const targetId = typeof prodOrId === 'object' && prodOrId !== null ? prodOrId.id : prodOrId;
+    const targetSku = typeof prodOrId === 'object' && prodOrId !== null ? (prodOrId.sku || prodOrId.id) : null;
+    
+    // Encontra o objeto completo do produto para repassar ao sheetsApi caso tenha vindo apenas o ID
+    const prodObj = typeof prodOrId === 'object' && prodOrId !== null
+      ? prodOrId
+      : products.find(p => String(p.id) === String(targetId) || String(p.sku).toUpperCase() === String(targetId).toUpperCase());
+
+    setProducts(prev => prev.filter(p => {
+      if (targetId && String(p.id) === String(targetId)) return false;
+      if (targetSku && String(p.sku).toUpperCase() === String(targetSku).toUpperCase()) return false;
+      return true;
+    }));
+
+    SheetsApi.deleteProduct(prodObj || { id: targetId, sku: targetSku || targetId });
   };
 
   // Handler de Usuários (adicionar, editar, excluir)

@@ -1557,26 +1557,58 @@ function deleteProductRecord(prodOrData) {
 
   const id = String((prodOrData && prodOrData.id) || '').trim();
   const sku = String((prodOrData && (prodOrData.sku || prodOrData.id)) || '').toUpperCase().trim();
+  const title = String((prodOrData && (prodOrData.title || prodOrData.product || prodOrData.nome)) || '').toLowerCase().trim();
 
   const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return { deleted: false };
+
   const headers = values[0].map(h => String(h).toLowerCase().trim());
   const idxId = headers.indexOf('id');
   const idxSku = headers.indexOf('sku') !== -1 ? headers.indexOf('sku') : 0;
+  const idxProd = headers.findIndex(h => h === 'produto' || h.includes('produto') || h.includes('titulo') || h.includes('título') || h.includes('nome'));
 
-  if (idxId !== -1 && id) {
+  // 1. Busca por ID exato se não for ID temporário 'prod_'
+  if (idxId !== -1 && id && !id.startsWith('prod_')) {
     for (let i = 1; i < values.length; i++) {
       const rowId = String(values[i][idxId]).trim();
-      if (rowId === id || rowId.toLowerCase() === id.toLowerCase()) {
+      if (rowId && (rowId === id || rowId.toLowerCase() === id.toLowerCase())) {
         sheet.deleteRow(i + 1);
         return { id: id, deleted: true, matchedBy: 'id' };
       }
     }
   }
 
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][idxSku]).toUpperCase().trim() === sku) {
-      sheet.deleteRow(i + 1);
-      return { sku: sku, deleted: true, matchedBy: 'sku' };
+  // 2. Busca por SKU exato
+  if (sku) {
+    for (let i = 1; i < values.length; i++) {
+      const rowSku = String(values[i][idxSku]).toUpperCase().trim();
+      if (rowSku && (rowSku === sku || rowSku === id.toUpperCase())) {
+        sheet.deleteRow(i + 1);
+        return { sku: sku, deleted: true, matchedBy: 'sku' };
+      }
+    }
+  }
+
+  // 3. Fallback: Busca pelo nome/título do produto se fornecido
+  if (idxProd !== -1 && title) {
+    for (let i = 1; i < values.length; i++) {
+      const rowProd = String(values[i][idxProd]).toLowerCase().trim();
+      if (rowProd && rowProd === title) {
+        sheet.deleteRow(i + 1);
+        return { title: title, deleted: true, matchedBy: 'produto' };
+      }
+    }
+  }
+
+  // 4. Fallback final: se id foi passado como SKU diretamente
+  if (id) {
+    const idUpper = id.toUpperCase();
+    for (let i = 1; i < values.length; i++) {
+      const rowSku = String(values[i][idxSku]).toUpperCase().trim();
+      if (rowSku && rowSku === idUpper) {
+        sheet.deleteRow(i + 1);
+        return { sku: idUpper, deleted: true, matchedBy: 'id_as_sku' };
+      }
     }
   }
 
