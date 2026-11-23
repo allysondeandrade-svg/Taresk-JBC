@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check, Search, Package, DollarSign, Settings } from 'lucide-react';
 import AnnotationsView from './AnnotationsView';
+import MobileContasView from './MobileContasView';
 
 // Helper para formatar dd/mm
 function formatDueDateDisplay(val) {
@@ -76,6 +77,10 @@ export default function MobileAppView({
   currentUser,
   products,
   annotations = [],
+  bills = [],
+  onAddBill,
+  onUpdateBill,
+  onDeleteBill,
   onOpenChecklistModal,
   onToggleMarketplace,
   onOpenNewTaskModal,
@@ -451,7 +456,37 @@ export default function MobileAppView({
         >
           Anotações
         </button>
+
+        <button
+          onClick={() => setActiveMainTab('contas')}
+          style={{
+            flex: 1,
+            padding: '7px 8px',
+            borderRadius: '9999px',
+            border: activeMainTab === 'contas' ? '1.5px solid #d8b4fe' : 'none',
+            background: activeMainTab === 'contas' ? '#f3e8ff' : 'transparent',
+            color: activeMainTab === 'contas' ? '#6b21a8' : '#64748b',
+            fontWeight: '700',
+            fontSize: '14px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          Contas
+        </button>
       </div>
+
+      {/* ABA CONTAS: CONTAS A PAGAR RESPONSIVO PARA MOBILE */}
+      {activeMainTab === 'contas' && (
+        <MobileContasView
+          bills={bills}
+          onAddBill={onAddBill}
+          onUpdateBill={onUpdateBill}
+          onDeleteBill={onDeleteBill}
+          isDark={isDark}
+        />
+      )}
 
       {/* ABA CADASTRO: APENAS PRODUTOS RESPONSIVO (LINHA ÚNICA SEM QUEBRA, SEM ÍCONES DE PLATAFORMAS) */}
       {activeMainTab === 'cadastro' && (

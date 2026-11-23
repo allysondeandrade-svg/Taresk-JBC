@@ -993,6 +993,10 @@ export default function App() {
           currentUser={currentUser}
           products={products}
           annotations={annotations}
+          bills={bills}
+          onAddBill={handleAddBill}
+          onUpdateBill={handleUpdateBill}
+          onDeleteBill={handleDeleteBill}
           appTheme={appTheme}
           onOpenChecklistModal={(task) => setActiveChecklistTask(task)}
           onToggleMarketplace={handleToggleMarketplace}
