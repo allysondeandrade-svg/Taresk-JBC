@@ -844,7 +844,9 @@ function getProductsDataAsJson() {
   const idxSku = headers.indexOf('sku');
   const idxFoto = headers.findIndex(h => h.includes('foto') || h.includes('imagem') || h.includes('img') || h.includes('url'));
   const idxTitulo = headers.findIndex(h => h === 'produto' || h.includes('produto') || h.includes('titulo') || h.includes('título') || h.includes('nome'));
-  const idxCusto = headers.indexOf('custo');
+  const idxCusto = headers.findIndex(h => h === 'custo' || h === 'preco' || h === 'preço' || h.includes('custo'));
+  const idxPrecoFabrica = headers.findIndex(h => h.includes('fabrica') || h.includes('fábrica'));
+  const idxEmbalagem = headers.findIndex(h => h.includes('embalagem') || h.includes('emb'));
   const idxLargura = headers.indexOf('largura');
   const idxComp = headers.findIndex(h => h.includes('comp'));
   const idxAltura = headers.indexOf('altura');
@@ -856,6 +858,19 @@ function getProductsDataAsJson() {
     const sku = idxSku !== -1 ? String(r[idxSku] || '').trim() : String(r[0] || '').trim();
     const titulo = idxTitulo !== -1 && r[idxTitulo] ? String(r[idxTitulo]).trim() : '';
     const rawFoto = idxFoto !== -1 && r[idxFoto] ? String(r[idxFoto]).trim() : '';
+
+    const precoFabrica = idxPrecoFabrica !== -1 ? parseBrazilianNumber(r[idxPrecoFabrica]) : 0;
+    const embalagem = idxEmbalagem !== -1 ? parseBrazilianNumber(r[idxEmbalagem]) : 0;
+    
+    // Regra: Preço = Preço Fábrica + Embalagem. Se existirem as colunas, calcula a soma como custo/preço
+    let finalCost = 0;
+    if (idxPrecoFabrica !== -1 || idxEmbalagem !== -1) {
+      finalCost = precoFabrica + embalagem;
+    }
+    // Se a soma for 0 ou as colunas não tiverem valor, usa o valor da coluna Custo/Preço existente
+    if (finalCost === 0 && idxCusto !== -1) {
+      finalCost = parseBrazilianNumber(r[idxCusto]);
+    }
 
     let channelPrices = {};
     if (idxPrecos !== -1 && r[idxPrecos]) {
@@ -876,7 +891,9 @@ function getProductsDataAsJson() {
       title: titulo,
       product: titulo,
       imageUrl: rawFoto,
-      cost: idxCusto !== -1 ? parseBrazilianNumber(r[idxCusto]) : 0,
+      cost: finalCost,
+      factoryPrice: precoFabrica,
+      packaging: embalagem,
       width: idxLargura !== -1 ? parseBrazilianNumber(r[idxLargura]) : 0,
       length: idxComp !== -1 ? parseBrazilianNumber(r[idxComp]) : 0,
       height: idxAltura !== -1 ? parseBrazilianNumber(r[idxAltura]) : 0,
@@ -1285,59 +1302,66 @@ function upsertProduct(prod) {
   const hasPrecosCol = headers.some(h => h.includes('precos') || h.includes('channelprices') || h.includes('marketplaces_precos'));
   const precosVal = JSON.stringify(prod.channelPrices || {});
 
-  let baseData = [];
-  if (hasProdutoCol && hasFotoCol) {
-    baseData = [
-      prod.sku || prod.id || '',
-      prodNomeVal,
-      fotoVal,
-      parseBrazilianNumber(prod.cost),
-      parseBrazilianNumber(prod.width),
-      parseBrazilianNumber(prod.length),
-      parseBrazilianNumber(prod.height),
-      parseBrazilianNumber(prod.weight)
-    ];
-  } else if (hasProdutoCol && !hasFotoCol) {
-    baseData = [
-      prod.sku || prod.id || '',
-      prodNomeVal,
-      parseBrazilianNumber(prod.cost),
-      parseBrazilianNumber(prod.width),
-      parseBrazilianNumber(prod.length),
-      parseBrazilianNumber(prod.height),
-      parseBrazilianNumber(prod.weight)
-    ];
-  } else if (hasFotoCol) {
-    baseData = [
-      prod.sku || prod.id || '',
-      fotoVal,
-      parseBrazilianNumber(prod.cost),
-      parseBrazilianNumber(prod.width),
-      parseBrazilianNumber(prod.length),
-      parseBrazilianNumber(prod.height),
-      parseBrazilianNumber(prod.weight)
-    ];
-  } else {
-    baseData = [
-      prod.sku || prod.id || '',
-      parseBrazilianNumber(prod.cost),
-      parseBrazilianNumber(prod.width),
-      parseBrazilianNumber(prod.length),
-      parseBrazilianNumber(prod.height),
-      parseBrazilianNumber(prod.weight)
-    ];
-  }
+  // Mapeamento dinâmico de colunas para suportar 'Preço Fábrica', 'Embalagem', etc.
+  const idxColPrecoFabrica = headers.findIndex(h => h.includes('fabrica') || h.includes('fábrica'));
+  const idxColEmbalagem = headers.findIndex(h => h.includes('embalagem') || h.includes('emb'));
 
-  if (hasPrecosCol) {
-    baseData.push(precosVal);
-  }
-
-  const rowData = hasIdCol ? [finalId, ...baseData] : baseData;
-
+  // Se a planilha possuir colunas dedicadas como 'Preço Fábrica' e 'Embalagem', grava nelas
   if (rowIndex > 0) {
-    sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+    // Atualização pontual nas colunas existentes para preservar a ordem e fórmulas da planilha
+    const targetRow = rowIndex;
+    if (idxSku !== -1 && prod.sku) sheet.getRange(targetRow, idxSku + 1).setValue(prod.sku);
+    if (hasIdCol && idxId !== -1) sheet.getRange(targetRow, idxId + 1).setValue(finalId);
+    
+    const idxProdCol = headers.findIndex(h => h === 'produto' || h.includes('produto') || h.includes('titulo') || h.includes('título') || h.includes('nome'));
+    if (idxProdCol !== -1) sheet.getRange(targetRow, idxProdCol + 1).setValue(prodNomeVal);
+    
+    const idxFotoCol = headers.findIndex(h => h.includes('foto') || h.includes('imagem') || h.includes('img') || h.includes('url'));
+    if (idxFotoCol !== -1) sheet.getRange(targetRow, idxFotoCol + 1).setValue(fotoVal);
+    
+    const idxCustoCol = headers.findIndex(h => h === 'custo' || h === 'preco' || h === 'preço' || h.includes('custo'));
+    if (idxCustoCol !== -1) sheet.getRange(targetRow, idxCustoCol + 1).setValue(parseBrazilianNumber(prod.cost));
+
+    if (idxColPrecoFabrica !== -1 && (prod.factoryPrice !== undefined || prod.precoFabrica !== undefined)) {
+      sheet.getRange(targetRow, idxColPrecoFabrica + 1).setValue(parseBrazilianNumber(prod.factoryPrice || prod.precoFabrica || 0));
+    }
+    if (idxColEmbalagem !== -1 && (prod.packaging !== undefined || prod.embalagem !== undefined)) {
+      sheet.getRange(targetRow, idxColEmbalagem + 1).setValue(parseBrazilianNumber(prod.packaging || prod.embalagem || 0));
+    }
+
+    const idxLargCol = headers.indexOf('largura');
+    if (idxLargCol !== -1) sheet.getRange(targetRow, idxLargCol + 1).setValue(parseBrazilianNumber(prod.width));
+
+    const idxCompCol = headers.findIndex(h => h.includes('comp'));
+    if (idxCompCol !== -1) sheet.getRange(targetRow, idxCompCol + 1).setValue(parseBrazilianNumber(prod.length));
+
+    const idxAltCol = headers.indexOf('altura');
+    if (idxAltCol !== -1) sheet.getRange(targetRow, idxAltCol + 1).setValue(parseBrazilianNumber(prod.height));
+
+    const idxPesoCol = headers.indexOf('peso');
+    if (idxPesoCol !== -1) sheet.getRange(targetRow, idxPesoCol + 1).setValue(parseBrazilianNumber(prod.weight));
+
+    const idxPrecosCol = headers.findIndex(h => h.includes('precos') || h.includes('channelprices') || h.includes('marketplaces_precos'));
+    if (idxPrecosCol !== -1) sheet.getRange(targetRow, idxPrecosCol + 1).setValue(precosVal);
   } else {
-    sheet.appendRow(rowData);
+    // Inserção de nova linha: monta o array exatamente conforme a ordem das colunas do cabeçalho da planilha
+    const newRow = new Array(headers.length).fill('');
+    headers.forEach((h, colIdx) => {
+      if (h === 'id') newRow[colIdx] = finalId;
+      else if (h === 'sku') newRow[colIdx] = prod.sku || prod.id || '';
+      else if (h === 'produto' || h.includes('produto') || h.includes('titulo') || h.includes('título') || h.includes('nome')) newRow[colIdx] = prodNomeVal;
+      else if (h.includes('foto') || h.includes('imagem') || h.includes('img') || h.includes('url')) newRow[colIdx] = fotoVal;
+      else if (h.includes('fabrica') || h.includes('fábrica')) newRow[colIdx] = parseBrazilianNumber(prod.factoryPrice || prod.precoFabrica || 0);
+      else if (h.includes('embalagem') || h.includes('emb')) newRow[colIdx] = parseBrazilianNumber(prod.packaging || prod.embalagem || 0);
+      else if (h === 'custo' || h === 'preco' || h === 'preço' || h.includes('custo')) newRow[colIdx] = parseBrazilianNumber(prod.cost);
+      else if (h === 'largura') newRow[colIdx] = parseBrazilianNumber(prod.width);
+      else if (h.includes('comp')) newRow[colIdx] = parseBrazilianNumber(prod.length);
+      else if (h === 'altura') newRow[colIdx] = parseBrazilianNumber(prod.height);
+      else if (h === 'peso') newRow[colIdx] = parseBrazilianNumber(prod.weight);
+      else if (h.includes('precos') || h.includes('channelprices') || h.includes('marketplaces_precos')) newRow[colIdx] = precosVal;
+    });
+
+    sheet.appendRow(newRow);
   }
 
   try {

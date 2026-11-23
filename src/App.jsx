@@ -375,15 +375,25 @@ export default function App() {
             return parseFloat(s) || 0;
           };
 
-          const sanitizedProducts = data.products.map(p => ({
-            ...p,
-            cost: parseNum(p.cost),
-            width: parseNum(p.width),
-            length: parseNum(p.length),
-            height: parseNum(p.height),
-            weight: parseNum(p.weight),
-            channelPrices: p.channelPrices && typeof p.channelPrices === 'object' ? p.channelPrices : {}
-          }));
+          const sanitizedProducts = data.products.map(p => {
+            const rawCost = parseNum(p.cost);
+            const factoryPrice = parseNum(p.factoryPrice || p.precoFabrica);
+            const packaging = parseNum(p.packaging || p.embalagem);
+            // Preço = Preço Fábrica + Embalagem (se houver essas colunas na planilha)
+            const computedCost = (factoryPrice > 0 || packaging > 0) ? (factoryPrice + packaging) : rawCost;
+
+            return {
+              ...p,
+              cost: computedCost,
+              factoryPrice: factoryPrice,
+              packaging: packaging,
+              width: parseNum(p.width),
+              length: parseNum(p.length),
+              height: parseNum(p.height),
+              weight: parseNum(p.weight),
+              channelPrices: p.channelPrices && typeof p.channelPrices === 'object' ? p.channelPrices : {}
+            };
+          });
           setProducts(sanitizedProducts);
         }
         if (Array.isArray(data.users) && data.users.length > 0) setUsers(data.users);
