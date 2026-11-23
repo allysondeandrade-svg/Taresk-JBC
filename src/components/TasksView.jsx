@@ -1033,7 +1033,8 @@ export default function TasksView({
               {isSimple ? (
                 /* Tarefa Simples: Sem plataformas, apenas o checklist em formato limpo */
                 <div style={{ flex: 1, padding: '0 8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {task.checklist && task.checklist.length > 1 ? (
+                  {/* Se houver subtarefas explícitas (ou checklist > 1 ou 1 subtarefa diferente do título) */}
+                  {task.checklist && (task.checklist.length > 1 || (task.checklist.length === 1 && task.checklist[0].label !== productSkuDisplay)) ? (
                     <>
                       {/* Item Principal (Título da Tarefa) */}
                       <div
@@ -1071,7 +1072,7 @@ export default function TasksView({
 
                         <span style={{
                           fontSize: '15px',
-                          fontWeight: '600',
+                          fontWeight: '700',
                           color: task.checklist.every(c => c.completed) ? '#64748b' : '#0f172a',
                           textDecoration: task.checklist.every(c => c.completed) ? 'line-through' : 'none',
                           wordBreak: 'break-word',
@@ -1113,6 +1114,7 @@ export default function TasksView({
                                 background: isItemDone ? '#10b981' : '#ffffff',
                                 display: 'flex',
                                 alignItems: 'center',
+                                justifySelf: 'center',
                                 justifyContent: 'center',
                                 flexShrink: 0,
                                 transition: 'all 0.15s ease'
@@ -1137,7 +1139,7 @@ export default function TasksView({
                       </div>
                     </>
                   ) : (
-                    /* Tarefa Simples com item único */
+                    /* Tarefa Simples com item único sem subtarefas extras */
                     (() => {
                       const firstCheckItem = task.checklist?.[0] || { id: `chk_${task.id}`, label: productSkuDisplay, completed: false };
                       const isItemDone = Boolean(firstCheckItem.completed);

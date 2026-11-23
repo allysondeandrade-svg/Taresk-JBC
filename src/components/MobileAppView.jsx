@@ -1482,8 +1482,8 @@ export default function MobileAppView({
 
                     {/* Lista de Itens de Checklist (Foto 2: Item Principal + Subtarefas com recuo/indentação) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
-                      {/* Se houver subtarefas no checklist, renderiza o título da tarefa no topo e as subtarefas indentadas */}
-                      {task.checklist && task.checklist.length > 1 ? (
+                      {/* Se houver subtarefas explícitas (checklist > 1 ou 1 subtarefa diferente do título) */}
+                      {task.checklist && (task.checklist.length > 1 || (task.checklist.length === 1 && task.checklist[0].label !== displayTitle)) ? (
                         <>
                           {/* Item Principal (Título da Tarefa) */}
                           <div
