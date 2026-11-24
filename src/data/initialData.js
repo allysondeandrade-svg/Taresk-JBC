@@ -239,7 +239,7 @@ export const DEFAULT_PRICING_CONFIGS = {
     color: '#232f3e',
     lightBg: '#f3f4f6',
     textColor: '#ffffff',
-    defaultCommissionRate: 15.0, // 15% categoria eletrodomésticos
+    defaultCommissionRate: 12.5, // 12.5% categoria eletrodomésticos
     fixedFee: 0,
     defaultShippingCost: 19.50
   },
@@ -248,7 +248,7 @@ export const DEFAULT_PRICING_CONFIGS = {
     color: '#0086ff',
     lightBg: '#e8f3ff',
     textColor: '#ffffff',
-    defaultCommissionRate: 16.0, // 16% Magalu
+    defaultCommissionRate: 18.0, // 18% Magalu
     fixedFee: 3.00,
     defaultShippingCost: 21.00
   }

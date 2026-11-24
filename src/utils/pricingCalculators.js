@@ -285,10 +285,10 @@ export function getAmazonFreight(price, weight) {
   }
 }
 
-export function calculateAmazon(price, productCost, product, customRate = 15.0, customFreight = null) {
+export function calculateAmazon(price, productCost, product, customRate = 12.5, customFreight = null) {
   const p = parseFloat(price) || 0;
   const weight = getConsideredWeight(product);
-  const feeRate = parseFloat(customRate) || 15.0;
+  const feeRate = parseFloat(customRate) || 12.5;
   const custo = parseFloat(productCost) || 0;
 
   if (p <= 0) {
@@ -391,10 +391,10 @@ export function getMagaluFreight(price, weight) {
   }
 }
 
-export function calculateMagalu(price, productCost, product, customRate = 16.0, customFreight = null) {
+export function calculateMagalu(price, productCost, product, customRate = 18.0, customFreight = null) {
   const p = parseFloat(price) || 0;
   const weight = getConsideredWeight(product);
-  const feeRate = parseFloat(customRate) || 16.0;
+  const feeRate = parseFloat(customRate) || 18.0;
   const custo = parseFloat(productCost) || 0;
 
   if (p <= 0) {

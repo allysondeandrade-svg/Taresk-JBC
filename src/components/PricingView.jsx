@@ -39,6 +39,14 @@ export default function PricingView({ products = [] }) {
     magalu: null
   });
 
+  // Texto bruto digitado no input de tarifa para permitir livre digitação de vírgula (ex: "18,", "18,5")
+  const [rateTextInputs, setRateTextInputs] = useState({
+    shopee: '',
+    mercadoLivre: '',
+    amazon: '',
+    magalu: ''
+  });
+
   // Frete ou Tarifa Fixa personalizada (se null, usa a tabela oficial automática)
   const [customFreights, setCustomFreights] = useState({
     shopee: null, // Tarifa fixa Shopee
@@ -71,8 +79,8 @@ export default function PricingView({ products = [] }) {
 
     const shopee15 = findPriceForTargetMargin((p, c) => calculateShopee(p, c, customRates.shopee, customFreights.shopee), cost, selectedProduct, null, 15.0);
     const ml15 = findPriceForTargetMargin((p, c, prod, rate) => calculateMercadoLivre(p, c, prod, rate, customFreights.mercadoLivre), cost, selectedProduct, mlRate, 15.0);
-    const amazon15 = findPriceForTargetMargin((p, c, prod, rate) => calculateAmazon(p, c, prod, rate, customFreights.amazon), cost, selectedProduct, customRates.amazon || 15.0, 15.0);
-    const magalu15 = findPriceForTargetMargin((p, c, prod, rate) => calculateMagalu(p, c, prod, rate, customFreights.magalu), cost, selectedProduct, customRates.magalu || 16.0, 15.0);
+    const amazon15 = findPriceForTargetMargin((p, c, prod, rate) => calculateAmazon(p, c, prod, rate, customFreights.amazon), cost, selectedProduct, customRates.amazon || 12.5, 15.0);
+    const magalu15 = findPriceForTargetMargin((p, c, prod, rate) => calculateMagalu(p, c, prod, rate, customFreights.magalu), cost, selectedProduct, customRates.magalu || 18.0, 15.0);
 
     setChannelPrices({
       shopee: shopee15,
@@ -96,11 +104,27 @@ export default function PricingView({ products = [] }) {
 
   // Altera a tarifa % do canal
   const handleRateRawInput = (channelKey, rawString) => {
-    if (rawString === '') {
+    // Permite apenas dígitos e no máximo uma vírgula ou ponto
+    let formatted = rawString.replace('.', ',');
+    // Se tiver mais de uma vírgula, preserva apenas a primeira
+    const parts = formatted.split(',');
+    if (parts.length > 2) {
+      formatted = parts[0] + ',' + parts.slice(1).join('').replace(/,/g, '');
+    }
+    // Remove qualquer outro caractere não numérico
+    formatted = formatted.replace(/[^0-9,]/g, '');
+
+    setRateTextInputs(prev => ({
+      ...prev,
+      [channelKey]: formatted
+    }));
+
+    if (formatted === '') {
       setCustomRates(prev => ({ ...prev, [channelKey]: null }));
       return;
     }
-    const clean = rawString.replace(',', '.').replace(/[^0-9.]/g, '');
+
+    const clean = formatted.replace(',', '.');
     const val = parseFloat(clean);
     setCustomRates(prev => ({
       ...prev,
@@ -126,6 +150,7 @@ export default function PricingView({ products = [] }) {
   // Restaura configurações padrão do canal
   const handleResetChannel = (channelKey) => {
     setCustomRates(prev => ({ ...prev, [channelKey]: null }));
+    setRateTextInputs(prev => ({ ...prev, [channelKey]: '' }));
     setCustomFreights(prev => ({ ...prev, [channelKey]: null }));
   };
 
@@ -141,8 +166,8 @@ export default function PricingView({ products = [] }) {
   const shopeeCalc = calculateShopee(channelPrices.shopee, cost, customRates.shopee, customFreights.shopee);
   const mlRate = customRates.mercadoLivre !== null ? customRates.mercadoLivre : (mlListingType === 'classico' ? 12.0 : 16.5);
   const mlCalc = calculateMercadoLivre(channelPrices.mercadoLivre, cost, selectedProduct, mlRate, customFreights.mercadoLivre);
-  const amazonCalc = calculateAmazon(channelPrices.amazon, cost, selectedProduct, customRates.amazon || 15.0, customFreights.amazon);
-  const magaluCalc = calculateMagalu(channelPrices.magalu, cost, selectedProduct, customRates.magalu || 16.0, customFreights.magalu);
+  const amazonCalc = calculateAmazon(channelPrices.amazon, cost, selectedProduct, customRates.amazon || 12.5, customFreights.amazon);
+  const magaluCalc = calculateMagalu(channelPrices.magalu, cost, selectedProduct, customRates.magalu || 18.0, customFreights.magalu);
 
   // Filtro de produtos para o dropdown estilo Excel
   const filteredProducts = products.filter(p => {
@@ -352,6 +377,7 @@ export default function PricingView({ products = [] }) {
           isShopeeStyle={true}
           onPriceRawInput={handlePriceRawInput}
           customRate={customRates.shopee}
+          rateTextInput={rateTextInputs.shopee}
           customFreight={customFreights.shopee}
           onRateRawInput={handleRateRawInput}
           onFreightRawInput={handleFreightRawInput}
@@ -371,6 +397,7 @@ export default function PricingView({ products = [] }) {
           onToggleListingType={() => setMlListingType(prev => prev === 'classico' ? 'premium' : 'classico')}
           onPriceRawInput={handlePriceRawInput}
           customRate={customRates.mercadoLivre}
+          rateTextInput={rateTextInputs.mercadoLivre}
           customFreight={customFreights.mercadoLivre}
           onRateRawInput={handleRateRawInput}
           onFreightRawInput={handleFreightRawInput}
@@ -387,6 +414,7 @@ export default function PricingView({ products = [] }) {
           channelKey="amazon"
           onPriceRawInput={handlePriceRawInput}
           customRate={customRates.amazon}
+          rateTextInput={rateTextInputs.amazon}
           customFreight={customFreights.amazon}
           onRateRawInput={handleRateRawInput}
           onFreightRawInput={handleFreightRawInput}
@@ -403,6 +431,7 @@ export default function PricingView({ products = [] }) {
           channelKey="magalu"
           onPriceRawInput={handlePriceRawInput}
           customRate={customRates.magalu}
+          rateTextInput={rateTextInputs.magalu}
           customFreight={customFreights.magalu}
           onRateRawInput={handleRateRawInput}
           onFreightRawInput={handleFreightRawInput}
@@ -442,12 +471,20 @@ function PricingCard({
   mlListingType = 'premium',
   onToggleListingType,
   customRate = null,
+  rateTextInput = '',
   customFreight = null,
   onRateRawInput,
   onFreightRawInput,
   onResetChannel
 }) {
   const hasCustomValues = customRate !== null || customFreight !== null;
+
+  // Valor a ser exibido no input de Tarifa %
+  const displayRate = rateTextInput !== ''
+    ? rateTextInput
+    : (customRate !== null
+        ? String(customRate).replace('.', ',')
+        : (calc.feeRate % 1 === 0 ? String(calc.feeRate) : calc.feeRate.toFixed(1).replace('.', ',')));
 
   return (
     <div style={{
@@ -647,9 +684,9 @@ function PricingCard({
               <input
                 type="text"
                 inputMode="decimal"
-                value={customRate !== null ? String(customRate).replace('.', ',') : calc.feeRate.toFixed(1).replace('.', ',')}
+                value={displayRate}
                 onChange={(e) => onRateRawInput(channelKey, e.target.value)}
-                placeholder={calc.feeRate.toFixed(1).replace('.', ',')}
+                placeholder={calc.feeRate % 1 === 0 ? String(calc.feeRate) : calc.feeRate.toFixed(1).replace('.', ',')}
                 title="Alíquota % do canal"
                 style={{
                   border: 'none',

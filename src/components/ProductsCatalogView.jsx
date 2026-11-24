@@ -144,9 +144,9 @@ export default function ProductsCatalogView({
     } else if (channelKey === 'mercadoLivre') {
       calcFn = (p, c, pObj) => calculateMercadoLivre(p, c, pObj, 16.5);
     } else if (channelKey === 'amazon') {
-      calcFn = (p, c, pObj) => calculateAmazon(p, c, pObj, 15.0);
+      calcFn = (p, c, pObj) => calculateAmazon(p, c, pObj, 12.5);
     } else if (channelKey === 'magalu') {
-      calcFn = (p, c, pObj) => calculateMagalu(p, c, pObj, 16.0);
+      calcFn = (p, c, pObj) => calculateMagalu(p, c, pObj, 18.0);
     }
 
     let finalPrice = 0;

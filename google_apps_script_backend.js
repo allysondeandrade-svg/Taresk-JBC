@@ -229,8 +229,8 @@ function setupSheets() {
     pricingSheet.appendRow(['Plataforma', 'Taxa_Porcentagem', 'Taxa_Fixa', 'Frete_Padrao']);
     pricingSheet.appendRow(['Shopee', 20.0, 4.00, 0.00]);
     pricingSheet.appendRow(['Mercado Livre', 16.5, 6.50, 22.90]);
-    pricingSheet.appendRow(['Amazon', 15.0, 0.00, 19.50]);
-    pricingSheet.appendRow(['Magalu', 16.0, 3.00, 21.00]);
+    pricingSheet.appendRow(['Amazon', 12.5, 0.00, 19.50]);
+    pricingSheet.appendRow(['Magalu', 18.0, 3.00, 21.00]);
     styleHeader(pricingSheet);
   }
 
