@@ -473,26 +473,41 @@ export default function AnnotationsView({
 
       return true;
     }).sort((a, b) => {
-      // Ordenação: 'desc' = do último ao primeiro (maior ID / mais novo no topo)
-      //            'asc'  = do primeiro ao último (menor ID / mais antigo no topo)
-      const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
-      const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+      // Ordenação: 'desc' = data mais recente no topo
+      //            'asc'  = data mais antiga no topo
+      const parseItemDate = (item) => {
+        const dStr = String(item.date || '').trim();
+        if (dStr.includes('/')) {
+          const parts = dStr.split('/');
+          const day = parseInt(parts[0], 10) || 1;
+          const month = parseInt(parts[1], 10) || 1;
+          const year = parts.length >= 3 ? (parseInt(parts[2], 10) || currentYear) : currentYear;
+          const fullYear = year < 100 ? (2000 + year) : year;
+          return new Date(fullYear, month - 1, day).getTime();
+        }
+        if (item.createdAt) {
+          const t = new Date(item.createdAt).getTime();
+          if (!isNaN(t)) return t;
+        }
+        return 0;
+      };
 
-      // Se ambos têm IDs numéricos válidos
-      if (numA && numB && numA !== numB) {
-        return sortOrder === 'asc' ? numA - numB : numB - numA;
+      const dateA = parseItemDate(a);
+      const dateB = parseItemDate(b);
+
+      if (dateA && dateB && dateA !== dateB) {
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
       }
 
-      // Fallback para comparação por data (dd/mm)
-      const parseDate = (dStr) => {
-        if (!dStr || !dStr.includes('/')) return 0;
-        const [d, m] = dStr.split('/').map(Number);
-        return (m || 0) * 100 + (d || 0);
-      };
-      const dateA = parseDate(a.date);
-      const dateB = parseDate(b.date);
-      if (dateA !== dateB) {
-        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      // Se apenas um tem data válida
+      if (dateA && !dateB) return sortOrder === 'asc' ? -1 : 1;
+      if (!dateA && dateB) return sortOrder === 'asc' ? 1 : -1;
+
+      // Desempate por ID numérico
+      const numA = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+      if (numA && numB && numA !== numB) {
+        return sortOrder === 'asc' ? numA - numB : numB - numA;
       }
 
       return 0;

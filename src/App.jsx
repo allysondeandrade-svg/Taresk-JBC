@@ -132,6 +132,16 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_TASKS;
   });
 
+  // Registro persistente de IDs de tarefas excluídas para evitar ressuscitação durante sincronização
+  const deletedTaskIdsRef = useRef(new Set((() => {
+    try {
+      const saved = localStorage.getItem('taresk_deleted_task_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  })()));
+
   const [completedTasks, setCompletedTasks] = useState(() => {
     const saved = localStorage.getItem('taresk_completed_tasks');
     return saved ? JSON.parse(saved) : [];
@@ -315,14 +325,20 @@ export default function App() {
             };
           });
 
-          // Mescla com tarefas locais garantindo que tarefas recém-criadas localmente não sejam perdidas
+          // Mescla com tarefas locais garantindo que nenhuma tarefa válida seja descartada
           setTasks(prevTasks => {
             const now = Date.now();
             const incomingIds = new Set(sanitizedTasks.map(t => String(t.id)));
 
+            // Filtra incomingTasks removendo as que foram explicitamente excluídas localmente
+            const activeIncoming = sanitizedTasks.filter(inc => {
+              const strId = String(inc.id || '');
+              return !deletedTaskIdsRef.current.has(strId);
+            });
+
             // Notifica o usuário se novas tarefas forem atribuídas a ele via sincronização do Sheets
             if (isInitialTasksLoadedRef.current) {
-              sanitizedTasks.forEach(incomingTask => {
+              activeIncoming.forEach(incomingTask => {
                 const strId = String(incomingTask.id);
                 if (!knownTaskIdsRef.current.has(strId)) {
                   // Nova tarefa detectada!
@@ -332,14 +348,14 @@ export default function App() {
               });
             } else {
               // Primeira carga: registra todas as tarefas recebidas sem apitar alerta em lote
-              sanitizedTasks.forEach(incomingTask => {
+              activeIncoming.forEach(incomingTask => {
                 if (incomingTask.id) knownTaskIdsRef.current.add(String(incomingTask.id));
               });
               isInitialTasksLoadedRef.current = true;
             }
 
             // 1. Atualiza as tarefas que vieram da planilha
-            const updatedIncoming = sanitizedTasks.map(incomingTask => {
+            const updatedIncoming = activeIncoming.map(incomingTask => {
               const localMatch = prevTasks.find(pt => {
                 if (pt.id && incomingTask.id && String(pt.id) === String(incomingTask.id)) {
                   return true;
@@ -354,14 +370,24 @@ export default function App() {
               return incomingTask;
             });
 
-            // 2. Preserva tarefas locais criadas recentemente que ainda não constem no snapshot da planilha
+            // 2. Preserva tarefas locais que ainda não constem no snapshot da planilha
+            // (Tarefas criadas localmente com id 'task_...' ou pendentes de salvamento no Sheets)
+            // IMPORTANTE: Nunca descarta tarefas locais a menos que tenham sido excluídas pelo usuário!
             const pendingLocalTasks = prevTasks.filter(pt => {
-              const isMissingFromIncoming = !incomingIds.has(String(pt.id));
-              const isRecent = (now - (localTaskUpdatesRef.current[pt.id] || 0) < 120000); // 2 minutos de margem
-              return isMissingFromIncoming && isRecent;
+              const strId = String(pt.id || '');
+              if (deletedTaskIdsRef.current.has(strId)) return false;
+              const isMissingFromIncoming = !incomingIds.has(strId);
+              return isMissingFromIncoming;
             });
 
-            return [...pendingLocalTasks, ...updatedIncoming];
+            const merged = [...pendingLocalTasks, ...updatedIncoming];
+            // Salva imediatamente no localStorage para garantir persistência contínua
+            try {
+              localStorage.setItem('taresk_tasks', JSON.stringify(merged));
+            } catch (e) {
+              console.error('Erro ao salvar tarefas no localStorage:', e);
+            }
+            return merged;
           });
         }
         if (Array.isArray(data.completedTasks)) setCompletedTasks(data.completedTasks);
@@ -452,8 +478,22 @@ export default function App() {
   // Handlers de Tarefas com Sincronização Imediata
   const handleCreateTask = async (newTask) => {
     localTaskUpdatesRef.current[newTask.id] = Date.now();
-    if (newTask?.id) knownTaskIdsRef.current.add(String(newTask.id));
-    setTasks(prev => [newTask, ...prev]);
+    if (newTask?.id) {
+      const strId = String(newTask.id);
+      knownTaskIdsRef.current.add(strId);
+      // Garante que se o ID já esteve em deletedTaskIds no passado, seja removido
+      deletedTaskIdsRef.current.delete(strId);
+      try {
+        localStorage.setItem('taresk_deleted_task_ids', JSON.stringify(Array.from(deletedTaskIdsRef.current)));
+      } catch (e) { }
+    }
+    setTasks(prev => {
+      const updated = [newTask, ...prev];
+      try {
+        localStorage.setItem('taresk_tasks', JSON.stringify(updated));
+      } catch (e) { }
+      return updated;
+    });
 
     // Notifica o usuário atribuído sobre a nova tarefa criada
     NotificationService.notifyTaskAssigned(newTask, currentUser, users);
@@ -662,14 +702,31 @@ export default function App() {
 
   const handleDeleteTask = (taskOrId) => {
     const id = typeof taskOrId === 'object' ? taskOrId.id : taskOrId;
-    delete localTaskUpdatesRef.current[id];
-    setTasks(prev => prev.filter(t => {
-      if (t.id === id) return false;
-      if (typeof taskOrId === 'object' && taskOrId.sku && t.sku === taskOrId.sku && t.assignedTo === taskOrId.assignedTo) {
-        return false;
+    const strId = String(id || '');
+    if (strId) {
+      delete localTaskUpdatesRef.current[id];
+      delete localTaskUpdatesRef.current[strId];
+      deletedTaskIdsRef.current.add(strId);
+      try {
+        localStorage.setItem('taresk_deleted_task_ids', JSON.stringify(Array.from(deletedTaskIdsRef.current)));
+      } catch (e) {
+        console.error('Erro ao salvar deletedTaskIds:', e);
       }
-      return true;
-    }));
+    }
+
+    setTasks(prev => {
+      const filtered = prev.filter(t => {
+        if (t.id === id || String(t.id) === strId) return false;
+        if (typeof taskOrId === 'object' && taskOrId.sku && t.sku === taskOrId.sku && t.assignedTo === taskOrId.assignedTo) {
+          return false;
+        }
+        return true;
+      });
+      try {
+        localStorage.setItem('taresk_tasks', JSON.stringify(filtered));
+      } catch (e) { }
+      return filtered;
+    });
     SheetsApi.deleteTask(taskOrId);
   };
 
