@@ -69,57 +69,159 @@
   color: #f8fafc !important;
 }
 
-/* Adaptação inteligente de containers e cartões no modo escuro */
+/* 1. CABEÇALHO / NAVBAR NO MODO ESCURO */
+.dark-mode header,
+[data-theme='dark'] header {
+  background: #111827 !important;
+  background-color: #111827 !important;
+  border-bottom: 1px solid #1f2937 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark-mode header span[style*="color: #1e293b"],
+.dark-mode header span[style*="color: #0f172a"],
+.dark-mode header div[style*="color: #1e293b"],
+[data-theme='dark'] header span,
+[data-theme='dark'] header h1 {
+  color: #f8fafc !important;
+}
+
+.dark-mode header span[style*="color: #64748b"] {
+  color: #94a3b8 !important;
+}
+
+/* Botões da Navbar */
+.dark-mode header nav button {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode header nav button:hover {
+  background-color: #1f2937 !important;
+  color: #ffffff !important;
+}
+
+/* Botão da aba ativa no dark mode */
+.dark-mode header nav button[style*="background-color: #ecebfa"],
+.dark-mode header nav button[style*="backgroundColor: #ecebfa"],
+.dark-mode header nav button[style*="background: #ecebfa"] {
+  background-color: #312e81 !important;
+  color: #e0e7ff !important;
+  box-shadow: inset 0 0 0 1px #6366f1 !important;
+}
+
+/* Botões circulares do header (Sincronizar, Configurações, Sair) */
+.dark-mode header button[style*="border: 1.5px solid #cbd5e1"],
+.dark-mode header button[style*="border: 1px solid #cbd5e1"],
+.dark-mode header button[style*="background: #ffffff"],
+.dark-mode header button[style*="background: rgb(255, 255, 255)"] {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #e2e8f0 !important;
+}
+
+/* 2. CONTAINERS, CARDS E CAIXAS */
 .dark-mode div[style*="background: #ffffff"],
 .dark-mode div[style*="background: rgb(255, 255, 255)"],
 .dark-mode div[style*="backgroundColor: #ffffff"],
 .dark-mode div[style*="background-color: #ffffff"],
-.dark-mode header[style*="background: #ffffff"] {
+.dark-mode section[style*="background: #ffffff"] {
   background: #131b2e !important;
-  border-color: #334155 !important;
+  border-color: #27354f !important;
   color: #f8fafc !important;
 }
 
 .dark-mode div[style*="background: #f8fafc"],
-.dark-mode div[style*="background: #f1f5f9"] {
-  background: #1e293b !important;
-  border-color: #334155 !important;
+.dark-mode div[style*="background: #f1f5f9"],
+.dark-mode div[style*="background: #faf5ff"] {
+  background: #182238 !important;
+  border-color: #2e3e5b !important;
   color: #f1f5f9 !important;
 }
 
-/* Textos escuros viram claros e legíveis */
+/* 3. TÍTULOS E TEXTOS DE ALTA VISIBILIDADE */
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6,
 .dark-mode span[style*="color: #1e293b"],
 .dark-mode span[style*="color: #0f172a"],
 .dark-mode div[style*="color: #1e293b"],
 .dark-mode div[style*="color: #0f172a"],
-.dark-mode h1[style*="color: #1e293b"],
-.dark-mode h2[style*="color: #1e293b"],
-.dark-mode h3[style*="color: #1e293b"],
 .dark-mode p[style*="color: #1e293b"],
+.dark-mode p[style*="color: #0f172a"],
 .dark-mode td[style*="color: #1e293b"],
+.dark-mode td[style*="color: #0f172a"],
 .dark-mode th[style*="color: #1e293b"],
-.dark-mode label[style*="color: #1e293b"] {
+.dark-mode th[style*="color: #0f172a"] {
   color: #f8fafc !important;
 }
 
-.dark-mode span[style*="color: #64748b"],
+/* Textos secundários escuros viram claros e legíveis */
+.dark-mode span[style*="color: #334155"],
 .dark-mode span[style*="color: #475569"],
-.dark-mode div[style*="color: #64748b"],
+.dark-mode span[style*="color: #64748b"],
+.dark-mode div[style*="color: #334155"],
 .dark-mode div[style*="color: #475569"],
-.dark-mode p[style*="color: #64748b"],
+.dark-mode div[style*="color: #64748b"],
+.dark-mode p[style*="color: #334155"],
 .dark-mode p[style*="color: #475569"],
-.dark-mode label[style*="color: #475569"],
-.dark-mode label[style*="color: #64748b"] {
+.dark-mode p[style*="color: #64748b"],
+.dark-mode td[style*="color: #334155"],
+.dark-mode td[style*="color: #475569"],
+.dark-mode td[style*="color: #64748b"],
+.dark-mode label {
   color: #cbd5e1 !important;
 }
 
-/* Inputs e selects no modo escuro */
+/* 4. TABELAS (ANOTAÇÕES, PRODUTOS, CONTAS, FINANCEIRO) */
+.dark-mode table {
+  border-color: #27354f !important;
+  color: #f8fafc !important;
+}
+
+.dark-mode thead tr,
+.dark-mode th {
+  background: #111827 !important;
+  background-color: #111827 !important;
+  border-color: #27354f !important;
+  color: #e2e8f0 !important;
+}
+
+.dark-mode tbody tr {
+  border-bottom-color: #1e293b !important;
+  border-color: #1e293b !important;
+}
+
+.dark-mode tbody tr:hover {
+  background-color: #1a243b !important;
+}
+
+.dark-mode tbody tr[style*="background: #fbf8ff"],
+.dark-mode tbody tr[style*="background: #faf5ff"] {
+  background: #1e293b !important;
+}
+
+.dark-mode tr[style*="border-bottom: 1px solid #f1f5f9"],
+.dark-mode tr[style*="borderBottom: 1px solid #f1f5f9"] {
+  border-bottom: 1px solid #27354f !important;
+}
+
+/* 5. FORMULÁRIOS, INPUTS, SELECTS E DATEPICKERS */
 .dark-mode input:not([type="checkbox"]):not([type="radio"]),
 .dark-mode select,
 .dark-mode textarea {
   background-color: #1e293b !important;
   color: #f8fafc !important;
-  border-color: #475569 !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode input:focus,
+.dark-mode select:focus,
+.dark-mode textarea:focus {
+  border-color: #8b5cf6 !important;
+  outline: none !important;
 }
 
 .dark-mode input::placeholder,
@@ -127,30 +229,63 @@
   color: #94a3b8 !important;
 }
 
-/* Tabelas no modo escuro */
-.dark-mode table,
-.dark-mode tr,
-.dark-mode th,
-.dark-mode td {
+/* Ajuste específico para seletores de data no dark mode (calendário nativo) */
+.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+  cursor: pointer;
+}
+
+/* 6. BOTÕES DE FILTRO E AÇÕES */
+.dark-mode button[style*="background: #ffffff"],
+.dark-mode button[style*="background-color: #ffffff"],
+.dark-mode button[style*="background: #f8fafc"] {
+  background: #1e293b !important;
   border-color: #334155 !important;
+  color: #e2e8f0 !important;
 }
 
-.dark-mode th {
-  background-color: #1e293b !important;
-  color: #cbd5e1 !important;
+.dark-mode button[style*="background: #ffffff"]:hover,
+.dark-mode button[style*="background: #f8fafc"]:hover {
+  background: #27354f !important;
+  border-color: #475569 !important;
 }
 
-.dark-mode tr[style*="border-bottom: 1px solid #f1f5f9"],
-.dark-mode tr[style*="borderBottom: 1px solid #f1f5f9"] {
-  border-bottom: 1px solid #334155 !important;
+/* Botões de Ações na tabela (Duplicar, Editar, Excluir) */
+.dark-mode button[style*="background: #ecfdf5"],
+.dark-mode button[style*="background: #f0fdf4"] {
+  background: #064e3b !important;
+  border-color: #047857 !important;
+  color: #6ee7b7 !important;
 }
 
-/* Modais e popups no modo escuro */
-.dark-mode div[style*="borderRadius: '24px'"],
-.dark-mode div[style*="border-radius: 24px"],
-.dark-mode div[style*="borderRadius: '20px'"],
-.dark-mode div[style*="border-radius: 20px"] {
-  border-color: #334155 !important;
+.dark-mode button[style*="background: #fef2f2"] {
+  background: #7f1d1d !important;
+  border-color: #991b1b !important;
+  color: #fca5a5 !important;
+}
+
+.dark-mode button[style*="background: #ede9fe"],
+.dark-mode button[style*="background: #f3e8ff"] {
+  background: #312e81 !important;
+  border-color: #4338ca !important;
+  color: #c7d2fe !important;
+}
+
+/* Linha de edição direta em tabelas */
+.dark-mode tr[style*="background: #fdf4ff"] {
+  background: #251b3b !important;
+  border-color: #581c87 !important;
+}
+
+/* 7. SCROLLBAR NO DARK MODE */
+.dark-mode ::-webkit-scrollbar-track {
+  background: #0b0f19 !important;
+}
+.dark-mode ::-webkit-scrollbar-thumb {
+  background: #334155 !important;
+}
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #475569 !important;
 }
 
 * {

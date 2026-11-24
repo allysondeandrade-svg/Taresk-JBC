@@ -2540,7 +2540,7 @@ export default function MobileAppView({
             <line x1="15" y1="20" x2="29" y2="20" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
             <line x1="15" y1="26" x2="26" y2="26" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
             <line x1="15" y1="32" x2="22" y2="32" stroke="#6d28d9" strokeWidth="2.4" strokeLinecap="round" />
-            
+
             {/* Lápis desenhando na diagonal */}
             <g transform="translate(19, 14)">
               <rect x="8" y="1" width="5.5" height="18" rx="2" transform="rotate(45 8 1)" fill="#6d28d9" />
