@@ -85,6 +85,9 @@ export default function MobileAppView({
   onToggleMarketplace,
   onOpenNewTaskModal,
   onFinishTask,
+  onUnfinishTask,
+  onDeleteCompletedTask,
+  onUpdateCompletedTask,
   onToggleChecklistItem,
   onUpdateTask,
   onDeleteTask,
@@ -239,9 +242,24 @@ export default function MobileAppView({
     ];
   }
 
+  // Helper unificado para verificar se uma tarefa é simples
+  function isTaskSimple(task) {
+    if (task.type === 'simple') return true;
+    if (task.type === 'special' || task.type === 'recurrent') return false;
+    const hasProduct = Boolean(
+      (task.productId && task.productId !== 'null') ||
+      products?.some(p => (p.sku && p.sku === task.sku) || (p.id && p.id === task.productId))
+    );
+    const hasMarketplaces = task.marketplaces && Object.keys(task.marketplaces).length > 0;
+    if (!hasProduct && (!hasMarketplaces || task.checklist?.length > 0)) {
+      return true;
+    }
+    return false;
+  }
+
   // Progresso da tarefa
   function calculateTaskProgress(task) {
-    if (task.type === 'special' || task.type === 'simple') {
+    if (task.type === 'special' || isTaskSimple(task)) {
       if (!task.checklist || task.checklist.length === 0) return 0;
       const completed = task.checklist.filter(c => c.completed).length;
       return Math.round((completed / task.checklist.length) * 100);
@@ -273,14 +291,74 @@ export default function MobileAppView({
     return Math.round(photoProgress + mpProgress);
   }
 
+  // Helper para verificar se a tarefa pertence ao usuário logado ou se o usuário tem privilégio de visualização
+  function isTaskForUser(task, user) {
+    if (!task || !user) return false;
+    const norm = (s) => String(s || '').toLowerCase().trim();
+    const uName = norm(user.name);
+    const uEmail = norm(user.email);
+    const isPrivileged = user.role === 'premium_admin' || uName.includes('allyson') || uEmail.includes('allyson');
+    if (isPrivileged) return true;
+
+    const taskAssignee = norm(task.assignedTo);
+    const taskAssigneeName = norm(task.assignedByName);
+    const taskCreator = norm(task.createdById);
+    const uId = norm(user.id);
+
+    // Compara por ID exato ou numérico
+    if (taskAssignee && (taskAssignee === uId || parseInt(taskAssignee, 10) === parseInt(uId, 10))) return true;
+    if (taskCreator && (taskCreator === uId || parseInt(taskCreator, 10) === parseInt(uId, 10))) return true;
+
+    // Compara por Nome
+    if (uName && (taskAssignee === uName || taskAssigneeName === uName || taskAssignee.includes(uName) || uName.includes(taskAssignee))) {
+      return true;
+    }
+
+    // Compara por Email
+    if (uEmail && (taskAssignee === uEmail || taskCreator === uEmail)) return true;
+
+    // Se o assignee da tarefa apontar para um usuário da lista e esse usuário for o user logado
+    const matchedUser = users.find(u =>
+      norm(u.id) === taskAssignee ||
+      norm(u.name) === taskAssignee ||
+      norm(u.email) === taskAssignee ||
+      (parseInt(u.id, 10) && parseInt(u.id, 10) === parseInt(taskAssignee, 10))
+    );
+    if (matchedUser && norm(matchedUser.id) === uId) return true;
+
+    return false;
+  }
+
   // Filtragem de tarefas
   const currentList = taskSubTab === 'atuais' ? tasks : completedTasks;
   const filteredTasks = currentList.filter(task => {
+    // 1. Filtro de permissão: colaboradores comuns veem apenas suas tarefas
+    if (!isTaskForUser(task, currentUser)) {
+      return false;
+    }
+
+    // 2. Filtro por pílula de usuário selecionada
     if (selectedUserFilter !== 'all') {
       const norm = (s) => String(s || '').toLowerCase().trim();
       const target = norm(selectedUserFilter);
-      const isDirect = norm(task.assignedTo) === target || norm(task.assignedByName) === target;
-      if (!isDirect) return false;
+      const fUser = users.find(u => norm(u.id) === target || norm(u.name) === target);
+      const tAssigned = norm(task.assignedTo);
+      const tAssignedName = norm(task.assignedByName);
+      const fUserId = fUser ? norm(fUser.id) : '';
+      const fUserName = fUser ? norm(fUser.name) : '';
+
+      const matches =
+        tAssigned === target ||
+        tAssignedName === target ||
+        (target && (tAssigned.includes(target) || tAssignedName.includes(target))) ||
+        (fUser && (
+          tAssigned === fUserId ||
+          tAssigned === fUserName ||
+          tAssignedName === fUserName ||
+          (fUserName && (tAssigned.includes(fUserName) || tAssignedName.includes(fUserName)))
+        ));
+
+      if (!matches) return false;
     }
     return true;
   });
@@ -1298,7 +1376,7 @@ export default function MobileAppView({
               const progressPercent = calculateTaskProgress(task);
               const isSpecial = task.type === 'special';
               const isRecurrent = task.type === 'recurrent';
-              const isSimple = task.type === 'simple';
+              const isSimple = isTaskSimple(task);
               const taskPlats = getTaskPlatforms(task);
 
               const matchedProduct = products?.find(p =>
@@ -1408,7 +1486,35 @@ export default function MobileAppView({
                           </button>
                         )}
 
-                        {onDuplicateTask && (
+                        {/* Botão Reativar na aba de Concluídas */}
+                        {taskSubTab === 'concluidas' && onUnfinishTask && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Deseja reativar a tarefa "${displayTitle}" e movê-la de volta para as tarefas ativas?`)) {
+                                onUnfinishTask(task);
+                              }
+                            }}
+                            title="Reativar Tarefa"
+                            style={{
+                              background: '#fef3c7',
+                              color: '#b45309',
+                              border: '1px solid #fde68a',
+                              padding: '4px 8px',
+                              borderRadius: '9999px',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <RotateCcw size={12} /> Reativar
+                          </button>
+                        )}
+
+                        {onDuplicateTask && taskSubTab === 'atuais' && (
                           <button
                             onClick={() => onDuplicateTask(task)}
                             title="Duplicar Tarefa"
@@ -1429,36 +1535,42 @@ export default function MobileAppView({
                           </button>
                         )}
 
-                        <button
-                          onClick={() => {
-                            setEditingTask(task);
-                            setEditTitle(task.title || '');
-                            setEditDueDate(formatDueDateDisplay(task.dueDate));
-                            const subs = task.checklist ? task.checklist.map(c => ({ ...c })) : [];
-                            setEditSubtasks(subs);
-                            setNewEditSubtaskInput('');
-                          }}
-                          title="Editar Tarefa"
-                          style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '6px',
-                            border: '1px solid #e2e8f0',
-                            background: '#f8fafc',
-                            color: '#64748b',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Edit2 size={13} />
-                        </button>
+                        {taskSubTab === 'atuais' && (
+                          <button
+                            onClick={() => {
+                              setEditingTask(task);
+                              setEditTitle(task.title || '');
+                              setEditDueDate(formatDueDateDisplay(task.dueDate));
+                              const subs = task.checklist ? task.checklist.map(c => ({ ...c })) : [];
+                              setEditSubtasks(subs);
+                              setNewEditSubtaskInput('');
+                            }}
+                            title="Editar Tarefa"
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '6px',
+                              border: '1px solid #e2e8f0',
+                              background: '#f8fafc',
+                              color: '#64748b',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                        )}
 
                         <button
                           onClick={() => {
-                            if (window.confirm(`Excluir a tarefa "${displayTitle}"?`)) {
-                              onDeleteTask(task);
+                            if (window.confirm(`Excluir ${taskSubTab === 'concluidas' ? 'permanentemente ' : ''}a tarefa "${displayTitle}"?`)) {
+                              if (taskSubTab === 'concluidas' && onDeleteCompletedTask) {
+                                onDeleteCompletedTask(task);
+                              } else {
+                                onDeleteTask(task);
+                              }
                             }
                           }}
                           title="Excluir Tarefa"
@@ -2016,7 +2128,35 @@ export default function MobileAppView({
                             </button>
                           )}
 
-                          {onDuplicateTask && (
+                          {/* Botão Reativar na aba de Concluídas */}
+                          {taskSubTab === 'concluidas' && onUnfinishTask && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Deseja reativar a tarefa "${displayTitle}" e movê-la de volta para as tarefas ativas?`)) {
+                                  onUnfinishTask(task);
+                                }
+                              }}
+                              title="Reativar Tarefa"
+                              style={{
+                                background: '#fef3c7',
+                                color: '#b45309',
+                                border: '1px solid #fde68a',
+                                padding: '3px 7px',
+                                borderRadius: '9999px',
+                                fontSize: '10px',
+                                fontWeight: '800',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}
+                            >
+                              <RotateCcw size={11} /> Reativar
+                            </button>
+                          )}
+
+                          {onDuplicateTask && taskSubTab === 'atuais' && (
                             <button
                               onClick={() => onDuplicateTask(task)}
                               title="Duplicar Tarefa"
@@ -2037,36 +2177,42 @@ export default function MobileAppView({
                             </button>
                           )}
 
-                          <button
-                            onClick={() => {
-                              setEditingTask(task);
-                              setEditTitle(task.title || '');
-                              setEditDueDate(formatDueDateDisplay(task.dueDate));
-                              const subs = task.checklist ? task.checklist.map(c => ({ ...c })) : [];
-                              setEditSubtasks(subs);
-                              setNewEditSubtaskInput('');
-                            }}
-                            title="Editar Tarefa"
-                            style={{
-                              width: '24px',
-                              height: '24px',
-                              borderRadius: '6px',
-                              border: '1px solid #e2e8f0',
-                              background: '#f8fafc',
-                              color: '#64748b',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <Edit2 size={12} />
-                          </button>
+                          {taskSubTab === 'atuais' && (
+                            <button
+                              onClick={() => {
+                                setEditingTask(task);
+                                setEditTitle(task.title || '');
+                                setEditDueDate(formatDueDateDisplay(task.dueDate));
+                                const subs = task.checklist ? task.checklist.map(c => ({ ...c })) : [];
+                                setEditSubtasks(subs);
+                                setNewEditSubtaskInput('');
+                              }}
+                              title="Editar Tarefa"
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '6px',
+                                border: '1px solid #e2e8f0',
+                                background: '#f8fafc',
+                                color: '#64748b',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          )}
 
                           <button
                             onClick={() => {
-                              if (window.confirm(`Excluir a tarefa "${displayTitle}"?`)) {
-                                onDeleteTask(task);
+                              if (window.confirm(`Excluir ${taskSubTab === 'concluidas' ? 'permanentemente ' : ''}a tarefa "${displayTitle}"?`)) {
+                                if (taskSubTab === 'concluidas' && onDeleteCompletedTask) {
+                                  onDeleteCompletedTask(task);
+                                } else {
+                                  onDeleteTask(task);
+                                }
                               }
                             }}
                             title="Excluir Tarefa"

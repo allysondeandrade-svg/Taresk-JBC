@@ -390,7 +390,43 @@ export default function App() {
             return merged;
           });
         }
-        if (Array.isArray(data.completedTasks)) setCompletedTasks(data.completedTasks);
+        if (Array.isArray(data.completedTasks)) {
+          const sanitizedCompleted = data.completedTasks.map(t => {
+            let chk = t.checklist;
+            let mp = t.marketplaces;
+            if (typeof chk === 'string') {
+              try { chk = JSON.parse(chk); } catch (e) { chk = []; }
+            }
+            if (!Array.isArray(chk) && typeof t.notes === 'string' && t.notes.startsWith('[')) {
+              try { chk = JSON.parse(t.notes); } catch (e) { }
+            }
+            if (typeof mp === 'string') {
+              try { mp = JSON.parse(mp); } catch (e) { mp = {}; }
+            }
+            return {
+              ...t,
+              status: 'completed',
+              checklist: Array.isArray(chk) ? chk : [],
+              marketplaces: (mp && typeof mp === 'object') ? mp : {}
+            };
+          });
+
+          // Set de IDs das tarefas comprovadamente concluídas na planilha
+          const completedIds = new Set(sanitizedCompleted.map(ct => String(ct.id || '').trim()).filter(Boolean));
+
+          setCompletedTasks(sanitizedCompleted);
+
+          // Remove da lista de tarefas ativas locais qualquer tarefa que já foi concluída na planilha
+          if (completedIds.size > 0) {
+            setTasks(prevTasks => {
+              const cleaned = prevTasks.filter(pt => !completedIds.has(String(pt.id || '').trim()));
+              try {
+                localStorage.setItem('taresk_tasks', JSON.stringify(cleaned));
+              } catch (e) { }
+              return cleaned;
+            });
+          }
+        }
         if (Array.isArray(data.products) && data.products.length > 0) {
           const parseNum = (v) => {
             if (typeof v === 'number') return isNaN(v) ? 0 : v;
@@ -1082,6 +1118,9 @@ export default function App() {
           onToggleMarketplace={handleToggleMarketplace}
           onOpenNewTaskModal={() => setIsNewTaskModalOpen(true)}
           onFinishTask={handleFinishTask}
+          onUnfinishTask={handleUnfinishTask}
+          onDeleteCompletedTask={handleDeleteCompletedTask}
+          onUpdateCompletedTask={handleUpdateCompletedTask}
           onToggleChecklistItem={handleToggleChecklistItem}
           onUpdateTask={handleUpdateTask}
           onDeleteTask={handleDeleteTask}
