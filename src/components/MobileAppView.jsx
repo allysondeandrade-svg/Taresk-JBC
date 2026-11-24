@@ -663,10 +663,10 @@ export default function MobileAppView({
                   return;
                 }
                 if (onAddProduct) {
-                  const prodNome = newProdMobile.title.trim() || newProdMobile.sku.toUpperCase().trim();
+                  const prodNome = newProdMobile.title.trim() || newProdMobile.sku.trim();
                   onAddProduct({
                     id: 'prod_' + Date.now(),
-                    sku: newProdMobile.sku.toUpperCase().trim(),
+                    sku: newProdMobile.sku.trim(),
                     title: prodNome,
                     product: prodNome,
                     cost: parseFloat(newProdMobile.cost) || 0,
@@ -929,7 +929,7 @@ export default function MobileAppView({
                                     if (onUpdateProduct) {
                                       const prodNome = (editingProdFormMobile.title || editingProdFormMobile.product || prod.title || prod.product || '').trim();
                                       onUpdateProduct(prod.id, {
-                                        sku: (editingProdFormMobile.sku || prod.sku).toUpperCase().trim(),
+                                        sku: (editingProdFormMobile.sku !== undefined ? editingProdFormMobile.sku : prod.sku).trim(),
                                         title: prodNome,
                                         product: prodNome,
                                         cost: parseFloat(editingProdFormMobile.cost) || 0,
