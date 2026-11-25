@@ -500,17 +500,28 @@ export default function AnnotationsView({
 
       return true;
     }).sort((a, b) => {
-      // Ordenação: 'desc' = data mais recente no topo
-      //            'asc'  = data mais antiga no topo
+      // Ordenação: 'desc' = data e horário mais recentes no topo
+      //            'asc'  = data e horário mais antigos no topo
       const parseItemDate = (item) => {
-        const dStr = String(item.date || '').trim();
-        if (dStr.includes('/')) {
-          const parts = dStr.split('/');
+        const fullStr = String(item.dateTime || item.dataHora || item.date || '').trim();
+        // Se contiver horário (ex: "24/11 22:30:15" ou "24/11 22:30")
+        if (fullStr.includes('/')) {
+          const [datePart, timePart] = fullStr.split(' ');
+          const parts = datePart.split('/');
           const day = parseInt(parts[0], 10) || 1;
           const month = parseInt(parts[1], 10) || 1;
           const year = parts.length >= 3 ? (parseInt(parts[2], 10) || currentYear) : currentYear;
           const fullYear = year < 100 ? (2000 + year) : year;
-          return new Date(fullYear, month - 1, day).getTime();
+
+          let hh = 0, mm = 0, ss = 0;
+          if (timePart && timePart.includes(':')) {
+            const tParts = timePart.split(':');
+            hh = parseInt(tParts[0], 10) || 0;
+            mm = parseInt(tParts[1], 10) || 0;
+            ss = parseInt(tParts[2], 10) || 0;
+          }
+
+          return new Date(fullYear, month - 1, day, hh, mm, ss).getTime();
         }
         if (item.createdAt) {
           const t = new Date(item.createdAt).getTime();

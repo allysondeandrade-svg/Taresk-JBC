@@ -17,6 +17,31 @@ function getTodayFormatted() {
   return `${dd}/${mm}`;
 }
 
+// Retorna data no formato ISO YYYY-MM-DD para input[type="date"]
+function getTodayIso() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// Retorna data e hora formatada dd/mm hh:mm
+function getNowDateTimeFormatted(isoDate) {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  
+  if (isoDate && isoDate.includes('-')) {
+    const [y, m, d] = isoDate.split('-');
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')} ${hh}:${min}:${ss}`;
+  }
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm} ${hh}:${min}:${ss}`;
+}
+
 // Os 6 marcadores oficiais solicitados
 export const ANNOTATION_TYPES = [
   {
@@ -110,6 +135,7 @@ export default function AnnotationModal({
   onSave
 }) {
   const [selectedType, setSelectedType] = useState('entrega_local');
+  const [selectedDate, setSelectedDate] = useState(() => getTodayIso());
   const [selectedPlatform, setSelectedPlatform] = useState('');
   const [sku, setSku] = useState('');
   const [pedido, setPedido] = useState('');
@@ -149,9 +175,23 @@ export default function AnnotationModal({
     // Gera ID numérico único de 4 dígitos
     const randomId = String(Math.floor(1000 + Math.random() * 9000));
 
+    // Data e Hora completas: dd/mm hh:mm:ss
+    const dateTimeFormatted = getNowDateTimeFormatted(selectedDate);
+    // Data simples dd/mm
+    const dateSimple = (() => {
+      if (selectedDate && selectedDate.includes('-')) {
+        const [, m, d] = selectedDate.split('-');
+        return `${d.padStart(2, '0')}/${m.padStart(2, '0')}`;
+      }
+      return getTodayFormatted();
+    })();
+
     const payload = {
       id: randomId,
-      date: getTodayFormatted(),
+      date: dateSimple,
+      dateTime: dateTimeFormatted,
+      dataHora: dateTimeFormatted,
+      data: dateTimeFormatted,
       marcador: marcadorLabel,
       type: marcadorLabel,
       platform: platValue,
@@ -339,6 +379,40 @@ export default function AnnotationModal({
 
         {/* Campos do Formulário Dinâmicos conforme o Marcador Selecionado */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+          {/* Campo: Data (Presente em todos os marcadores, padrão hoje) */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <label
+              style={{
+                fontSize: '16px',
+                fontWeight: '800',
+                color: '#0f172a',
+                letterSpacing: '-0.3px',
+                flexShrink: 0
+              }}
+            >
+              Data
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              style={{
+                width: '62%',
+                height: '42px',
+                borderRadius: '10px',
+                border: '1.5px solid #cbd5e1',
+                padding: '0 12px',
+                fontSize: '14px',
+                fontWeight: '700',
+                color: '#0f172a',
+                outline: 'none',
+                boxSizing: 'border-box',
+                background: '#ffffff',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+
           {/* Campo: Plataforma */}
           {showPlatform && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>

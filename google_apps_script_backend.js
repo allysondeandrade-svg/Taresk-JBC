@@ -1832,15 +1832,25 @@ function getAnnotationsDataAsJson() {
   return rows.map((r, index) => {
     let rawDate = idxData !== -1 ? r[idxData] : '';
     let formattedDate = '';
+    let fullDateTime = '';
+
     if (rawDate instanceof Date) {
       const dd = String(rawDate.getDate()).padStart(2, '0');
       const mm = String(rawDate.getMonth() + 1).padStart(2, '0');
-      formattedDate = dd + '/' + mm;
+      const hh = String(rawDate.getHours()).padStart(2, '0');
+      const min = String(rawDate.getMinutes()).padStart(2, '0');
+      const ss = String(rawDate.getSeconds()).padStart(2, '0');
+      formattedDate = `${dd}/${mm}`;
+      fullDateTime = `${dd}/${mm} ${hh}:${min}:${ss}`;
     } else {
-      formattedDate = String(rawDate || '').trim();
-      if (formattedDate.includes('/') && formattedDate.length > 5) {
-        const parts = formattedDate.split(' ')[0].split('/');
+      const strVal = String(rawDate || '').trim();
+      fullDateTime = strVal;
+      if (strVal.includes('/')) {
+        const datePart = strVal.split(' ')[0];
+        const parts = datePart.split('/');
         if (parts.length >= 2) formattedDate = parts[0].padStart(2, '0') + '/' + parts[1].padStart(2, '0');
+      } else {
+        formattedDate = strVal;
       }
     }
 
@@ -1880,6 +1890,8 @@ function getAnnotationsDataAsJson() {
     return {
       id: formattedId,
       date: formattedDate,
+      dateTime: fullDateTime || formattedDate,
+      dataHora: fullDateTime || formattedDate,
       type: marcadorVal,
       marcador: marcadorVal,
       platform: platVal,
@@ -1933,10 +1945,10 @@ function saveAnnotationRecord(annotationData) {
     finalId = getNextFormattedId([SHEETS.ANNOTATIONS]);
   }
 
-  let dateStr = annotationData.date || annotationData.data || '';
-  if (!dateStr) {
+  let dateStr = annotationData.dateTime || annotationData.dataHora || annotationData.date || annotationData.data || '';
+  if (!dateStr || dateStr.length <= 5) {
     const now = new Date();
-    dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM');
+    dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM HH:mm:ss');
   }
 
   let marcador = String(annotationData.marcador || annotationData.type || annotationData.tipo || 'Anotação').trim();
