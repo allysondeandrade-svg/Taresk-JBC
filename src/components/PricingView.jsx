@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Calculator, DollarSign, ArrowRight, Info, AlertTriangle, TrendingUp, Box, Scale, Layers, Truck } from 'lucide-react';
 import ShopeeKitsModal from './ShopeeKitsModal';
 import FreteProprioModal from './FreteProprioModal';
+import PlatformFreightTableModal from './PlatformFreightTableModal';
 import ProductSearchAutocomplete from './ProductSearchAutocomplete';
 import { DEFAULT_PRICING_CONFIGS } from '../data/initialData';
 import {
@@ -59,6 +60,7 @@ export default function PricingView({ products = [] }) {
   const [mlListingType, setMlListingType] = useState('premium');
   const [isKitsModalOpen, setIsKitsModalOpen] = useState(false);
   const [isFreteProprioModalOpen, setIsFreteProprioModalOpen] = useState(false);
+  const [activeTableModal, setActiveTableModal] = useState(null); // 'shopee', 'mercadoLivre', 'amazon', 'magalu'
 
   const selectedProduct = products.find(p => p.id === selectedProductId) || products[0] || {
     title: 'Produto de Teste',
@@ -369,13 +371,13 @@ export default function PricingView({ products = [] }) {
         {/* CARD 1: SHOPEE */}
         <PricingCard
           title="Shopee"
-          subtitle="Tabela de Tarifas e Frete Shopee"
           brandBg="#ff5722"
           brandTextColor="#ffffff"
           calc={shopeeCalc}
           channelKey="shopee"
           isShopeeStyle={true}
           onPriceRawInput={handlePriceRawInput}
+          onOpenTableModal={() => setActiveTableModal('shopee')}
           customRate={customRates.shopee}
           rateTextInput={rateTextInputs.shopee}
           customFreight={customFreights.shopee}
@@ -387,14 +389,18 @@ export default function PricingView({ products = [] }) {
         {/* CARD 2: MERCADO LIVRE */}
         <PricingCard
           title="Mercado Livre"
-          subtitle="Clássico (12%) / Premium (16.5%)"
           brandBg="#ffe600"
           brandTextColor="#000000"
           calc={mlCalc}
           channelKey="mercadoLivre"
           hasListingSelector={true}
           mlListingType={mlListingType}
-          onToggleListingType={() => setMlListingType(prev => prev === 'classico' ? 'premium' : 'classico')}
+          onChangeListingType={(type) => {
+            setMlListingType(type);
+            setCustomRates(prev => ({ ...prev, mercadoLivre: null }));
+            setRateTextInputs(prev => ({ ...prev, mercadoLivre: '' }));
+          }}
+          onOpenTableModal={() => setActiveTableModal('mercadoLivre')}
           onPriceRawInput={handlePriceRawInput}
           customRate={customRates.mercadoLivre}
           rateTextInput={rateTextInputs.mercadoLivre}
@@ -407,11 +413,11 @@ export default function PricingView({ products = [] }) {
         {/* CARD 3: AMAZON */}
         <PricingCard
           title="Amazon"
-          subtitle="DBA – Delivery by Amazon"
           brandBg="#131921"
           brandTextColor="#ffffff"
           calc={amazonCalc}
           channelKey="amazon"
+          onOpenTableModal={() => setActiveTableModal('amazon')}
           onPriceRawInput={handlePriceRawInput}
           customRate={customRates.amazon}
           rateTextInput={rateTextInputs.amazon}
@@ -424,11 +430,11 @@ export default function PricingView({ products = [] }) {
         {/* CARD 4: MAGALU */}
         <PricingCard
           title="Magalu"
-          subtitle="Marketplace Luiza Envios"
           brandBg="#0086ff"
           brandTextColor="#ffffff"
           calc={magaluCalc}
           channelKey="magalu"
+          onOpenTableModal={() => setActiveTableModal('magalu')}
           onPriceRawInput={handlePriceRawInput}
           customRate={customRates.magalu}
           rateTextInput={rateTextInputs.magalu}
@@ -454,6 +460,13 @@ export default function PricingView({ products = [] }) {
         products={products}
         initialProduct={selectedProduct}
       />
+
+      {/* Modal Popup da Tabela de Frete da Plataforma (Ver Tabela) */}
+      <PlatformFreightTableModal
+        isOpen={Boolean(activeTableModal)}
+        onClose={() => setActiveTableModal(null)}
+        platformKey={activeTableModal}
+      />
     </div>
   );
 }
@@ -469,7 +482,8 @@ function PricingCard({
   onPriceRawInput,
   hasListingSelector = false,
   mlListingType = 'premium',
-  onToggleListingType,
+  onChangeListingType,
+  onOpenTableModal,
   customRate = null,
   rateTextInput = '',
   customFreight = null,
@@ -526,63 +540,30 @@ function PricingCard({
             {title}
           </h3>
 
-          {/* Seletor Clássico vs Premium no Mercado Livre */}
-          {hasListingSelector ? (
-            <div style={{
-              display: 'inline-flex',
-              marginTop: '10px',
-              background: 'rgba(0,0,0,0.12)',
-              padding: '3px',
-              borderRadius: '9999px',
-              gap: '4px'
-            }}>
-              <button
-                type="button"
-                onClick={onToggleListingType}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '9999px',
-                  border: 'none',
-                  fontSize: '11px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  background: mlListingType === 'classico' ? '#000000' : 'transparent',
-                  color: mlListingType === 'classico' ? '#ffffff' : '#000000',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Clássico (12%)
-              </button>
-              <button
-                type="button"
-                onClick={onToggleListingType}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '9999px',
-                  border: 'none',
-                  fontSize: '11px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  background: mlListingType === 'premium' ? '#000000' : 'transparent',
-                  color: mlListingType === 'premium' ? '#ffffff' : '#000000',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Premium (16.5%)
-              </button>
-            </div>
-          ) : (
-            <span style={{
+          {/* Link / Botão 'Ver Tabela' centralizado e sublinhado exatamente como no print do usuário */}
+          <button
+            type="button"
+            onClick={onOpenTableModal}
+            title={`Ver tabela oficial de regras de frete e tarifas da ${title}`}
+            style={{
               marginTop: '8px',
-              fontSize: '12px',
+              fontSize: '13px',
               fontWeight: '700',
               color: brandTextColor,
-              opacity: 0.85,
-              display: 'inline-block'
-            }}>
-              {subtitle}
-            </span>
-          )}
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              transition: 'opacity 0.15s ease',
+              opacity: 0.95
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.85'; }}
+          >
+            Ver Tabela
+          </button>
 
           {/* Botão de Restaurar Padrão do canal se houver valores editados */}
           {hasCustomValues && (
@@ -671,36 +652,95 @@ function PricingCard({
                 <span style={{ fontSize: '10px', fontWeight: '800', color: '#7c3aed' }}>Personalizada</span>
               )}
             </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              border: customRate !== null ? '1.5px solid #8b5cf6' : '1.5px solid #cbd5e1',
-              borderRadius: '10px',
-              background: customRate !== null ? '#faf5ff' : '#ffffff',
-              padding: '6px 12px',
-              justifyContent: 'space-between',
-              boxSizing: 'border-box'
-            }}>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={displayRate}
-                onChange={(e) => onRateRawInput(channelKey, e.target.value)}
-                placeholder={calc.feeRate % 1 === 0 ? String(calc.feeRate) : calc.feeRate.toFixed(1).replace('.', ',')}
-                title="Alíquota % do canal"
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  fontWeight: '800',
-                  fontSize: '14px',
-                  textAlign: 'right',
-                  color: customRate !== null ? '#6b21a8' : '#0f172a',
-                  outline: 'none',
-                  width: '100%'
-                }}
-                onFocus={(e) => e.currentTarget.select()}
-              />
-              <span style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8', marginLeft: '6px' }}>%</span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+              {/* Botões C (Clássico - Verde) e P (Premium - Azul) no Mercado Livre */}
+              {hasListingSelector && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {/* Botão C (Verde) */}
+                  <button
+                    type="button"
+                    onClick={() => onChangeListingType('classico')}
+                    title="Anúncio Clássico (12% tarifa)"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      border: mlListingType === 'classico' ? '2px solid #15803d' : '1.5px solid #86efac',
+                      background: mlListingType === 'classico' ? '#16a34a' : '#22c55e',
+                      color: '#ffffff',
+                      fontWeight: '900',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: mlListingType === 'classico' ? '0 2px 6px rgba(22, 163, 74, 0.4)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    C
+                  </button>
+
+                  {/* Botão P (Azul) */}
+                  <button
+                    type="button"
+                    onClick={() => onChangeListingType('premium')}
+                    title="Anúncio Premium (16,5% tarifa)"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      border: mlListingType === 'premium' ? '2px solid #0284c7' : '1.5px solid #38bdf8',
+                      background: mlListingType === 'premium' ? '#0284c7' : '#0ea5e9',
+                      color: '#ffffff',
+                      fontWeight: '900',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: mlListingType === 'premium' ? '0 2px 6px rgba(2, 132, 199, 0.4)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    P
+                  </button>
+                </div>
+              )}
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                border: customRate !== null ? '1.5px solid #8b5cf6' : '1.5px solid #cbd5e1',
+                borderRadius: '10px',
+                background: customRate !== null ? '#faf5ff' : '#ffffff',
+                padding: '6px 12px',
+                justifyContent: 'space-between',
+                boxSizing: 'border-box',
+                flex: 1
+              }}>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={displayRate}
+                  onChange={(e) => onRateRawInput(channelKey, e.target.value)}
+                  placeholder={calc.feeRate % 1 === 0 ? String(calc.feeRate) : calc.feeRate.toFixed(1).replace('.', ',')}
+                  title="Alíquota % do canal"
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontWeight: '800',
+                    fontSize: '14px',
+                    textAlign: 'right',
+                    color: customRate !== null ? '#6b21a8' : '#0f172a',
+                    outline: 'none',
+                    width: '100%'
+                  }}
+                  onFocus={(e) => e.currentTarget.select()}
+                />
+                <span style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8', marginLeft: '6px' }}>%</span>
+              </div>
             </div>
           </div>
 
