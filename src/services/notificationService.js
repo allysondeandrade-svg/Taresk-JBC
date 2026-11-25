@@ -223,54 +223,86 @@ export const NotificationService = {
 
   /**
    * Dispara notificação quando uma nova tarefa for atribuída ao usuário
+   * REGRA CRÍTICA:
+   * 1. NUNCA notifica tarefas concluídas (status === 'completed' ou completedAt preenchido)
+   * 2. Cada tarefa só é notificada EXATAMENTE UMA VEZ no dispositivo (armazenado em localStorage)
    */
   notifyTaskAssigned(task, currentUser, users = []) {
     if (!task) return;
     if (!this.isEnabled()) return;
     if (!this.isSupported() || Notification.permission !== 'granted') return;
 
-    // Se houver um usuário logado no dispositivo, verifica se a tarefa foi atribuída a ele
-    if (currentUser) {
-      const norm = (s) => String(s || '').toLowerCase().trim();
-      const uId = norm(currentUser.id);
-      const uName = norm(currentUser.name);
-      const tAssignee = norm(task.assignedTo);
-      const tAssigneeName = norm(task.assignedByName);
+    // 1. Bloqueia qualquer notificação se a tarefa já estiver concluída ou arquivada
+    const isCompleted = task.status === 'completed' || !!task.completedAt || !!task.finishedTimestamp;
+    if (isCompleted) {
+      return;
+    }
 
-      let isAssignedToCurrent = false;
+    // 2. Bloqueia se a tarefa já foi notificada anteriormente (garante no máximo 1 notificação por tarefa)
+    const taskId = String(task.id || task.sku || task.title || '').trim();
+    if (!taskId) return;
 
-      // 1. Comparação direta por ID ou ID numérico (ex: "user_colab_1" ou "00001" / "1")
-      if (tAssignee && (tAssignee === uId || (parseInt(tAssignee, 10) && parseInt(tAssignee, 10) === parseInt(uId, 10)))) {
-        isAssignedToCurrent = true;
+    try {
+      const notifiedKey = 'taresk_notified_task_ids';
+      const savedNotified = localStorage.getItem(notifiedKey);
+      const notifiedSet = new Set(savedNotified ? JSON.parse(savedNotified) : []);
+
+      if (notifiedSet.has(taskId)) {
+        return; // Já foi notificada, ignora!
       }
 
-      // 2. Comparação por nome
-      if (!isAssignedToCurrent && uName && (tAssignee === uName || tAssigneeName === uName || tAssignee.includes(uName) || uName.includes(tAssignee))) {
-        isAssignedToCurrent = true;
-      }
+      // Se houver um usuário logado no dispositivo, verifica se a tarefa foi atribuída a ele
+      if (currentUser) {
+        const norm = (s) => String(s || '').toLowerCase().trim();
+        const uId = norm(currentUser.id);
+        const uName = norm(currentUser.name);
+        const tAssignee = norm(task.assignedTo);
+        const tAssigneeName = norm(task.assignedByName);
 
-      // 3. Comparação mapeando a lista de usuários
-      if (!isAssignedToCurrent && Array.isArray(users) && users.length > 0) {
-        const matched = users.find(u =>
-          norm(u.id) === tAssignee ||
-          norm(u.name) === tAssignee ||
-          (parseInt(u.id, 10) && parseInt(u.id, 10) === parseInt(tAssignee, 10))
-        );
-        if (matched && (norm(matched.id) === uId || norm(matched.name) === uName)) {
+        let isAssignedToCurrent = false;
+
+        // 1. Comparação direta por ID ou ID numérico (ex: "user_colab_1" ou "00001" / "1")
+        if (tAssignee && (tAssignee === uId || (parseInt(tAssignee, 10) && parseInt(tAssignee, 10) === parseInt(uId, 10)))) {
           isAssignedToCurrent = true;
+        }
+
+        // 2. Comparação por nome
+        if (!isAssignedToCurrent && uName && (tAssignee === uName || tAssigneeName === uName || tAssignee.includes(uName) || uName.includes(tAssignee))) {
+          isAssignedToCurrent = true;
+        }
+
+        // 3. Comparação mapeando a lista de usuários
+        if (!isAssignedToCurrent && Array.isArray(users) && users.length > 0) {
+          const matched = users.find(u =>
+            norm(u.id) === tAssignee ||
+            norm(u.name) === tAssignee ||
+            (parseInt(u.id, 10) && parseInt(u.id, 10) === parseInt(tAssignee, 10))
+          );
+          if (matched && (norm(matched.id) === uId || norm(matched.name) === uName)) {
+            isAssignedToCurrent = true;
+          }
+        }
+
+        if (!isAssignedToCurrent) {
+          return; // A tarefa não é para este usuário, não notifica
         }
       }
 
-      if (!isAssignedToCurrent) {
-        return; // A tarefa não é para este usuário, não notifica
-      }
-    }
+      // Registra que esta tarefa já foi notificada
+      notifiedSet.add(taskId);
+      // Mantém no máximo 500 registros para evitar crescimento ilimitado
+      const arr = Array.from(notifiedSet);
+      if (arr.length > 500) arr.splice(0, arr.length - 500);
+      localStorage.setItem(notifiedKey, JSON.stringify(arr));
 
-    const taskTitle = task.title || task.sku || 'Nova Tarefa';
-    this.sendImmediateNotification(
-      'Nova Tarefa! Confira os detalhes',
-      taskTitle
-    );
+      const taskTitle = task.title || task.sku || 'Nova Tarefa';
+      this.sendImmediateNotification(
+        'Nova Tarefa! Confira os detalhes',
+        taskTitle
+      );
+    } catch (e) {
+      console.warn('Erro ao processar notificação de tarefa:', e);
+    }
   },
 
   /**

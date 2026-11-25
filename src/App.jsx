@@ -340,9 +340,12 @@ export default function App() {
             if (isInitialTasksLoadedRef.current) {
               activeIncoming.forEach(incomingTask => {
                 const strId = String(incomingTask.id);
+                const isCompleted = incomingTask.status === 'completed' || !!incomingTask.completedAt;
                 if (!knownTaskIdsRef.current.has(strId)) {
-                  // Nova tarefa detectada!
-                  NotificationService.notifyTaskAssigned(incomingTask, currentUser, data.users || users);
+                  // Só notifica se NÃO for uma tarefa concluída
+                  if (!isCompleted) {
+                    NotificationService.notifyTaskAssigned(incomingTask, currentUser, data.users || users);
+                  }
                   knownTaskIdsRef.current.add(strId);
                 }
               });
