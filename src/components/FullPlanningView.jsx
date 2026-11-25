@@ -24,6 +24,29 @@ export default function FullPlanningView({
   products = [],
   currentUser
 }) {
+  // Ordenação das plataformas agrupando por marketplace: Shopee (JBC, Jeremias, Izabela...), Mercado Livre, Amazon, Magalu, Shein, Nuvemshop etc.
+  const sortedPlatforms = React.useMemo(() => {
+    const list = [...platforms];
+    const getPlatformPriority = (name = '') => {
+      const n = name.toLowerCase();
+      if (n.includes('shopee')) return 1;
+      if (n.includes('mercado') || n.includes('ml')) return 2;
+      if (n.includes('amazon')) return 3;
+      if (n.includes('magalu') || n.includes('magazine')) return 4;
+      if (n.includes('shein')) return 5;
+      if (n.includes('nuvem')) return 6;
+      if (n.includes('tiktok')) return 7;
+      return 8;
+    };
+
+    return list.sort((a, b) => {
+      const prioA = getPlatformPriority(a.name);
+      const prioB = getPlatformPriority(b.name);
+      if (prioA !== prioB) return prioA - prioB;
+      return String(a.name).localeCompare(String(b.name), 'pt-BR');
+    });
+  }, [platforms]);
+
   // Estado com os planejamentos salvos no localStorage
   const [plannings, setPlannings] = useState(() => {
     try {
@@ -287,101 +310,79 @@ export default function FullPlanningView({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '28px',
-        paddingBottom: '16px',
-        borderBottom: '2px solid #e2e8f0'
+        flexWrap: 'wrap',
+        gap: '16px',
+        marginBottom: '24px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.35)'
-          }}>
-            <Zap size={24} fill="#ffffff" />
-          </div>
-          <div>
-            <h1 style={{
-              fontSize: '24px',
-              fontWeight: '900',
-              color: '#0f172a',
-              letterSpacing: '-0.5px',
-              margin: 0,
-              textTransform: 'uppercase'
-            }}>
-              Planejamento Full
-            </h1>
-            <p style={{ margin: '3px 0 0 0', fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
-              Organize seus envios Full por data e plataforma com checklist para impressão
-            </p>
-          </div>
-        </div>
+        <h1 style={{
+          margin: 0,
+          fontSize: '28px',
+          fontWeight: '900',
+          color: '#1e293b',
+          letterSpacing: '-0.5px'
+        }}>
+          Planejamento Full
+        </h1>
 
-        {/* Botões do topo: Impressora e Adicionar (+) como na foto */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {/* Botões do topo: Impressora e Adicionar (+) como no padrão do Tarefas/Disputas */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             onClick={handlePrint}
             title="Imprimir Resumo em PDF com Checklist"
             style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '12px',
-              border: '2px solid #1e293b',
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              border: '1.5px solid #cbd5e1',
               background: '#ffffff',
-              color: '#1e293b',
+              color: '#334155',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+              boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = '#f1f5f9';
-              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.borderColor = '#94a3b8';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = '#ffffff';
-              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.borderColor = '#cbd5e1';
             }}
           >
-            <Printer size={26} strokeWidth={2.2} />
+            <Printer size={22} strokeWidth={2.2} />
           </button>
 
+          {/* Botão Circular Roxo com + padronizado idêntico a Tarefas, Disputas, etc. */}
           <button
             onClick={handleOpenModal}
-            title="Cadastrar Novo Planejamento Full"
+            title="Novo Planejamento Full"
             style={{
-              width: '46px',
-              height: '46px',
+              width: '42px',
+              height: '42px',
               borderRadius: '50%',
-              border: '2.5px solid #0f172a',
-              background: '#ffffff',
-              color: '#0f172a',
+              background: '#5925dc',
+              color: '#ffffff',
+              border: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              boxShadow: '0 4px 14px rgba(89, 37, 220, 0.4)',
+              transition: 'all 0.15s ease'
             }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = '#0f172a';
-              e.currentTarget.style.color = '#ffffff';
-              e.currentTarget.style.transform = 'scale(1.05)';
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.08)';
+              e.currentTarget.style.background = '#4e1fc4';
             }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = '#ffffff';
-              e.currentTarget.style.color = '#0f172a';
+            onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.background = '#5925dc';
             }}
           >
-            <Plus size={28} strokeWidth={2.8} />
+            <Plus size={24} strokeWidth={3} />
           </button>
         </div>
       </div>
@@ -734,7 +735,7 @@ export default function FullPlanningView({
                       }}
                     >
                       <option value="" disabled>Selecione a plataforma</option>
-                      {platforms.map(p => (
+                      {sortedPlatforms.map(p => (
                         <option key={p.id} value={p.id}>
                           {p.name}
                         </option>
