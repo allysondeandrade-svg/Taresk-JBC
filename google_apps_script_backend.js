@@ -306,7 +306,7 @@ function setupSheets() {
  */
 function realignAndFixAnnotationRows(sheet) {
   if (!sheet) return;
-  const standardHeaders = ['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Valor', 'Observação', 'Usuário'];
+  const standardHeaders = ['ID', 'Data', 'Marcador', 'Plataforma', 'SKU', 'Pedido', 'Descrição', 'Valor'];
   const lastRow = sheet.getLastRow();
   const lastCol = Math.max(sheet.getLastColumn(), 1);
 
@@ -322,22 +322,16 @@ function realignAndFixAnnotationRows(sheet) {
 
   const idxId = rawHeaders.indexOf('id');
   const idxData = rawHeaders.findIndex(h => h.includes('data'));
-  const idxTipo = rawHeaders.findIndex(h => h.includes('tipo'));
+  const idxMarcador = rawHeaders.findIndex(h => h.includes('marcador') || h.includes('tipo'));
   const idxPlat = rawHeaders.findIndex(h => h.includes('plat'));
+  const idxSku = rawHeaders.findIndex(h => h.includes('sku') || h.includes('prod'));
   const idxPedido = rawHeaders.findIndex(h => h.includes('ped'));
-  const idxValor = rawHeaders.findIndex(h => h.includes('val'));
-  const idxObs = rawHeaders.findIndex(h => h.includes('obs'));
-  const idxUser = rawHeaders.findIndex(h => h.includes('usu'));
-
-  const knownPlatforms = [
-    'shopee jbc', 'shopee izabela', 'shopee principal', 'shopee oficial', 'shopee',
-    'mercado livre jbc', 'mercado livre', 'mercado l', 'amazon jbc', 'amazon',
-    'magalu jbc', 'magalu', 'shein jbc', 'shein', 'geral / outros', 'geral', 'outros'
-  ];
+  const idxDescricao = rawHeaders.findIndex(h => h.includes('desc') || h.includes('obs'));
+  const idxValor = rawHeaders.findIndex(h => h.includes('val') || h.includes('preco') || h.includes('preço'));
 
   const cleanedRows = dataRows.map((r, i) => {
-    const seqNum = i + 1;
-    const formattedId = String(seqNum).padStart(4, '0');
+    let rawId = (idxId !== -1 && r[idxId]) ? String(r[idxId]).trim() : '';
+    let formattedId = rawId || String(Math.floor(1000 + Math.random() * 9000));
 
     let rawDate = idxData !== -1 ? r[idxData] : '';
     let dateStr = '';
@@ -354,55 +348,35 @@ function realignAndFixAnnotationRows(sheet) {
     }
     if (!dateStr) dateStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM');
 
-    let rawTipo = idxTipo !== -1 ? String(r[idxTipo] || '').trim() : '';
+    let rawMarcador = idxMarcador !== -1 ? String(r[idxMarcador] || '').trim() : '';
     let rawPlat = idxPlat !== -1 ? String(r[idxPlat] || '').trim() : '';
+    let rawSku = idxSku !== -1 ? String(r[idxSku] || '').trim() : '';
     let rawPedido = idxPedido !== -1 ? String(r[idxPedido] || '').trim() : '';
+    let rawDescricao = idxDescricao !== -1 ? String(r[idxDescricao] || '').trim() : '';
     let rawValor = idxValor !== -1 ? String(r[idxValor] || '').trim() : '';
-    let rawObs = idxObs !== -1 ? String(r[idxObs] || '').trim() : '';
-    let rawUser = idxUser !== -1 ? String(r[idxUser] || '').trim() : '';
+
+    let marcador = rawMarcador;
+    const mLower = marcador.toLowerCase();
+    if (mLower.includes('envio') || mLower.includes('proprio') || mLower.includes('próprio') || mLower.includes('direta')) {
+      marcador = 'Envio Próprio';
+    } else if (mLower.includes('local')) {
+      marcador = 'Entrega Local';
+    } else if (mLower.includes('retirada') || mLower.includes('fabrica') || mLower.includes('fábrica')) {
+      marcador = 'Retirada Fábrica';
+    } else if (mLower.includes('pontual') || mLower.includes('manual')) {
+      marcador = 'Gasto Pontual';
+    } else if (mLower.includes('preju')) {
+      marcador = 'Prejuízo';
+    } else if (!marcador || mLower.includes('anota')) {
+      marcador = 'Anotação';
+    }
 
     let platform = rawPlat;
+    if (!platform || platform.toLowerCase() === 'nenhuma' || platform.trim() === '-' || platform.toLowerCase() === 'nenhum') {
+      platform = '-';
+    }
+
     let value = rawValor;
-    let user = rawUser;
-    let notes = rawObs;
-    let orderNumber = rawPedido;
-    let type = rawTipo;
-
-    if (knownPlatforms.some(kp => value.toLowerCase().includes(kp))) {
-      if (!platform) platform = value;
-      value = '';
-    }
-
-    if ((!value || value === '-') && (notes.includes('R$') || /^\s*R?\$?\s*\d+([.,]\d{2})?\s*$/.test(notes))) {
-      value = notes;
-      notes = '';
-    }
-
-    if (notes.includes('R$') && (!value.includes('R$') && !/\d+,\d{2}/.test(value))) {
-      const temp = value;
-      value = notes;
-      notes = temp;
-    }
-
-    if (user.includes('R$') || ((!value || value === '-') && /\d+,\d{2}/.test(user))) {
-      value = user;
-      user = '';
-    }
-
-    if (type.toLowerCase().includes('envio') || type.toLowerCase().includes('direta')) {
-      type = 'Entrega Direta';
-    } else if (type.toLowerCase().includes('manual') || type.toLowerCase().includes('pontual')) {
-      type = 'Gasto Pontual';
-    } else if (type.toLowerCase().includes('local')) {
-      type = 'Entrega Local';
-    } else if (type.toLowerCase().includes('retirada') || type.toLowerCase().includes('fabrica')) {
-      type = 'Retirada Fábrica';
-    } else if (type.toLowerCase().includes('preju')) {
-      type = 'Prejuízo';
-    } else if (!type || type.toLowerCase().includes('anota')) {
-      type = 'Anotação';
-    }
-
     if (value && !value.startsWith('R$')) {
       const num = parseFloat(value.replace(/[^0-9,-.]/g, '').replace(',', '.'));
       if (!isNaN(num)) {
@@ -410,13 +384,7 @@ function realignAndFixAnnotationRows(sheet) {
       }
     }
 
-    if (!platform || platform.toLowerCase() === 'nenhuma' || platform.trim() === '-') {
-      platform = '-';
-    }
-
-    if (!user) user = 'Allyson';
-
-    return [formattedId, dateStr, type, platform, orderNumber, value, notes, user];
+    return [formattedId, dateStr, marcador, platform, rawSku, rawPedido, rawDescricao, value];
   });
 
   sheet.clear();
