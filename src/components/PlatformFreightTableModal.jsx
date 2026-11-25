@@ -19,18 +19,18 @@ export default function PlatformFreightTableModal({ isOpen, onClose, platformKey
             </div>
 
             <div style={{ overflowX: 'auto', maxHeight: '420px', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'center' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                 <thead>
                   <tr style={{ background: '#fef08a', color: '#854d0e', position: 'sticky', top: 0, zIndex: 10 }}>
-                    <th style={{ padding: '8px 10px', border: '1px solid #fde047', textAlign: 'left' }}>Peso Máx</th>
-                    <th style={{ padding: '8px 6px', border: '1px solid #fde047' }}>Até R$ 19*</th>
-                    <th style={{ padding: '8px 6px', border: '1px solid #fde047' }}>R$ 19 a 49</th>
-                    <th style={{ padding: '8px 6px', border: '1px solid #fde047' }}>R$ 49 a 79</th>
-                    <th style={{ padding: '8px 6px', border: '1px solid #fde047' }}>R$ 79 a 100</th>
-                    <th style={{ padding: '8px 6px', border: '1px solid #fde047' }}>R$ 100 a 120</th>
-                    <th style={{ padding: '8px 6px', border: '1px solid #fde047' }}>R$ 120 a 150</th>
-                    <th style={{ padding: '8px 6px', border: '1px solid #fde047' }}>R$ 150 a 200</th>
-                    <th style={{ padding: '8px 6px', border: '1px solid #fde047' }}>Acima de 200</th>
+                    <th style={{ padding: '8px 10px', border: '1px solid #fde047', textAlign: 'left', whiteSpace: 'nowrap' }}>Peso Máx</th>
+                    <th style={{ padding: '8px 8px', border: '1px solid #fde047', whiteSpace: 'nowrap' }}>Até R$ 19*</th>
+                    <th style={{ padding: '8px 8px', border: '1px solid #fde047', whiteSpace: 'nowrap' }}>R$ 19 a 49</th>
+                    <th style={{ padding: '8px 8px', border: '1px solid #fde047', whiteSpace: 'nowrap' }}>R$ 49 a 79</th>
+                    <th style={{ padding: '8px 8px', border: '1px solid #fde047', whiteSpace: 'nowrap' }}>R$ 79 a 100</th>
+                    <th style={{ padding: '8px 8px', border: '1px solid #fde047', whiteSpace: 'nowrap' }}>R$ 100 a 120</th>
+                    <th style={{ padding: '8px 8px', border: '1px solid #fde047', whiteSpace: 'nowrap' }}>R$ 120 a 150</th>
+                    <th style={{ padding: '8px 8px', border: '1px solid #fde047', whiteSpace: 'nowrap' }}>R$ 150 a 200</th>
+                    <th style={{ padding: '8px 8px', border: '1px solid #fde047', whiteSpace: 'nowrap' }}>Acima de 200</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -53,9 +53,9 @@ export default function PlatformFreightTableModal({ isOpen, onClose, platformKey
                     { weight: '30,0 kg', fees: ['R$ 7,75', 'R$ 11,25', 'R$ 12,45', 'R$ 66,45', 'R$ 76,05', 'R$ 86,25', 'R$ 97,15', 'R$ 107,85'] }
                   ].map((row, idx) => (
                     <tr key={idx} style={{ background: idx % 2 === 0 ? '#ffffff' : '#fefce8' }}>
-                      <td style={{ padding: '6px 10px', fontWeight: '700', border: '1px solid #e2e8f0', textAlign: 'left' }}>{row.weight}</td>
+                      <td style={{ padding: '6px 10px', fontWeight: '700', border: '1px solid #e2e8f0', textAlign: 'left', whiteSpace: 'nowrap' }}>{row.weight}</td>
                       {row.fees.map((fee, fIdx) => (
-                        <td key={fIdx} style={{ padding: '6px 6px', border: '1px solid #e2e8f0', color: '#334155' }}>{fee}</td>
+                        <td key={fIdx} style={{ padding: '6px 8px', border: '1px solid #e2e8f0', color: '#334155', whiteSpace: 'nowrap' }}>{fee}</td>
                       ))}
                     </tr>
                   ))}
@@ -80,40 +80,40 @@ export default function PlatformFreightTableModal({ isOpen, onClose, platformKey
               </p>
             </div>
 
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', whiteSpace: 'nowrap' }}>
                 <thead>
                   <tr style={{ background: '#ffedd5', color: '#9a3412', textAlign: 'left' }}>
-                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #fdba74' }}>Faixa de Preço</th>
-                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #fdba74' }}>Comissão %</th>
-                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #fdba74' }}>Tarifa Fixa</th>
-                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #fdba74' }}>Observação</th>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #fdba74', whiteSpace: 'nowrap' }}>Faixa de Preço</th>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #fdba74', whiteSpace: 'nowrap' }}>Comissão %</th>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #fdba74', whiteSpace: 'nowrap' }}>Tarifa Fixa</th>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #fdba74', whiteSpace: 'nowrap' }}>Observação</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>Até R$ 79,99</td>
-                    <td style={{ padding: '10px 14px', color: '#ea580c', fontWeight: '800' }}>20,0%</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 4,50</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>Envio padrão</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>Até R$ 79,99</td>
+                    <td style={{ padding: '10px 14px', color: '#ea580c', fontWeight: '800', whiteSpace: 'nowrap' }}>20,0%</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 4,50</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>Envio padrão</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#fff7ed' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 80,00 a R$ 99,99</td>
-                    <td style={{ padding: '10px 14px', color: '#ea580c', fontWeight: '800' }}>14,0%</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 16,00</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>Frete grátis subsidiado</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 80,00 a R$ 99,99</td>
+                    <td style={{ padding: '10px 14px', color: '#ea580c', fontWeight: '800', whiteSpace: 'nowrap' }}>14,0%</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 16,00</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>Frete grátis subsidiado</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 100,00 a R$ 199,99</td>
-                    <td style={{ padding: '10px 14px', color: '#ea580c', fontWeight: '800' }}>14,0%</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 20,00</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>Frete grátis subsidiado</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 100,00 a R$ 199,99</td>
+                    <td style={{ padding: '10px 14px', color: '#ea580c', fontWeight: '800', whiteSpace: 'nowrap' }}>14,0%</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 20,00</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>Frete grátis subsidiado</td>
                   </tr>
                   <tr style={{ background: '#fff7ed' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>Acima de R$ 200,00</td>
-                    <td style={{ padding: '10px 14px', color: '#ea580c', fontWeight: '800' }}>14,0%</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 26,00</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>Frete grátis subsidiado</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>Acima de R$ 200,00</td>
+                    <td style={{ padding: '10px 14px', color: '#ea580c', fontWeight: '800', whiteSpace: 'nowrap' }}>14,0%</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 26,00</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>Frete grátis subsidiado</td>
                   </tr>
                 </tbody>
               </table>
@@ -133,35 +133,35 @@ export default function PlatformFreightTableModal({ isOpen, onClose, platformKey
               </p>
             </div>
 
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', whiteSpace: 'nowrap' }}>
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155', textAlign: 'left' }}>
-                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #cbd5e1' }}>Faixa de Preço</th>
-                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #cbd5e1' }}>Tarifa Fixa / Frete</th>
-                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #cbd5e1' }}>Regra de Cálculo</th>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}>Faixa de Preço</th>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}>Tarifa Fixa / Frete</th>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}>Regra de Cálculo</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>Até R$ 29,99</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 4,50</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>Fixo por item</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>Até R$ 29,99</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 4,50</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>Fixo por item</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 30,00 a R$ 49,99</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 6,50</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>Fixo por item</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 30,00 a R$ 49,99</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 6,50</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>Fixo por item</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 50,00 a R$ 78,99</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 6,75</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>Fixo por item</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 50,00 a R$ 78,99</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 6,75</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>Fixo por item</td>
                   </tr>
                   <tr style={{ background: '#f8fafc' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>A partir de R$ 79,00</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>Tabela DBA por Peso</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>De R$ 11,95 até R$ 59,95+ conforme peso cubado</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>A partir de R$ 79,00</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>Tabela DBA por Peso</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>De R$ 11,95 até R$ 59,95+ conforme peso cubado</td>
                   </tr>
                 </tbody>
               </table>
@@ -181,30 +181,30 @@ export default function PlatformFreightTableModal({ isOpen, onClose, platformKey
               </p>
             </div>
 
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', whiteSpace: 'nowrap' }}>
                 <thead>
                   <tr style={{ background: '#e0f2fe', color: '#0369a1', textAlign: 'left' }}>
-                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #bae6fd' }}>Faixa de Preço</th>
-                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #bae6fd' }}>Custo de Frete</th>
-                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #bae6fd' }}>Observação</th>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #bae6fd', whiteSpace: 'nowrap' }}>Faixa de Preço</th>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #bae6fd', whiteSpace: 'nowrap' }}>Custo de Frete</th>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #bae6fd', whiteSpace: 'nowrap' }}>Observação</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>Abaixo de R$ 79,00</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 3,00</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>Taxa fixa por item</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>Abaixo de R$ 79,00</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 3,00</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>Taxa fixa por item</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f0f9ff' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>R$ 79,00 a R$ 199,00</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>De R$ 17,95 a R$ 117,95</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>Tabela intermediária por peso</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>R$ 79,00 a R$ 199,00</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>De R$ 17,95 a R$ 117,95</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>Tabela intermediária por peso</td>
                   </tr>
                   <tr>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>Acima de R$ 199,00</td>
-                    <td style={{ padding: '10px 14px', fontWeight: '700' }}>De R$ 19,45 a R$ 127,45</td>
-                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>Tabela superior por peso</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>Acima de R$ 199,00</td>
+                    <td style={{ padding: '10px 14px', fontWeight: '700', whiteSpace: 'nowrap' }}>De R$ 19,45 a R$ 127,45</td>
+                    <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>Tabela superior por peso</td>
                   </tr>
                 </tbody>
               </table>

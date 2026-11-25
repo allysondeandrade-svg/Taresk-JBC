@@ -529,8 +529,8 @@ function PricingCard({
   const displayRate = rateTextInput !== ''
     ? rateTextInput
     : (customRate !== null
-        ? String(customRate).replace('.', ',')
-        : (calc.feeRate % 1 === 0 ? String(calc.feeRate) : calc.feeRate.toFixed(1).replace('.', ',')));
+      ? String(customRate).replace('.', ',')
+      : (calc.feeRate % 1 === 0 ? String(calc.feeRate) : calc.feeRate.toFixed(1).replace('.', ',')));
 
   return (
     <div style={{
