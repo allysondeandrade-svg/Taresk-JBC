@@ -503,7 +503,7 @@ export default function AnnotationModal({
             </div>
           )}
 
-          {/* Campo: Descrição (antigo observação) */}
+          {/* Campo: Descrição / Observação */}
           {showDescricao && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
               <label
@@ -521,7 +521,7 @@ export default function AnnotationModal({
                 type="text"
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Detalhes ou descrição..."
+                placeholder=""
                 style={{
                   width: '62%',
                   height: '42px',

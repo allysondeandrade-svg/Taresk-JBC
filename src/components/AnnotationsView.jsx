@@ -140,7 +140,9 @@ export default function AnnotationsView({
   onDeleteAnnotation,
   currentUser,
   platforms = [],
-  users = []
+  products = [],
+  users = [],
+  onOpenModal
 }) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -280,11 +282,19 @@ export default function AnnotationsView({
     const newRow = {
       id: newId,
       date: today,
+      marcador: defaultType,
       type: defaultType,
       platform: defaultPlat,
+      plataforma: defaultPlat,
+      sku: '',
       orderNumber: '',
-      value: '',
+      pedido: '',
+      description: '',
+      descricao: '',
       notes: '',
+      observacao: '',
+      value: '',
+      valor: '',
       usuario: defaultUser
     };
 
@@ -300,15 +310,18 @@ export default function AnnotationsView({
 
   const handleStartEdit = (item) => {
     setEditingId(item.id);
-    const itemPlat = item.platform || '';
+    const itemPlat = item.platform || item.plataforma || '';
     setEditForm({
       id: item.id,
       date: item.date || getTodayFormatted(),
-      type: item.type || item.tipo || 'Anotação',
+      type: item.type || item.marcador || item.tipo || 'Anotação',
+      marcador: item.marcador || item.type || item.tipo || 'Anotação',
       platform: (itemPlat === '-' || !itemPlat) ? 'Nenhuma' : itemPlat,
+      sku: item.sku || '',
       orderNumber: item.orderNumber || item.pedido || '',
       value: item.value || item.valor || '',
-      notes: item.notes || item.observacao || item.obs || '',
+      description: item.description || item.descricao || item.notes || item.observacao || '',
+      notes: item.description || item.descricao || item.notes || item.observacao || '',
       usuario: item.usuario || ''
     });
   };
@@ -318,9 +331,22 @@ export default function AnnotationsView({
     const cleanPlat = (editForm.platform || '').trim();
     const platValue = (cleanPlat === 'Nenhuma' || cleanPlat === '-' || !cleanPlat) ? '-' : cleanPlat;
 
+    const desc = (editForm.description || editForm.notes || '').trim();
     const payload = {
       ...editForm,
-      platform: platValue
+      marcador: editForm.type || editForm.marcador || 'Anotação',
+      type: editForm.type || editForm.marcador || 'Anotação',
+      platform: platValue,
+      plataforma: platValue,
+      sku: (editForm.sku || '').trim(),
+      pedido: (editForm.orderNumber || '').trim(),
+      orderNumber: (editForm.orderNumber || '').trim(),
+      description: desc,
+      descricao: desc,
+      notes: desc,
+      observacao: desc,
+      value: (editForm.value || '').trim(),
+      valor: (editForm.value || '').trim()
     };
 
     if (onUpdateAnnotation) {
@@ -568,7 +594,13 @@ export default function AnnotationsView({
         {/* Botão Circular Roxo (+) padronizado */}
         <button
           type="button"
-          onClick={handleAddNewRow}
+          onClick={() => {
+            if (onOpenModal) {
+              onOpenModal();
+            } else {
+              handleAddNewRow();
+            }
+          }}
           title="Nova Anotação"
           style={{
             width: '42px',
@@ -798,7 +830,7 @@ export default function AnnotationsView({
                   </div>
                 </th>
                 <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                  Tipo
+                  Marcador
                 </th>
                 {!isMobileScreen && (
                   <>
@@ -806,18 +838,19 @@ export default function AnnotationsView({
                       Plataforma
                     </th>
                     <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                      SKU
+                    </th>
+                    <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                       Pedido
+                    </th>
+                    <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                      Descrição
                     </th>
                   </>
                 )}
                 <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                   Valor
                 </th>
-                {!isMobileScreen && (
-                  <th style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                    Observação
-                  </th>
-                )}
                 <th style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '700', color: '#64748b', textAlign: 'center', whiteSpace: 'nowrap' }}>
                   Ações
                 </th>
@@ -826,7 +859,7 @@ export default function AnnotationsView({
             <tbody>
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={isMobileScreen ? 4 : 6} style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <td colSpan={isMobileScreen ? 4 : 8} style={{ padding: '60px 20px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '36px' }}>📋</span>
                       <h4 style={{ fontSize: '16px', fontWeight: '800', color: '#334155', margin: 0 }}>
@@ -963,7 +996,7 @@ export default function AnnotationsView({
 
                         {!isMobileScreen && (
                           <>
-                            {/* 3. Plataforma (Shopee JBC, Shopee Izabela...) */}
+                            {/* Plataforma */}
                             <td style={{ padding: '10px 14px' }}>
                               <select
                                 value={editForm.platform}
@@ -985,13 +1018,54 @@ export default function AnnotationsView({
                               </select>
                             </td>
 
-                            {/* 4. Pedido */}
+                            {/* SKU */}
+                            <td style={{ padding: '10px 14px' }}>
+                              <input
+                                type="text"
+                                placeholder="SKU..."
+                                value={editForm.sku || ''}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, sku: e.target.value }))}
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 8px',
+                                  borderRadius: '8px',
+                                  border: '1.5px solid #a855f7',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#334155',
+                                  outline: 'none'
+                                }}
+                              />
+                            </td>
+
+                            {/* Pedido */}
                             <td style={{ padding: '10px 14px' }}>
                               <input
                                 type="text"
                                 placeholder="Ex: 261104..."
                                 value={editForm.orderNumber}
                                 onChange={(e) => setEditForm(prev => ({ ...prev, orderNumber: e.target.value }))}
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 8px',
+                                  borderRadius: '8px',
+                                  border: '1.5px solid #a855f7',
+                                  fontSize: '13px',
+                                  fontWeight: '700',
+                                  color: '#334155',
+                                  outline: 'none',
+                                  fontFamily: "'JetBrains Mono', monospace"
+                                }}
+                              />
+                            </td>
+
+                            {/* Descrição */}
+                            <td style={{ padding: '10px 14px' }}>
+                              <input
+                                type="text"
+                                placeholder="Descrição..."
+                                value={editForm.description !== undefined ? editForm.description : (editForm.notes || '')}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value, notes: e.target.value }))}
                                 style={{
                                   width: '100%',
                                   padding: '6px 8px',
@@ -1007,7 +1081,7 @@ export default function AnnotationsView({
                           </>
                         )}
 
-                        {/* 5. Valor com formatação de moeda R$ xx,yy */}
+                        {/* Valor com formatação de moeda R$ xx,yy */}
                         <td style={{ padding: isMobileScreen ? '8px 10px' : '10px 14px' }}>
                           <input
                             type="text"
@@ -1026,28 +1100,6 @@ export default function AnnotationsView({
                             }}
                           />
                         </td>
-
-                        {!isMobileScreen && (
-                          /* 6. Observação */
-                          <td style={{ padding: '10px 14px' }}>
-                            <input
-                              type="text"
-                              placeholder="Observação..."
-                              value={editForm.notes}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                              style={{
-                                width: '100%',
-                                padding: '6px 8px',
-                                borderRadius: '8px',
-                                border: '1.5px solid #a855f7',
-                                fontSize: '13px',
-                                fontWeight: '700',
-                                color: '#334155',
-                                outline: 'none'
-                              }}
-                            />
-                          </td>
-                        )}
 
                         {/* 7. Ações: Salvar / Cancelar */}
                         <td style={{ padding: isMobileScreen ? '8px 10px' : '10px 14px', textAlign: 'center' }}>
@@ -1133,9 +1185,14 @@ export default function AnnotationsView({
 
                         {!isMobileScreen && (
                           <>
-                            {/* Plataforma: Shopee JBC, Shopee Izabela... */}
+                            {/* Plataforma */}
                             <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
                               {(item.platform && item.platform !== 'Nenhuma') ? item.platform : '-'}
+                            </td>
+
+                            {/* SKU */}
+                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
+                              {item.sku || '-'}
                             </td>
 
                             {/* Pedido com opção de copiar e fonte JetBrains Mono */}
@@ -1174,6 +1231,11 @@ export default function AnnotationsView({
                                 )}
                               </div>
                             </td>
+
+                            {/* Descrição */}
+                            <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '600', color: '#334155', maxWidth: '300px', wordBreak: 'break-word' }}>
+                              {item.description || item.descricao || item.notes || item.observacao || '-'}
+                            </td>
                           </>
                         )}
 
@@ -1181,13 +1243,6 @@ export default function AnnotationsView({
                         <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', fontSize: '13px', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
                           {item.value || item.valor || '-'}
                         </td>
-
-                        {!isMobileScreen && (
-                          /* Observação */
-                          <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '600', color: '#334155', maxWidth: '300px', wordBreak: 'break-word' }}>
-                            {item.notes || item.observacao || '-'}
-                          </td>
-                        )}
 
                         {/* Ações: Olho (Mobile), Duplicar, Editar e Excluir */}
                         <td style={{ padding: isMobileScreen ? '12px 10px' : '14px 16px', textAlign: 'center' }}>
@@ -1337,12 +1392,22 @@ export default function AnnotationsView({
                                 </div>
                               </div>
 
+                              {item.sku && (
+                                <div>
+                                  <span style={{ fontSize: '10px', fontWeight: '800', color: '#7e22ce', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
+                                    SKU
+                                  </span>
+                                  <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                                    {item.sku}
+                                  </span>
+                                </div>
+                              )}
                               <div>
                                 <span style={{ fontSize: '10px', fontWeight: '800', color: '#7e22ce', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
-                                  Observação
+                                  Descrição
                                 </span>
                                 <span style={{ fontWeight: '600', color: '#334155', wordBreak: 'break-word' }}>
-                                  {item.notes || item.observacao || 'Nenhuma observação'}
+                                  {item.description || item.descricao || item.notes || item.observacao || 'Nenhuma descrição'}
                                 </span>
                               </div>
 
