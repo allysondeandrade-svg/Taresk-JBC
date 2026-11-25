@@ -18,6 +18,7 @@ import {
   Clock,
   Edit2
 } from 'lucide-react';
+import { SheetsApi } from '../services/sheetsApi';
 
 export default function FullPlanningView({
   platforms = [],
@@ -181,6 +182,12 @@ export default function FullPlanningView({
     };
 
     setPlannings(prev => [newPlanning, ...prev]);
+    // Sincroniza em segundo plano com a planilha Google
+    try {
+      SheetsApi.saveFullPlanning(newPlanning);
+    } catch (err) {
+      console.warn('Erro ao salvar no sheets:', err);
+    }
     setIsModalOpen(false);
   };
 
@@ -202,6 +209,11 @@ export default function FullPlanningView({
   const handleDeletePlanning = (planningId) => {
     if (window.confirm('Deseja realmente remover este planejamento Full?')) {
       setPlannings(prev => prev.filter(p => p.id !== planningId));
+      try {
+        SheetsApi.deleteFullPlanning(planningId);
+      } catch (err) {
+        console.warn('Erro ao deletar no sheets:', err);
+      }
     }
   };
 
@@ -324,35 +336,45 @@ export default function FullPlanningView({
           Planejamento Full
         </h1>
 
-        {/* Botões do topo: Impressora e Adicionar (+) como no padrão do Tarefas/Disputas */}
+        {/* Botões do topo: Impressora estilizada e Adicionar (+) como no padrão do Tarefas/Disputas */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Botão de Impressão Refinado e Moderno */}
           <button
             onClick={handlePrint}
             title="Imprimir Resumo em PDF com Checklist"
             style={{
-              width: '42px',
               height: '42px',
-              borderRadius: '10px',
+              padding: '0 16px',
+              borderRadius: '9999px',
               border: '1.5px solid #cbd5e1',
               background: '#ffffff',
-              color: '#334155',
-              display: 'flex',
+              color: '#1e293b',
+              display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '8px',
+              fontSize: '13px',
+              fontWeight: '700',
               cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
+              transition: 'all 0.18s ease',
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = '#f8fafc';
-              e.currentTarget.style.borderColor = '#94a3b8';
+              e.currentTarget.style.background = '#0f172a';
+              e.currentTarget.style.borderColor = '#0f172a';
+              e.currentTarget.style.color = '#ffffff';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.15)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = '#ffffff';
               e.currentTarget.style.borderColor = '#cbd5e1';
+              e.currentTarget.style.color = '#1e293b';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.04)';
             }}
           >
-            <Printer size={22} strokeWidth={2.2} />
+            <Printer size={18} strokeWidth={2.4} />
+            <span>Imprimir PDF</span>
           </button>
 
           {/* Botão Circular Roxo com + padronizado idêntico a Tarefas, Disputas, etc. */}

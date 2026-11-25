@@ -36,7 +36,8 @@ const SHEETS = {
   CHECKLIST_TEMPLATES: 'Modelos_Checklist',
   ANNOTATIONS: 'Anotação',
   DISPUTES: 'Disputas',
-  BILLS: 'Contas'
+  BILLS: 'Contas',
+  FULL_PLANNING: 'Full'
 };
 
 /**
@@ -63,6 +64,7 @@ function regenerateAllUniqueIds() {
     SHEETS.BILLS,
     SHEETS.DISPUTES,
     SHEETS.ANNOTATIONS,
+    SHEETS.FULL_PLANNING,
     SHEETS.CHECKLIST_TEMPLATES,
     SHEETS.PLATFORMS,
     SHEETS.USERS
@@ -298,6 +300,16 @@ function setupSheets() {
     }
   }
 
+  // 11. Aba Full (Planejamento Full): [ID, Data, Plataforma, TotalItens, Itens_JSON, CriadoEm]
+  let fullSheet = ss.getSheetByName(SHEETS.FULL_PLANNING) || ss.getSheetByName('Planejamento Full') || ss.getSheetByName('Planejamento_Full');
+  if (!fullSheet) {
+    fullSheet = ss.insertSheet(SHEETS.FULL_PLANNING);
+    fullSheet.appendRow(['ID', 'Data', 'Plataforma', 'TotalItens', 'Itens_JSON', 'CriadoEm']);
+    styleHeader(fullSheet);
+  } else {
+    ensureIdColumn(fullSheet, 'ID');
+  }
+
   Logger.log('Todas as abas do Taresk foram configuradas e corrigidas com sucesso!');
 }
 
@@ -530,8 +542,11 @@ function doGet(e) {
         checklistTemplates: getChecklistTemplatesDataAsJson(),
         disputes: getDisputesDataAsJson(),
         annotations: getAnnotationsDataAsJson(),
-        bills: getBillsDataAsJson()
+        bills: getBillsDataAsJson(),
+        fullPlannings: getFullPlanningsDataAsJson()
       };
+    } else if (action === 'getFullPlannings') {
+      responseData = getFullPlanningsDataAsJson();
     } else if (action === 'getBills') {
       responseData = getBillsDataAsJson();
     } else if (action === 'getAnnotations') {
@@ -665,6 +680,14 @@ function doPost(e) {
 
       case 'deleteBill':
         result = deleteBillRecord(data);
+        break;
+
+      case 'saveFullPlanning':
+        result = upsertFullPlanningRecord(data);
+        break;
+
+      case 'deleteFullPlanning':
+        result = deleteFullPlanningRecord(data);
         break;
 
       case 'getFinancialData':
@@ -2485,4 +2508,127 @@ function getFinancialDataFromMonth(sheetName) {
     resumo: resumoList,
     pedidos: pedidosList
   };
+}
+
+/**
+ * ============================================================================
+ * OPERAÇÕES DA ABA FULL (PLANEJAMENTO FULL)
+ * Colunas: [ID, Data, Plataforma, TotalItens, Itens_JSON, CriadoEm]
+ * ============================================================================
+ */
+function getFullPlanningsDataAsJson() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.FULL_PLANNING) || ss.getSheetByName('Planejamento Full') || ss.getSheetByName('Planejamento_Full');
+  if (!sheet) return [];
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  const headers = values[0].map(h => String(h || '').toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const idxDate = headers.indexOf('data');
+  const idxPlat = headers.indexOf('plataforma');
+  const idxTotal = headers.indexOf('totalitens');
+  const idxItems = headers.indexOf('itens_json') !== -1 ? headers.indexOf('itens_json') : headers.indexOf('itens');
+  const idxCreated = headers.indexOf('criadoem');
+
+  const list = [];
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const id = idxId !== -1 ? String(row[idxId] || '') : ('full_' + i);
+    if (!id && !row[idxDate] && !row[idxPlat]) continue;
+
+    let items = [];
+    if (idxItems !== -1 && row[idxItems]) {
+      try {
+        items = typeof row[idxItems] === 'string' ? JSON.parse(row[idxItems]) : row[idxItems];
+      } catch (e) {
+        items = [];
+      }
+    }
+
+    list.push({
+      id: id,
+      date: idxDate !== -1 ? String(row[idxDate] || '') : '',
+      platformName: idxPlat !== -1 ? String(row[idxPlat] || '') : '',
+      totalItems: idxTotal !== -1 ? Number(row[idxTotal] || 0) : items.length,
+      items: Array.isArray(items) ? items : [],
+      createdAt: idxCreated !== -1 ? String(row[idxCreated] || '') : ''
+    });
+  }
+
+  return list;
+}
+
+function upsertFullPlanningRecord(planning) {
+  if (!planning) return { status: 'error', message: 'Dados vazios' };
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.FULL_PLANNING) || ss.getSheetByName('Planejamento Full') || ss.getSheetByName('Planejamento_Full');
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.FULL_PLANNING);
+    sheet.appendRow(['ID', 'Data', 'Plataforma', 'TotalItens', 'Itens_JSON', 'CriadoEm']);
+    styleHeader(sheet);
+  }
+
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0].map(h => String(h || '').toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+
+  const targetId = planning.id ? String(planning.id).trim() : '';
+  const finalId = targetId || ('full_' + Date.now());
+  const totalQty = (planning.items || []).reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
+  const itemsJson = JSON.stringify(planning.items || []);
+  const createdDate = planning.createdAt || new Date().toISOString();
+
+  let foundRow = -1;
+  if (idxId !== -1 && targetId) {
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][idxId]).trim() === targetId) {
+        foundRow = i + 1;
+        break;
+      }
+    }
+  }
+
+  const rowData = [
+    finalId,
+    planning.date || '',
+    planning.platformName || planning.platformId || '',
+    totalQty,
+    itemsJson,
+    createdDate
+  ];
+
+  if (foundRow > 0) {
+    sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+    return { status: 'success', message: 'Planejamento Full atualizado!', id: finalId };
+  } else {
+    sheet.appendRow(rowData);
+    return { status: 'success', message: 'Planejamento Full criado!', id: finalId };
+  }
+}
+
+function deleteFullPlanningRecord(planning) {
+  if (!planning) return { status: 'error', message: 'Sem dados para deletar' };
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.FULL_PLANNING) || ss.getSheetByName('Planejamento Full') || ss.getSheetByName('Planejamento_Full');
+  if (!sheet) return { status: 'error', message: 'Aba não encontrada' };
+
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0].map(h => String(h || '').toLowerCase().trim());
+  const idxId = headers.indexOf('id');
+  const targetId = typeof planning === 'object' ? String(planning.id || '').trim() : String(planning).trim();
+
+  if (idxId === -1 || !targetId) return { status: 'error', message: 'ID não fornecido' };
+
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][idxId]).trim() === targetId) {
+      sheet.deleteRow(i + 1);
+      return { status: 'success', message: 'Planejamento Full excluído!' };
+    }
+  }
+
+  return { status: 'error', message: 'Planejamento não encontrado para exclusão' };
 }

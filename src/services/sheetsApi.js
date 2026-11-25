@@ -612,5 +612,52 @@ export const SheetsApi = {
     } catch (err) {
       return ['Nov 26'];
     }
+  },
+
+  /**
+   * Sincroniza / salva um planejamento Full no Google Sheets
+   */
+  async saveFullPlanning(planning) {
+    const url = this.getUrl();
+    if (!url) return false;
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'saveFullPlanning',
+          data: planning
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error('Erro ao salvar Planejamento Full no Sheets:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Exclui um planejamento Full no Google Sheets
+   */
+  async deleteFullPlanning(planningOrId) {
+    const url = this.getUrl();
+    if (!url) return false;
+
+    try {
+      const payload = typeof planningOrId === 'object' ? planningOrId : { id: planningOrId };
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'deleteFullPlanning',
+          data: payload
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error('Erro ao excluir Planejamento Full no Sheets:', err);
+      return false;
+    }
   }
 };
