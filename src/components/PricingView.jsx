@@ -72,17 +72,18 @@ export default function PricingView({ products = [] }) {
     weight: 3.50
   };
 
-  // Ao selecionar um produto ou trocar o tipo de anúncio ML, preenche automaticamente os preços para atingir 15% de margem líquida
+  // Ao selecionar ou trocar de produto (ou na inicialização), calcula os preços padrão para atingir 15% de margem líquida.
+  // Se o usuário editar o preço ou alterar a Tarifa %, o preço digitado permanece intacto!
   useEffect(() => {
     if (!selectedProduct || !selectedProduct.cost) return;
 
     const cost = parseFloat(selectedProduct.cost) || 0;
-    const mlRate = customRates.mercadoLivre !== null ? customRates.mercadoLivre : (mlListingType === 'classico' ? 12.0 : 16.5);
+    const mlRate = mlListingType === 'classico' ? 12.0 : 16.5;
 
-    const shopee15 = findPriceForTargetMargin((p, c) => calculateShopee(p, c, customRates.shopee, customFreights.shopee), cost, selectedProduct, null, 15.0);
-    const ml15 = findPriceForTargetMargin((p, c, prod, rate) => calculateMercadoLivre(p, c, prod, rate, customFreights.mercadoLivre), cost, selectedProduct, mlRate, 15.0);
-    const amazon15 = findPriceForTargetMargin((p, c, prod, rate) => calculateAmazon(p, c, prod, rate, customFreights.amazon), cost, selectedProduct, customRates.amazon || 12.5, 15.0);
-    const magalu15 = findPriceForTargetMargin((p, c, prod, rate) => calculateMagalu(p, c, prod, rate, customFreights.magalu), cost, selectedProduct, customRates.magalu || 18.0, 15.0);
+    const shopee15 = findPriceForTargetMargin((p, c) => calculateShopee(p, c, null, null), cost, selectedProduct, null, 15.0);
+    const ml15 = findPriceForTargetMargin((p, c, prod, rate) => calculateMercadoLivre(p, c, prod, rate, null), cost, selectedProduct, mlRate, 15.0);
+    const amazon15 = findPriceForTargetMargin((p, c, prod, rate) => calculateAmazon(p, c, prod, rate, null), cost, selectedProduct, 12.5, 15.0);
+    const magalu15 = findPriceForTargetMargin((p, c, prod, rate) => calculateMagalu(p, c, prod, rate, null), cost, selectedProduct, 18.0, 15.0);
 
     setChannelPrices({
       shopee: shopee15,
@@ -90,7 +91,27 @@ export default function PricingView({ products = [] }) {
       amazon: amazon15,
       magalu: magalu15
     });
-  }, [selectedProductId, selectedProduct.cost, mlListingType, customRates, customFreights]);
+
+    // Reseta tarifas e textos personalizados para o novo produto
+    setCustomRates({
+      shopee: null,
+      mercadoLivre: null,
+      amazon: null,
+      magalu: null
+    });
+    setRateTextInputs({
+      shopee: '',
+      mercadoLivre: '',
+      amazon: '',
+      magalu: ''
+    });
+    setCustomFreights({
+      shopee: null,
+      mercadoLivre: null,
+      amazon: null,
+      magalu: null
+    });
+  }, [selectedProductId, selectedProduct.cost]);
 
   // Altera o preço de venda de um canal com suporte a digitação fluida em centavos
   const handlePriceRawInput = (channelKey, rawString) => {
