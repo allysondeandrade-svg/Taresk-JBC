@@ -80,8 +80,8 @@ export default function ConciliacaoView({
   users = [],
   platforms = []
 }) {
-  // Controle das 3 subabas: 'resumo' (Foto 1), 'pedidos' (Foto 2), 'checklist' (Atual)
-  const [activeSubTab, setActiveSubTab] = useState('resumo');
+  // Controle de subaba: apenas 'checklist'
+  const [activeSubTab, setActiveSubTab] = useState('checklist');
 
   // Mês selecionado (padrão 'Nov 26')
   const [selectedMonth, setSelectedMonth] = useState('Nov 26');
@@ -365,156 +365,29 @@ export default function ConciliacaoView({
           Financeiro
         </h1>
 
-        {/* Centro/Direita: Seletor de Subabas (Resumo | Pedidos | Checklist) e Filtro de Mês + Atualizar */}
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          {/* Seletor de Subabas no estilo visual das fotos do usuário (Pills arredondadas) */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            background: '#ffffff',
-            padding: '4px',
-            borderRadius: '9999px',
-            border: '1.5px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
-          }}>
-            <button
-              type="button"
-              onClick={() => setActiveSubTab('resumo')}
-              style={{
-                padding: '6px 18px',
-                borderRadius: '9999px',
-                fontSize: '14px',
-                fontWeight: activeSubTab === 'resumo' ? '800' : '600',
-                background: activeSubTab === 'resumo' ? '#a5b4fc' : 'transparent',
-                color: activeSubTab === 'resumo' ? '#1e1b4b' : '#64748b',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Resumo
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveSubTab('pedidos')}
-              style={{
-                padding: '6px 18px',
-                borderRadius: '9999px',
-                fontSize: '14px',
-                fontWeight: activeSubTab === 'pedidos' ? '800' : '600',
-                background: activeSubTab === 'pedidos' ? '#a5b4fc' : 'transparent',
-                color: activeSubTab === 'pedidos' ? '#1e1b4b' : '#64748b',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Pedidos
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveSubTab('checklist')}
-              style={{
-                padding: '6px 18px',
-                borderRadius: '9999px',
-                fontSize: '14px',
-                fontWeight: activeSubTab === 'checklist' ? '800' : '600',
-                background: activeSubTab === 'checklist' ? '#a5b4fc' : 'transparent',
-                color: activeSubTab === 'checklist' ? '#1e1b4b' : '#64748b',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Checklist
-            </button>
-          </div>
-
-          {/* Lado Direito do Cabeçalho: Filtro de Mês da Planilha (Nov 26, Dez 26, Jan 27...) + Botão Atualizar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Seletor dinâmico de Mês (Abas da planilha) */}
-            <div style={{
+        {/* Lado Direito do Cabeçalho: Botão Limpar Checklists */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={handleClearAllChecklists}
+            style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              background: '#ffffff',
-              padding: '6px 14px',
+              gap: '6px',
+              padding: '8px 16px',
               borderRadius: '12px',
-              border: '1.5px solid #e2e8f0',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
-            }}>
-              <Calendar size={15} color="#5925dc" />
-              <span style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>Mês:</span>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: '13px',
-                  fontWeight: '800',
-                  color: '#1e293b',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                {availableMonths.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Botão para recarregar da planilha */}
-            <button
-              type="button"
-              onClick={() => loadFinancialDataFromSheets(selectedMonth)}
-              title="Atualizar dados da planilha"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: '12px',
-                border: '1.5px solid #e2e8f0',
-                background: '#ffffff',
-                color: '#475569',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <RefreshCw size={14} className={isLoadingFinancial ? 'spin-animation' : ''} />
-              {isLoadingFinancial ? 'Carregando...' : 'Atualizar'}
-            </button>
-
-            {activeSubTab === 'checklist' && (
-              <button
-                type="button"
-                onClick={handleClearAllChecklists}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 14px',
-                  borderRadius: '12px',
-                  border: '1.5px solid #fca5a5',
-                  background: '#fef2f2',
-                  color: '#dc2626',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <RotateCcw size={14} />
-                Limpar Checklists
-              </button>
-            )}
-          </div>
+              border: '1.5px solid #fca5a5',
+              background: '#fef2f2',
+              color: '#dc2626',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <RotateCcw size={15} />
+            Limpar Checklists
+          </button>
         </div>
       </div>
 
@@ -1434,16 +1307,16 @@ export default function ConciliacaoView({
                   }}>
                     <div />
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} title="Notas Fiscais">
-                      <img src="./icon_conciliacao_etapa1.png" alt="NF" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+                      <img src="./concil_step_1.png" alt="NF" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} title="Faturamento / Extrato">
-                      <img src="./icon_conciliacao_etapa2.png" alt="Extrato" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+                      <img src="./concil_step_2.png" alt="Extrato" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} title="Financeiro / Repasse">
-                      <img src="./icon_conciliacao_etapa3.png" alt="Financeiro" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+                      <img src="./concil_step_3.png" alt="Financeiro" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} title="Conferido / Finalizado">
-                      <img src="./icon_conciliacao_etapa4.png" alt="Conferido" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+                      <img src="./concil_step_4.png" alt="Conferido" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                     </div>
                   </div>
 
