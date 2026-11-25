@@ -31,7 +31,8 @@ function getTodayFormatted() {
   return `${dd}/${mm}`;
 }
 
-// Os 6 tipos solicitados pelo usuário com os ícones fiéis
+// Os 6 marcadores com as cores solicitadas pelo usuário:
+// Prejuízo: Vermelho | Entrega Local: Roxo | Envio Próprio: Verde | Retirada Fábrica: Azul | Gasto Pontual: Laranja | Anotação: Roxo/Índigo
 export const ANNOTATION_TYPES = [
   {
     id: 'entrega_local',
@@ -51,9 +52,9 @@ export const ANNOTATION_TYPES = [
   {
     id: 'retirada_fabrica',
     label: 'Retirada Fábrica',
-    color: '#6d28d9',
-    bg: '#f5f3ff',
-    border: '#ddd6fe',
+    color: '#2563eb',
+    bg: '#eff6ff',
+    border: '#bfdbfe',
     svg: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
@@ -66,8 +67,8 @@ export const ANNOTATION_TYPES = [
     )
   },
   {
-    id: 'entrega_direta',
-    label: 'Entrega Direta',
+    id: 'envio_proprio',
+    label: 'Envio Próprio',
     color: '#16a34a',
     bg: '#f0fdf4',
     border: '#bbf7d0',
@@ -84,9 +85,9 @@ export const ANNOTATION_TYPES = [
   {
     id: 'gasto_pontual',
     label: 'Gasto Pontual',
-    color: '#6d28d9',
-    bg: '#f5f3ff',
-    border: '#ddd6fe',
+    color: '#ea580c',
+    bg: '#fff7ed',
+    border: '#fed7aa',
     svg: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="1" x2="12" y2="23" />
