@@ -182,11 +182,18 @@ export default function PricingView({ products = [] }) {
 
   return (
     <div style={{
-      maxWidth: '1440px',
+      maxWidth: '1600px',
       margin: '0 auto',
       padding: '24px 20px',
       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif"
     }}>
+      <style>{`
+        @media (min-width: 1024px) {
+          .pricing-cards-grid {
+            grid-template-columns: repeat(4, 1fr) !important;
+          }
+        }
+      `}</style>
       {/* Título da Aba no canto superior esquerdo padronizado */}
       <div style={{
         display: 'flex',
@@ -361,13 +368,17 @@ export default function PricingView({ products = [] }) {
         </button>
       </div>
 
-      {/* Grid com os 4 Cards de Canais perfeitamente alinhados */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
-        gap: '24px',
-        alignItems: 'stretch'
-      }}>
+      {/* Grid com os 4 Cards de Canais em linha única no Desktop (4 colunas) */}
+      <div 
+        className="pricing-cards-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+          gap: '18px',
+          alignItems: 'stretch',
+          width: '100%'
+        }}
+      >
         {/* CARD 1: SHOPEE */}
         <PricingCard
           title="Shopee"
