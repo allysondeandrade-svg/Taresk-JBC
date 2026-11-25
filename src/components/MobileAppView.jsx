@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check, Search, Package, DollarSign, Settings } from 'lucide-react';
+import { Eye, EyeOff, Copy, Edit2, Trash2, CheckCircle2, User, Plus, RefreshCw, X, Check, Search, Package, DollarSign, Settings, Zap } from 'lucide-react';
 import AnnotationsView from './AnnotationsView';
 import MobileContasView from './MobileContasView';
+import FullPlanningView from './FullPlanningView';
 
 // Helper para formatar dd/mm
 function formatDueDateDisplay(val) {
@@ -533,6 +534,29 @@ export default function MobileAppView({
           }}
         >
           Anotações
+        </button>
+
+        <button
+          onClick={() => setActiveMainTab('full')}
+          style={{
+            flex: 1,
+            padding: '7px 8px',
+            borderRadius: '9999px',
+            border: activeMainTab === 'full' ? '1.5px solid #d8b4fe' : 'none',
+            background: activeMainTab === 'full' ? '#f3e8ff' : 'transparent',
+            color: activeMainTab === 'full' ? '#6b21a8' : '#64748b',
+            fontWeight: '700',
+            fontSize: '14px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '3px'
+          }}
+        >
+          <Zap size={14} /> Full
         </button>
 
         <button
@@ -1198,6 +1222,22 @@ export default function MobileAppView({
             onAddAnnotation={onAddAnnotation}
             onUpdateAnnotation={onUpdateAnnotation}
             onDeleteAnnotation={onDeleteAnnotation}
+          />
+        </div>
+      )}
+
+      {/* ABA FULL: PLANEJAMENTO FULL */}
+      {activeMainTab === 'full' && (
+        <div style={{
+          padding: '0 8px 60px 8px',
+          boxSizing: 'border-box',
+          width: '100%',
+          overflowX: 'hidden'
+        }}>
+          <FullPlanningView
+            platforms={platforms}
+            products={products}
+            currentUser={currentUser}
           />
         </div>
       )}

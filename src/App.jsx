@@ -15,6 +15,7 @@ import AnnotationModal from './components/AnnotationModal';
 import DisputesView from './components/DisputesView';
 import AnnotationsView from './components/AnnotationsView';
 import ConciliacaoView from './components/ConciliacaoView';
+import FullPlanningView from './components/FullPlanningView';
 import { NotificationService } from './services/notificationService';
 import { SheetsApi } from './services/sheetsApi';
 import {
@@ -1353,6 +1354,14 @@ export default function App() {
             onAddAnnotation={handleAddAnnotation}
             onUpdateAnnotation={handleUpdateAnnotation}
             onDeleteAnnotation={handleDeleteAnnotation}
+          />
+        )}
+
+        {activeTab === 'full' && (
+          <FullPlanningView
+            platforms={platforms}
+            products={products}
+            currentUser={currentUser}
           />
         )}
 
