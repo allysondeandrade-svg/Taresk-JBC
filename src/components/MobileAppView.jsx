@@ -1192,7 +1192,9 @@ export default function MobileAppView({
             annotations={annotations}
             currentUser={currentUser}
             platforms={platforms}
+            products={products}
             users={users}
+            onOpenModal={onOpenAnnotationModal}
             onAddAnnotation={onAddAnnotation}
             onUpdateAnnotation={onUpdateAnnotation}
             onDeleteAnnotation={onDeleteAnnotation}

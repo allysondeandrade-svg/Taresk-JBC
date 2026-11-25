@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check, Sparkles } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 
 // Helper de formatação de moeda R$ xx,yy
 function formatCurrencyInput(val) {
@@ -9,12 +9,19 @@ function formatCurrencyInput(val) {
   return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Tipos de anotações com seus ícones SVG fiéis aos modelos do usuário
-const ANNOTATION_TYPES = [
+// Retorna data no formato dd/mm
+function getTodayFormatted() {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}`;
+}
+
+// Os 6 marcadores oficiais solicitados
+export const ANNOTATION_TYPES = [
   {
     id: 'entrega_local',
     label: 'Entrega Local',
-    // Caminhão de entrega estilizado
     svg: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="1" y="3" width="15" height="13" rx="2" />
@@ -25,23 +32,8 @@ const ANNOTATION_TYPES = [
     )
   },
   {
-    id: 'entrega_direta',
-    label: 'Entrega Direta',
-    // Caixa de encomenda em movimento
-    svg: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-        <path d="m3.3 7 8.7 5 8.7-5" />
-        <path d="M12 22V12" />
-        <path d="m7 17-4 2" />
-        <path d="m5 13-2 1" />
-      </svg>
-    )
-  },
-  {
     id: 'retirada_fabrica',
     label: 'Retirada Fábrica',
-    // Loja / fábrica com caixas na frente
     svg: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
@@ -56,7 +48,6 @@ const ANNOTATION_TYPES = [
   {
     id: 'gasto_pontual',
     label: 'Gasto Pontual',
-    // Cifrão estilizado $
     svg: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="1" x2="12" y2="23" />
@@ -65,9 +56,21 @@ const ANNOTATION_TYPES = [
     )
   },
   {
+    id: 'envio_proprio',
+    label: 'Envio Próprio',
+    svg: (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+        <path d="m3.3 7 8.7 5 8.7-5" />
+        <path d="M12 22V12" />
+        <path d="m7 17-4 2" />
+        <path d="m5 13-2 1" />
+      </svg>
+    )
+  },
+  {
     id: 'prejuizo',
     label: 'Prejuízo',
-    // Engrenagem quebrada / faíscas de alerta
     svg: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2v4" />
@@ -85,7 +88,6 @@ const ANNOTATION_TYPES = [
   {
     id: 'anotacao',
     label: 'Anotação',
-    // Prancheta com lápis
     svg: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -104,17 +106,30 @@ export default function AnnotationModal({
   onClose,
   currentUser,
   platforms = [],
+  products = [],
   onSave
 }) {
-  const [selectedType, setSelectedType] = useState('anotacao');
+  const [selectedType, setSelectedType] = useState('entrega_local');
   const [selectedPlatform, setSelectedPlatform] = useState('');
-  const [valor, setValor] = useState('');
+  const [sku, setSku] = useState('');
   const [pedido, setPedido] = useState('');
-  const [observacao, setObservacao] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [valor, setValor] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
 
   if (!isOpen) return null;
+
+  // Regras de exibição de campos por marcador:
+  // - Entrega Local: Valor
+  // - Retira Fábrica e Gasto Pontual: Descrição e Valor
+  // - Envio Próprio e Prejuízo: Plataforma, SKU, Pedido, Descrição e Valor
+  // - Anotação: Descrição
+  const showPlatform = selectedType === 'envio_proprio' || selectedType === 'prejuizo';
+  const showSku = selectedType === 'envio_proprio' || selectedType === 'prejuizo';
+  const showPedido = selectedType === 'envio_proprio' || selectedType === 'prejuizo';
+  const showDescricao = selectedType !== 'entrega_local'; // Todos exceto Entrega Local
+  const showValor = selectedType !== 'anotacao'; // Todos exceto Anotação pura
 
   const handleSelectType = (id) => {
     setSelectedType(id);
@@ -126,18 +141,31 @@ export default function AnnotationModal({
   const handleSave = async () => {
     setIsSaving(true);
     const chosenType = ANNOTATION_TYPES.find(t => t.id === selectedType);
-    const tipoLabel = chosenType ? chosenType.label : 'Anotação';
+    const marcadorLabel = chosenType ? chosenType.label : 'Anotação';
 
     const cleanPlatform = selectedPlatform.trim();
-    const platValue = (cleanPlatform === 'Nenhuma' || cleanPlatform === '-') ? '-' : cleanPlatform;
+    const platValue = (!showPlatform || !cleanPlatform || cleanPlatform === 'Nenhuma' || cleanPlatform === '-') ? '-' : cleanPlatform;
+
+    // Gera ID numérico único de 4 dígitos
+    const randomId = String(Math.floor(1000 + Math.random() * 9000));
 
     const payload = {
-      tipo: tipoLabel,
+      id: randomId,
+      date: getTodayFormatted(),
+      marcador: marcadorLabel,
+      type: marcadorLabel,
+      platform: platValue,
       plataforma: platValue,
-      valor: valor.trim(),
-      pedido: pedido.trim(),
-      observacao: observacao.trim(),
-      usuario: currentUser?.name || 'Administrador',
+      sku: showSku ? sku.trim() : '',
+      pedido: showPedido ? pedido.trim() : '',
+      orderNumber: showPedido ? pedido.trim() : '',
+      descricao: showDescricao ? descricao.trim() : '',
+      description: showDescricao ? descricao.trim() : '',
+      notes: showDescricao ? descricao.trim() : '',
+      observacao: showDescricao ? descricao.trim() : '',
+      valor: showValor ? valor.trim() : '',
+      value: showValor ? valor.trim() : '',
+      usuario: currentUser?.name || 'Allyson',
       createdAt: new Date().toISOString()
     };
 
@@ -151,11 +179,12 @@ export default function AnnotationModal({
         // Limpa formulário e fecha
         setValor('');
         setSelectedPlatform('');
+        setSku('');
         setPedido('');
-        setObservacao('');
-        setSelectedType('anotacao');
+        setDescricao('');
+        setSelectedType('entrega_local');
         onClose();
-      }, 900);
+      }, 700);
     } catch (e) {
       console.error(e);
       alert('Ocorreu um erro ao salvar a anotação.');
@@ -197,7 +226,7 @@ export default function AnnotationModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Topo com Cabeçalho "Nota" (mesma fonte e cor de Relatório Geral: 24px, 800, #1e293b) e Botão Fechar (X) */}
+        {/* Topo com Cabeçalho "Nota" e Botão Fechar (X) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
           <h2 style={{
             fontSize: '24px',
@@ -239,14 +268,14 @@ export default function AnnotationModal({
           </button>
         </div>
 
-        {/* Grade de Ícones: 2 Linhas com 3 Ícones cada, todos 100% contidos dentro do card */}
+        {/* Grade com os 6 Ícones oficiais: 2 Linhas com 3 Ícones cada */}
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
             columnGap: '12px',
             rowGap: '16px',
-            marginBottom: '32px',
+            marginBottom: '26px',
             justifyItems: 'center',
             alignItems: 'start',
             width: '100%'
@@ -289,7 +318,6 @@ export default function AnnotationModal({
                   {t.svg}
                 </div>
 
-                {/* Nome do tipo abaixo do ícone com quebra harmoniosa */}
                 <span
                   style={{
                     fontSize: '12px',
@@ -309,184 +337,247 @@ export default function AnnotationModal({
           })}
         </div>
 
-        {/* Campos do Formulário com retângulos de pontas moderadamente arredondadas (10px) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+        {/* Campos do Formulário Dinâmicos conforme o Marcador Selecionado */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
           {/* Campo: Plataforma */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <label
-              style={{
-                fontSize: '17px',
-                fontWeight: '800',
-                color: '#0f172a',
-                letterSpacing: '-0.3px',
-                flexShrink: 0
-              }}
-            >
-              Plataforma
-            </label>
-            <select
-              value={selectedPlatform}
-              onChange={(e) => setSelectedPlatform(e.target.value)}
-              style={{
-                width: '60%',
-                height: '44px',
-                borderRadius: '10px',
-                border: '1.5px solid #cbd5e1',
-                padding: '0 12px',
-                fontSize: '14px',
-                fontWeight: '700',
-                color: selectedPlatform ? '#0f172a' : '#64748b',
-                outline: 'none',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease',
-                background: '#ffffff',
-                cursor: 'pointer'
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = '#6d28d9'; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
-            >
-              <option value="">Selecione a plataforma...</option>
-              <option value="Nenhuma">Nenhuma</option>
-              {platforms && platforms.length > 0 ? (
-                platforms.map((p) => {
-                  const pName = typeof p === 'string' ? p : p.name;
-                  const pId = typeof p === 'string' ? p : (p.id || p.name);
-                  return (
-                    <option key={pId} value={pName}>
-                      {pName}
-                    </option>
-                  );
-                })
+          {showPlatform && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <label
+                style={{
+                  fontSize: '16px',
+                  fontWeight: '800',
+                  color: '#0f172a',
+                  letterSpacing: '-0.3px',
+                  flexShrink: 0
+                }}
+              >
+                Plataforma
+              </label>
+              <select
+                value={selectedPlatform}
+                onChange={(e) => setSelectedPlatform(e.target.value)}
+                style={{
+                  width: '62%',
+                  height: '42px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #cbd5e1',
+                  padding: '0 12px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  color: selectedPlatform ? '#0f172a' : '#64748b',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  background: '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">Selecione a plataforma...</option>
+                <option value="Nenhuma">Nenhum</option>
+                {platforms && platforms.length > 0 ? (
+                  platforms.map((p) => {
+                    const pName = typeof p === 'string' ? p : p.name;
+                    const pId = typeof p === 'string' ? p : (p.id || p.name);
+                    return (
+                      <option key={pId} value={pName}>
+                        {pName}
+                      </option>
+                    );
+                  })
+                ) : (
+                  <>
+                    <option value="Shopee JBC">Shopee JBC</option>
+                    <option value="Shopee Izabela">Shopee Izabela</option>
+                    <option value="Mercado Livre">Mercado Livre</option>
+                    <option value="Amazon">Amazon</option>
+                    <option value="Magalu">Magalu</option>
+                    <option value="Shein">Shein</option>
+                    <option value="Geral / Outros">Geral / Outros</option>
+                  </>
+                )}
+              </select>
+            </div>
+          )}
+
+          {/* Campo: SKU (conforme lista de cadastro de produtos ou texto livre) */}
+          {showSku && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <label
+                style={{
+                  fontSize: '16px',
+                  fontWeight: '800',
+                  color: '#0f172a',
+                  letterSpacing: '-0.3px',
+                  flexShrink: 0
+                }}
+              >
+                SKU
+              </label>
+              {products && products.length > 0 ? (
+                <div style={{ width: '62%', position: 'relative' }}>
+                  <input
+                    type="text"
+                    list="annotation-sku-list"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    placeholder="Selecione ou digite..."
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      padding: '0 12px',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      color: '#0f172a',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      background: '#ffffff'
+                    }}
+                  />
+                  <datalist id="annotation-sku-list">
+                    {products.map((p) => (
+                      <option key={p.id} value={p.sku}>
+                        {p.sku} {p.title ? `- ${p.title}` : ''}
+                      </option>
+                    ))}
+                  </datalist>
+                </div>
               ) : (
-                <>
-                  <option value="Shopee JBC">Shopee JBC</option>
-                  <option value="Shopee Izabela">Shopee Izabela</option>
-                  <option value="Mercado Livre">Mercado Livre</option>
-                  <option value="Amazon">Amazon</option>
-                  <option value="Magalu">Magalu</option>
-                  <option value="Shein">Shein</option>
-                  <option value="TikTok Shop">TikTok Shop</option>
-                  <option value="Geral / Outros">Geral / Outros</option>
-                </>
+                <input
+                  type="text"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="SKU do produto..."
+                  style={{
+                    width: '62%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    padding: '0 12px',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    color: '#0f172a',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    background: '#ffffff'
+                  }}
+                />
               )}
-            </select>
-          </div>
+            </div>
+          )}
+
+          {/* Campo: Pedido */}
+          {showPedido && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <label
+                style={{
+                  fontSize: '16px',
+                  fontWeight: '800',
+                  color: '#0f172a',
+                  letterSpacing: '-0.3px',
+                  flexShrink: 0
+                }}
+              >
+                Pedido
+              </label>
+              <input
+                type="text"
+                value={pedido}
+                onChange={(e) => setPedido(e.target.value)}
+                placeholder="Ex: 261104..."
+                style={{
+                  width: '62%',
+                  height: '42px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #cbd5e1',
+                  padding: '0 12px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  color: '#0f172a',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  background: '#ffffff',
+                  fontFamily: "'JetBrains Mono', monospace"
+                }}
+              />
+            </div>
+          )}
+
+          {/* Campo: Descrição (antigo observação) */}
+          {showDescricao && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <label
+                style={{
+                  fontSize: '16px',
+                  fontWeight: '800',
+                  color: '#0f172a',
+                  letterSpacing: '-0.3px',
+                  flexShrink: 0
+                }}
+              >
+                Descrição
+              </label>
+              <input
+                type="text"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                placeholder="Detalhes ou descrição..."
+                style={{
+                  width: '62%',
+                  height: '42px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #cbd5e1',
+                  padding: '0 12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#0f172a',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  background: '#ffffff'
+                }}
+              />
+            </div>
+          )}
 
           {/* Campo: Valor com máscara de moeda R$ xx,yy */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <label
-              style={{
-                fontSize: '17px',
-                fontWeight: '800',
-                color: '#0f172a',
-                letterSpacing: '-0.3px',
-                flexShrink: 0
-              }}
-            >
-              Valor
-            </label>
-            <input
-              type="text"
-              value={valor}
-              onChange={(e) => setValor(formatCurrencyInput(e.target.value))}
-              placeholder="R$ 0,00"
-              style={{
-                width: '60%',
-                height: '44px',
-                borderRadius: '10px',
-                border: '1.5px solid #cbd5e1',
-                padding: '0 14px',
-                fontSize: '15px',
-                fontWeight: '700',
-                color: '#0f172a',
-                outline: 'none',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease',
-                background: '#ffffff'
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = '#6d28d9'; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
-            />
-          </div>
-
-          {/* Campo: Pedido (renomeado de Número do pedido para Pedido) */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <label
-              style={{
-                fontSize: '17px',
-                fontWeight: '800',
-                color: '#0f172a',
-                letterSpacing: '-0.3px',
-                lineHeight: '1.15',
-                flexShrink: 0
-              }}
-            >
-              Pedido
-            </label>
-            <input
-              type="text"
-              value={pedido}
-              onChange={(e) => setPedido(e.target.value)}
-              placeholder=""
-              style={{
-                width: '60%',
-                height: '44px',
-                borderRadius: '10px',
-                border: '1.5px solid #cbd5e1',
-                padding: '0 14px',
-                fontSize: '15px',
-                fontWeight: '700',
-                color: '#0f172a',
-                outline: 'none',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease',
-                background: '#ffffff'
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = '#6d28d9'; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
-            />
-          </div>
-
-          {/* Campo: Observação */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <label
-              style={{
-                fontSize: '17px',
-                fontWeight: '800',
-                color: '#0f172a',
-                letterSpacing: '-0.3px',
-                flexShrink: 0
-              }}
-            >
-              Observação
-            </label>
-            <input
-              type="text"
-              value={observacao}
-              onChange={(e) => setObservacao(e.target.value)}
-              placeholder=""
-              style={{
-                width: '60%',
-                height: '44px',
-                borderRadius: '10px',
-                border: '1.5px solid #cbd5e1',
-                padding: '0 14px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#0f172a',
-                outline: 'none',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease',
-                background: '#ffffff'
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = '#6d28d9'; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
-            />
-          </div>
+          {showValor && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <label
+                style={{
+                  fontSize: '16px',
+                  fontWeight: '800',
+                  color: '#0f172a',
+                  letterSpacing: '-0.3px',
+                  flexShrink: 0
+                }}
+              >
+                Valor
+              </label>
+              <input
+                type="text"
+                value={valor}
+                onChange={(e) => setValor(formatCurrencyInput(e.target.value))}
+                placeholder="R$ 0,00"
+                style={{
+                  width: '62%',
+                  height: '42px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #cbd5e1',
+                  padding: '0 12px',
+                  fontSize: '15px',
+                  fontWeight: '700',
+                  color: '#0f172a',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  background: '#ffffff'
+                }}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Botão Salvar no Canto Inferior Direito */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
+        {/* Botão Salvar */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '28px' }}>
           <button
             type="button"
             onClick={handleSave}

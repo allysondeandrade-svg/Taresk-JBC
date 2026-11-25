@@ -1851,20 +1851,15 @@ function getAnnotationsDataAsJson() {
   const headers = values[0].map(h => String(h).toLowerCase().trim());
   const rows = values.slice(1);
 
+  // Colunas oficiais: ID, Data, Marcador, Plataforma, SKU, Pedido, Descrição, Valor
   const idxId = headers.indexOf('id');
   const idxData = headers.findIndex(h => h.includes('data'));
-  const idxTipo = headers.findIndex(h => h.includes('tipo'));
+  const idxMarcador = headers.findIndex(h => h.includes('marcador') || h.includes('tipo'));
   const idxPlat = headers.findIndex(h => h.includes('plat'));
+  const idxSku = headers.findIndex(h => h.includes('sku') || h.includes('prod'));
   const idxPedido = headers.findIndex(h => h.includes('ped'));
-  const idxValor = headers.findIndex(h => h.includes('val'));
-  const idxObs = headers.findIndex(h => h.includes('obs'));
-  const idxUser = headers.findIndex(h => h.includes('usu'));
-
-  const knownPlatforms = [
-    'shopee jbc', 'shopee izabela', 'shopee principal', 'shopee oficial', 'shopee',
-    'mercado livre jbc', 'mercado livre', 'mercado l', 'amazon jbc', 'amazon',
-    'magalu jbc', 'magalu', 'shein jbc', 'shein', 'geral / outros', 'geral', 'outros'
-  ];
+  const idxDescricao = headers.findIndex(h => h.includes('desc') || h.includes('obs'));
+  const idxValor = headers.findIndex(h => h.includes('val') || h.includes('preco') || h.includes('preço'));
 
   return rows.map((r, index) => {
     let rawDate = idxData !== -1 ? r[idxData] : '';
@@ -1884,46 +1879,27 @@ function getAnnotationsDataAsJson() {
     let rawId = (idxId !== -1 && r[idxId]) ? String(r[idxId]).trim() : '';
     let formattedId = rawId || ('anot_' + (index + 1));
 
-    let typeVal = idxTipo !== -1 && r[idxTipo] ? String(r[idxTipo]).trim() : '';
+    let marcadorVal = idxMarcador !== -1 && r[idxMarcador] ? String(r[idxMarcador]).trim() : '';
     let platVal = idxPlat !== -1 && r[idxPlat] ? String(r[idxPlat]).trim() : '';
+    let skuVal = idxSku !== -1 && r[idxSku] ? String(r[idxSku]).trim() : '';
     let orderVal = idxPedido !== -1 && r[idxPedido] ? String(r[idxPedido]).trim() : '';
+    let descVal = idxDescricao !== -1 && r[idxDescricao] ? String(r[idxDescricao]).trim() : '';
     let valStr = idxValor !== -1 && r[idxValor] !== '' && r[idxValor] !== undefined ? String(r[idxValor]).trim() : '';
-    let obsVal = idxObs !== -1 && r[idxObs] ? String(r[idxObs]).trim() : '';
-    let userVal = idxUser !== -1 && r[idxUser] ? String(r[idxUser]).trim() : '';
 
-    if (knownPlatforms.some(kp => valStr.toLowerCase().includes(kp))) {
-      if (!platVal) platVal = valStr;
-      valStr = '';
-    }
-
-    if ((!valStr || valStr === '-') && (obsVal.includes('R$') || /^\s*R?\$?\s*\d+([.,]\d{2})?\s*$/.test(obsVal))) {
-      valStr = obsVal;
-      obsVal = '';
-    }
-
-    if (obsVal.includes('R$') && (!valStr.includes('R$') && !/\d+,\d{2}/.test(valStr))) {
-      const temp = valStr;
-      valStr = obsVal;
-      obsVal = temp;
-    }
-
-    if (userVal.includes('R$') || ((!valStr || valStr === '-') && /\d+,\d{2}/.test(userVal))) {
-      valStr = userVal;
-      userVal = '';
-    }
-
-    if (typeVal.toLowerCase().includes('envio') || typeVal.toLowerCase().includes('direta')) {
-      typeVal = 'Entrega Direta';
-    } else if (typeVal.toLowerCase().includes('manual') || typeVal.toLowerCase().includes('pontual')) {
-      typeVal = 'Gasto Pontual';
-    } else if (typeVal.toLowerCase().includes('local')) {
-      typeVal = 'Entrega Local';
-    } else if (typeVal.toLowerCase().includes('retirada') || typeVal.toLowerCase().includes('fabrica')) {
-      typeVal = 'Retirada Fábrica';
-    } else if (typeVal.toLowerCase().includes('preju')) {
-      typeVal = 'Prejuízo';
-    } else if (!typeVal || typeVal.toLowerCase().includes('anota')) {
-      typeVal = 'Anotação';
+    // Normalização dos 6 marcadores
+    const mLower = marcadorVal.toLowerCase();
+    if (mLower.includes('envio') || mLower.includes('proprio') || mLower.includes('próprio') || mLower.includes('direta')) {
+      marcadorVal = 'Envio Próprio';
+    } else if (mLower.includes('local')) {
+      marcadorVal = 'Entrega Local';
+    } else if (mLower.includes('retirada') || mLower.includes('fabrica') || mLower.includes('fábrica')) {
+      marcadorVal = 'Retirada Fábrica';
+    } else if (mLower.includes('pontual') || mLower.includes('manual')) {
+      marcadorVal = 'Gasto Pontual';
+    } else if (mLower.includes('preju')) {
+      marcadorVal = 'Prejuízo';
+    } else if (!marcadorVal || mLower.includes('anota')) {
+      marcadorVal = 'Anotação';
     }
 
     if (valStr && !valStr.startsWith('R$')) {
@@ -1933,17 +1909,21 @@ function getAnnotationsDataAsJson() {
       }
     }
 
-    if (!userVal) userVal = 'Allyson';
-
     return {
       id: formattedId,
       date: formattedDate,
-      type: typeVal,
+      type: marcadorVal,
+      marcador: marcadorVal,
       platform: platVal,
+      plataforma: platVal,
+      sku: skuVal,
       orderNumber: orderVal,
+      pedido: orderVal,
+      description: descVal,
+      notes: descVal,
+      observacao: descVal,
       value: valStr,
-      notes: obsVal,
-      usuario: userVal
+      valor: valStr
     };
   });
 }
@@ -1953,7 +1933,7 @@ function saveAnnotationRecord(annotationData) {
   let sheet = ss.getSheetByName(SHEETS.ANNOTATIONS) || ss.getSheetByName('Anotacao') || ss.getSheetByName('Anotações');
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.ANNOTATIONS);
-    sheet.appendRow(['ID', 'Data', 'Tipo', 'Plataforma', 'Pedido', 'Valor', 'Observação', 'Usuário']);
+    sheet.appendRow(['ID', 'Data', 'Marcador', 'Plataforma', 'SKU', 'Pedido', 'Descrição', 'Valor']);
     styleHeader(sheet);
   }
 
@@ -1974,12 +1954,11 @@ function saveAnnotationRecord(annotationData) {
   }
 
   const hasIdCol = idxId !== -1;
-
   let finalId = '';
   if (rowIndex > 0 && hasIdCol) {
     finalId = String(values[rowIndex - 1][idxId] || '').trim();
   }
-  if (!finalId && targetId) {
+  if (!finalId && targetId && !targetId.startsWith('anot_')) {
     finalId = targetId;
   }
   if (!finalId) {
@@ -1992,18 +1971,30 @@ function saveAnnotationRecord(annotationData) {
     dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || 'America/Sao_Paulo', 'dd/MM');
   }
 
-  let type = String(annotationData.type || annotationData.tipo || 'Anotação').trim();
-  if (type.toLowerCase().includes('envio') || type.toLowerCase().includes('direta')) {
-    type = 'Entrega Direta';
-  } else if (type.toLowerCase().includes('manual') || type.toLowerCase().includes('pontual')) {
-    type = 'Gasto Pontual';
+  let marcador = String(annotationData.marcador || annotationData.type || annotationData.tipo || 'Anotação').trim();
+  const mLower = marcador.toLowerCase();
+  if (mLower.includes('envio') || mLower.includes('proprio') || mLower.includes('próprio') || mLower.includes('direta')) {
+    marcador = 'Envio Próprio';
+  } else if (mLower.includes('local')) {
+    marcador = 'Entrega Local';
+  } else if (mLower.includes('retirada') || mLower.includes('fabrica') || mLower.includes('fábrica')) {
+    marcador = 'Retirada Fábrica';
+  } else if (mLower.includes('pontual') || mLower.includes('manual')) {
+    marcador = 'Gasto Pontual';
+  } else if (mLower.includes('preju')) {
+    marcador = 'Prejuízo';
+  } else if (!marcador || mLower.includes('anota')) {
+    marcador = 'Anotação';
   }
 
-  let platform = String(annotationData.platform || '').trim();
-  if (!platform || platform.toLowerCase() === 'nenhuma' || platform === '-') {
+  let platform = String(annotationData.platform || annotationData.plataforma || '').trim();
+  if (!platform || platform.toLowerCase() === 'nenhuma' || platform === '-' || platform.toLowerCase() === 'nenhum') {
     platform = '-';
   }
+
+  const sku = String(annotationData.sku || '').trim();
   const orderNumber = String(annotationData.orderNumber || annotationData.pedido || '').trim();
+  const description = String(annotationData.description || annotationData.notes || annotationData.observacao || '').trim();
 
   let value = String(annotationData.value || annotationData.valor || '').trim();
   if (value && !value.startsWith('R$')) {
@@ -2013,17 +2004,39 @@ function saveAnnotationRecord(annotationData) {
     }
   }
 
-  const notes = String(annotationData.notes || annotationData.observacao || annotationData.observation || '').trim();
-  const user = String(annotationData.usuario || annotationData.userName || annotationData.user || 'Allyson').trim();
-
-  const finalRow = hasIdCol
-    ? [finalId, dateStr, type, platform, orderNumber, value, notes, user]
-    : [dateStr, type, platform, orderNumber, value, notes, user];
+  const idxData = headers.findIndex(h => h.includes('data'));
+  const idxMarcador = headers.findIndex(h => h.includes('marcador') || h.includes('tipo'));
+  const idxPlat = headers.findIndex(h => h.includes('plat'));
+  const idxSku = headers.findIndex(h => h.includes('sku') || h.includes('prod'));
+  const idxPedido = headers.findIndex(h => h.includes('ped'));
+  const idxDescricao = headers.findIndex(h => h.includes('desc') || h.includes('obs'));
+  const idxValor = headers.findIndex(h => h.includes('val') || h.includes('preco') || h.includes('preço'));
 
   if (rowIndex > 0) {
-    sheet.getRange(rowIndex, 1, 1, finalRow.length).setValues([finalRow]);
+    if (idxId !== -1) sheet.getRange(rowIndex, idxId + 1).setValue(finalId);
+    if (idxData !== -1) sheet.getRange(rowIndex, idxData + 1).setValue(dateStr);
+    if (idxMarcador !== -1) sheet.getRange(rowIndex, idxMarcador + 1).setValue(marcador);
+    if (idxPlat !== -1) sheet.getRange(rowIndex, idxPlat + 1).setValue(platform);
+    if (idxSku !== -1) sheet.getRange(rowIndex, idxSku + 1).setValue(sku);
+    if (idxPedido !== -1) sheet.getRange(rowIndex, idxPedido + 1).setValue(orderNumber);
+    if (idxDescricao !== -1) sheet.getRange(rowIndex, idxDescricao + 1).setValue(description);
+    if (idxValor !== -1) sheet.getRange(rowIndex, idxValor + 1).setValue(value);
   } else {
-    sheet.appendRow(finalRow);
+    let newRow = [];
+    if (headers.length > 0) {
+      newRow = new Array(headers.length).fill('');
+      if (idxId !== -1) newRow[idxId] = finalId;
+      if (idxData !== -1) newRow[idxData] = dateStr;
+      if (idxMarcador !== -1) newRow[idxMarcador] = marcador;
+      if (idxPlat !== -1) newRow[idxPlat] = platform;
+      if (idxSku !== -1) newRow[idxSku] = sku;
+      if (idxPedido !== -1) newRow[idxPedido] = orderNumber;
+      if (idxDescricao !== -1) newRow[idxDescricao] = description;
+      if (idxValor !== -1) newRow[idxValor] = value;
+    } else {
+      newRow = [finalId, dateStr, marcador, platform, sku, orderNumber, description, value];
+    }
+    sheet.appendRow(newRow);
   }
 
   return { status: 'success', id: finalId, date: dateStr, platform: platform };

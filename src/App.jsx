@@ -1146,13 +1146,17 @@ export default function App() {
           onOpenAnnotationModal={() => setIsAnnotationModalOpen(true)}
         />
 
-        {/* Modais compartilhados para uso no mobile */}
+        {/* Modais compartilhados para uso no mobile e desktop */}
         <AnnotationModal
           isOpen={isAnnotationModalOpen}
           onClose={() => setIsAnnotationModalOpen(false)}
           currentUser={currentUser}
           platforms={platforms}
-          onSave={handleSaveAnnotation}
+          products={products}
+          onSave={async (annot) => {
+            await handleAddAnnotation(annot);
+            return true;
+          }}
         />
 
         <NewTaskModal
@@ -1340,7 +1344,9 @@ export default function App() {
             annotations={annotations}
             currentUser={currentUser}
             platforms={platforms}
+            products={products}
             users={users}
+            onOpenModal={() => setIsAnnotationModalOpen(true)}
             onAddAnnotation={handleAddAnnotation}
             onUpdateAnnotation={handleUpdateAnnotation}
             onDeleteAnnotation={handleDeleteAnnotation}
@@ -1422,13 +1428,17 @@ export default function App() {
         onDeletePlatform={handleDeletePlatform}
       />
 
-      {/* Modal de Anotação (Desktop) */}
+      {/* Modal de Anotação (Desktop e Mobile) */}
       <AnnotationModal
         isOpen={isAnnotationModalOpen}
         onClose={() => setIsAnnotationModalOpen(false)}
         currentUser={currentUser}
         platforms={platforms}
-        onSave={handleSaveAnnotation}
+        products={products}
+        onSave={async (annot) => {
+          await handleAddAnnotation(annot);
+          return true;
+        }}
       />
 
 {/* Botão Flutuante de Anotação apenas no Mobile (removido do Desktop) */}
