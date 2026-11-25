@@ -380,7 +380,7 @@ const MAGALU_HIGH_TABLE = [
 
 export function getMagaluFreight(price, weight) {
   if (price < 79) {
-    return 3.00;
+    return price >= 10 ? 5.00 : 0.00;
   }
   if (price <= 199) {
     const row = MAGALU_MID_TABLE.find(r => weight <= r.maxWeight) || MAGALU_MID_TABLE[MAGALU_MID_TABLE.length - 1];

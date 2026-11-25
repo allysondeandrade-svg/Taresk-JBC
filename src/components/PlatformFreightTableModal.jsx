@@ -216,13 +216,13 @@ export default function PlatformFreightTableModal({ isOpen, onClose, platformKey
               </p>
             </div>
 
-            {/* Produtos abaixo de R$ 79 (Taxa fixa de R$ 3,00) */}
+            {/* Produtos abaixo de R$ 79 (Taxa fixa de R$ 5,00 a partir de R$ 10,00) */}
             <div style={{ marginBottom: '14px', border: '1px solid #bae6fd', borderRadius: '10px', overflowX: 'auto', background: '#f0f9ff', padding: '10px 14px' }}>
               <span style={{ fontSize: '12px', fontWeight: '800', color: '#0369a1' }}>
                 📦 Produtos Abaixo de R$ 79,00:
               </span>
               <span style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', marginLeft: '8px' }}>
-                Taxa fixa de <b>R$ 3,00</b> por unidade vendida (independente do peso).
+                Taxa fixa de <b>R$ 5,00</b> por unidade vendida para produtos a partir de <b>R$ 10,00</b> (itens abaixo de R$ 10,00 isentos).
               </span>
             </div>
 
