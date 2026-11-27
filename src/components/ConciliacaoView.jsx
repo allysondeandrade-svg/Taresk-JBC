@@ -1209,12 +1209,17 @@ export default function ConciliacaoView({
       {/* ========================================================================= */}
       {activeSubTab === 'checklist' && (
         <div>
-          {/* Grid de Cards dos Usuários (Allyson, Jeremias, etc.) */}
+          {/* Grid de Cards dos Usuários (Allyson, Jeremias, etc.) - Dispostos um ao lado do outro em linha */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 320px))',
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'nowrap',
+            alignItems: 'stretch',
             gap: '24px',
-            alignItems: 'start'
+            overflowX: 'auto',
+            paddingBottom: '16px',
+            width: '100%',
+            boxSizing: 'border-box'
           }}>
             {users.map(user => {
               const userPlats = getUserPlatforms(user);
@@ -1231,7 +1236,10 @@ export default function ConciliacaoView({
                     padding: '20px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '16px'
+                    gap: '16px',
+                    flex: '0 0 auto',
+                    width: '320px',
+                    boxSizing: 'border-box'
                   }}
                 >
                   {/* Cabeçalho do Card: Avatar, Nome e Botão de Reset */}
