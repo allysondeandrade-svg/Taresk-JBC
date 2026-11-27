@@ -300,14 +300,20 @@ function setupSheets() {
     }
   }
 
-  // 11. Aba Full (Planejamento Full): [ID, Data, Plataforma, TotalItens, Itens_JSON, CriadoEm]
+  // 11. Aba Full (Planejamento Full): [ID, Data, Plataforma, TotalItens, Itens_JSON, CriadoEm, Status]
   let fullSheet = ss.getSheetByName(SHEETS.FULL_PLANNING) || ss.getSheetByName('Planejamento Full') || ss.getSheetByName('Planejamento_Full');
   if (!fullSheet) {
     fullSheet = ss.insertSheet(SHEETS.FULL_PLANNING);
-    fullSheet.appendRow(['ID', 'Data', 'Plataforma', 'TotalItens', 'Itens_JSON', 'CriadoEm']);
+    fullSheet.appendRow(['ID', 'Data', 'Plataforma', 'TotalItens', 'Itens_JSON', 'CriadoEm', 'Status']);
     styleHeader(fullSheet);
   } else {
     ensureIdColumn(fullSheet, 'ID');
+    // Garante que a coluna Status exista
+    const lastCol = Math.max(fullSheet.getLastColumn(), 1);
+    const headers = fullSheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').toLowerCase().trim());
+    if (headers.indexOf('status') === -1) {
+      fullSheet.getRange(1, lastCol + 1).setValue('Status');
+    }
   }
 
   Logger.log('Todas as abas do Taresk foram configuradas e corrigidas com sucesso!');
@@ -2531,6 +2537,7 @@ function getFullPlanningsDataAsJson() {
   const idxTotal = headers.indexOf('totalitens');
   const idxItems = headers.indexOf('itens_json') !== -1 ? headers.indexOf('itens_json') : headers.indexOf('itens');
   const idxCreated = headers.indexOf('criadoem');
+  const idxStatus = headers.indexOf('status');
 
   const list = [];
   for (let i = 1; i < values.length; i++) {
@@ -2566,13 +2573,20 @@ function getFullPlanningsDataAsJson() {
       }
     }
 
+    let rawStatus = idxStatus !== -1 ? String(row[idxStatus] || '').trim().toLowerCase() : '';
+    let status = 'embalar';
+    if (rawStatus === 'enviado' || rawStatus === 'sent' || rawStatus === 'concluido' || rawStatus === 'concluído') {
+      status = 'enviado';
+    }
+
     list.push({
       id: id,
       date: dateVal,
       platformName: idxPlat !== -1 ? String(row[idxPlat] || '') : '',
       totalItems: idxTotal !== -1 ? Number(row[idxTotal] || 0) : items.length,
       items: Array.isArray(items) ? items : [],
-      createdAt: idxCreated !== -1 ? String(row[idxCreated] || '') : ''
+      createdAt: idxCreated !== -1 ? String(row[idxCreated] || '') : '',
+      status: status
     });
   }
 
@@ -2586,19 +2600,21 @@ function upsertFullPlanningRecord(planning) {
   let sheet = ss.getSheetByName(SHEETS.FULL_PLANNING) || ss.getSheetByName('Planejamento Full') || ss.getSheetByName('Planejamento_Full');
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.FULL_PLANNING);
-    sheet.appendRow(['ID', 'Data', 'Plataforma', 'TotalItens', 'Itens_JSON', 'CriadoEm']);
+    sheet.appendRow(['ID', 'Data', 'Plataforma', 'TotalItens', 'Itens_JSON', 'CriadoEm', 'Status']);
     styleHeader(sheet);
   }
 
   const values = sheet.getDataRange().getValues();
   const headers = values[0].map(h => String(h || '').toLowerCase().trim());
   const idxId = headers.indexOf('id');
+  const idxStatus = headers.indexOf('status');
 
   const targetId = planning.id ? String(planning.id).trim() : '';
   const finalId = targetId || ('full_' + Date.now());
   const totalQty = (planning.items || []).reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
   const itemsJson = JSON.stringify(planning.items || []);
   const createdDate = planning.createdAt || new Date().toISOString();
+  const statusVal = String(planning.status || 'embalar').toLowerCase();
 
   let foundRow = -1;
   if (idxId !== -1 && targetId) {
@@ -2622,13 +2638,20 @@ function upsertFullPlanningRecord(planning) {
     } catch (e) {}
   }
 
+  // Se a coluna Status não existir no cabeçalho atual da planilha, adiciona
+  if (idxStatus === -1) {
+    const lastCol = sheet.getLastColumn();
+    sheet.getRange(1, lastCol + 1).setValue('Status');
+  }
+
   const rowData = [
     finalId,
     formattedDate,
     planning.platformName || planning.platformId || '',
     totalQty,
     itemsJson,
-    createdDate
+    createdDate,
+    statusVal
   ];
 
   if (foundRow > 0) {
