@@ -348,19 +348,30 @@ export default function FullPlanningView({
 
   // Mudar status de um planejamento (ex: 'embalar' <-> 'enviado')
   const handleSetPlanningStatus = (planningId, newStatus) => {
-    let updatedTarget = null;
-    setPlannings(prev => prev.map(p => {
-      if (String(p.id) !== String(planningId)) return p;
-      const updated = {
-        ...p,
-        status: newStatus,
-        sentAt: newStatus === 'enviado' ? new Date().toISOString() : p.sentAt
-      };
-      updatedTarget = updated;
-      return updated;
-    }));
+    const currentList = propsPlannings !== undefined ? propsPlannings : localPlannings;
+    const targetItem = currentList.find(p => String(p.id) === String(planningId));
+    
+    const updatedTarget = targetItem ? {
+      ...targetItem,
+      status: newStatus,
+      sentAt: newStatus === 'enviado' ? new Date().toISOString() : targetItem.sentAt
+    } : null;
 
-    if (propsOnSavePlanning && updatedTarget) {
+    // Atualiza o estado
+    setPlannings(prev => {
+      const list = prev || [];
+      return list.map(p => {
+        if (String(p.id) !== String(planningId)) return p;
+        return {
+          ...p,
+          status: newStatus,
+          sentAt: newStatus === 'enviado' ? new Date().toISOString() : p.sentAt
+        };
+      });
+    });
+
+    // Se estiver na aba pai (App.jsx), invoca propsOnSavePlanning para atualizar fullPlannings
+    if (updatedTarget && propsOnSavePlanning) {
       propsOnSavePlanning(updatedTarget);
     } else if (updatedTarget) {
       try {

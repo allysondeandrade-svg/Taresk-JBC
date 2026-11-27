@@ -516,6 +516,7 @@ export default function App() {
             return {
               ...fp,
               date: dStr,
+              status: String(fp.status || 'embalar').toLowerCase(),
               items: Array.isArray(fp.items) ? fp.items : []
             };
           });
