@@ -501,6 +501,20 @@ export default function App() {
         }
         if (Array.isArray(data.fullPlannings)) {
           // Formata e sanitiza os itens de full plannings
+          // Mescla com o estado local/localStorage para preservar status 'enviado' caso a planilha ainda não tenha a coluna ou retorne vazio
+          let localMap = new Map();
+          try {
+            const rawSaved = localStorage.getItem('taresk_full_plannings');
+            if (rawSaved) {
+              const parsed = JSON.parse(rawSaved);
+              if (Array.isArray(parsed)) {
+                parsed.forEach(p => {
+                  if (p && p.id) localMap.set(String(p.id), p);
+                });
+              }
+            }
+          } catch (e) {}
+
           const sanitizedFull = data.fullPlannings.map(fp => {
             let dStr = fp.date || '';
             if (dStr && (dStr.includes('GMT') || dStr.includes('T'))) {
@@ -513,10 +527,19 @@ export default function App() {
                 }
               } catch (e) {}
             }
+            const localMatch = localMap.get(String(fp.id));
+            let finalStatus = String(fp.status || '').toLowerCase().trim();
+            // Se na planilha veio vazio ou 'embalar', mas localmente já foi marcado como 'enviado', preserva 'enviado'
+            if ((!finalStatus || finalStatus === 'embalar') && localMatch && String(localMatch.status).toLowerCase() === 'enviado') {
+              finalStatus = 'enviado';
+            }
+            if (!finalStatus) finalStatus = 'embalar';
+
             return {
               ...fp,
               date: dStr,
-              status: String(fp.status || 'embalar').toLowerCase(),
+              status: finalStatus,
+              sentAt: fp.sentAt || (localMatch ? localMatch.sentAt : undefined),
               items: Array.isArray(fp.items) ? fp.items : []
             };
           });

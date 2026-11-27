@@ -90,8 +90,20 @@ export default function FullPlanningView({
         if (Array.isArray(remoteList) && remoteList.length > 0) {
           setLocalPlannings(prev => {
             const map = new Map();
+            // Mantém itens existentes locais preservando status já alterado
             remoteList.forEach(p => map.set(String(p.id), p));
-            prev.forEach(p => map.set(String(p.id), p));
+            prev.forEach(p => {
+              const remote = map.get(String(p.id));
+              if (remote) {
+                map.set(String(p.id), {
+                  ...remote,
+                  status: (p.status === 'enviado' || remote.status === 'enviado') ? 'enviado' : (remote.status || p.status || 'embalar'),
+                  sentAt: p.sentAt || remote.sentAt
+                });
+              } else {
+                map.set(String(p.id), p);
+              }
+            });
             const merged = Array.from(map.values());
             try { localStorage.setItem('taresk_full_plannings', JSON.stringify(merged)); } catch (e) {}
             return merged;
@@ -537,12 +549,22 @@ export default function FullPlanningView({
           border: 2.5px solid #0f172a;
           display: flex;
           align-items: center;
-          justifyContent: center;
+          justify-content: center;
           cursor: pointer;
           transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
           flex-shrink: 0;
           background: #ffffff;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+          line-height: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        .custom-big-circle svg {
+          display: block;
+          margin: auto;
+          flex-shrink: 0;
+          transform: translateY(1px);
         }
 
         .custom-big-circle:hover {
