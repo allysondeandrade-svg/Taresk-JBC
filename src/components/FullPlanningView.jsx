@@ -13,6 +13,8 @@ import {
   Filter, 
   ChevronDown, 
   ChevronUp, 
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2, 
   Circle, 
   Clock, 
@@ -21,9 +23,18 @@ import {
   ArrowUpDown,
   Search,
   RotateCcw,
-  Box
+  Box,
+  CalendarDays
 } from 'lucide-react';
 import { SheetsApi } from '../services/sheetsApi';
+import { fetchNationalHolidays } from '../services/holidayService';
+
+const MONTH_NAMES = [
+  'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
+  'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+];
+
+const WEEK_DAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 
 export default function FullPlanningView({
   platforms = [],
@@ -174,6 +185,108 @@ export default function FullPlanningView({
         };
     }
   }, [fontSizeLevel]);
+
+  // Estado do Mês/Ano selecionado para navegação e calendário (conforme Contas a Pagar)
+  const today = useMemo(() => new Date(), []);
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(() => today.getMonth());
+  const [currentYear, setCurrentYear] = useState(() => today.getFullYear());
+  const [selectedCalendarDateKey, setSelectedCalendarDateKey] = useState(null); // 'YYYY-MM-DD' para filtro específico por dia
+
+  // Navegação de meses
+  const handlePrevMonth = () => {
+    if (currentMonthIndex === 0) {
+      setCurrentMonthIndex(11);
+      setCurrentYear(y => y - 1);
+    } else {
+      setCurrentMonthIndex(m => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonthIndex === 11) {
+      setCurrentMonthIndex(0);
+      setCurrentYear(y => y + 1);
+    } else {
+      setCurrentMonthIndex(m => m + 1);
+    }
+  };
+
+  // Carrega feriados nacionais para exibir no calendário
+  const [holidaysMap, setHolidaysMap] = useState({});
+  useEffect(() => {
+    fetchNationalHolidays(currentYear).then(map => {
+      setHolidaysMap(map || {});
+    }).catch(() => {});
+  }, [currentYear]);
+
+  // Lista dos 12 meses exibidos na coluna esquerda de calendários
+  const displayedMonths = useMemo(() => {
+    const realNow = new Date();
+    const realYear = realNow.getFullYear();
+    const realMonth = realNow.getMonth();
+
+    const isPastSelection = (currentYear < realYear) || (currentYear === realYear && currentMonthIndex < realMonth);
+    const startMonth = isPastSelection ? currentMonthIndex : realMonth;
+    const startYear = isPastSelection ? currentYear : realYear;
+
+    const list = [];
+    for (let offset = 0; offset <= 11; offset++) {
+      let m = startMonth + offset;
+      let y = startYear;
+      while (m < 0) {
+        m += 12;
+        y -= 1;
+      }
+      while (m > 11) {
+        m -= 12;
+        y += 1;
+      }
+      list.push({ monthIndex: m, year: y });
+    }
+    return list;
+  }, [currentMonthIndex, currentYear]);
+
+  // Mapa de planejamentos por "ano-mes-dia" para destacar no calendário
+  const planningsByDateMap = useMemo(() => {
+    const map = {};
+    plannings.forEach(p => {
+      let d = null;
+      let m = null;
+      let y = null;
+
+      if (p.rawDate && p.rawDate.includes('-')) {
+        const parts = p.rawDate.split('-');
+        if (parts.length === 3) {
+          y = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          d = parseInt(parts[2], 10);
+        }
+      } else if (p.date && p.date.includes('/')) {
+        const parts = p.date.split('/');
+        if (parts.length >= 2) {
+          d = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          y = parts[2] ? parseInt(parts[2], 10) : (p.createdAt ? new Date(p.createdAt).getFullYear() : currentYear);
+        }
+      } else if (p.createdAt) {
+        try {
+          const parsed = new Date(p.createdAt);
+          if (!isNaN(parsed.getTime())) {
+            y = parsed.getFullYear();
+            m = parsed.getMonth() + 1;
+            d = parsed.getDate();
+          }
+        } catch (e) {}
+      }
+
+      if (d && m && y) {
+        const dateKey = `${y}-${m}-${d}`;
+        if (!map[dateKey]) map[dateKey] = [];
+        map[dateKey].push(p);
+      }
+    });
+    return map;
+  }, [plannings, currentYear]);
 
   // Filtros da aba "Enviado": Período (Todos, Hoje, Esta Semana, Este Mês, Personalizado) e Ordenação (Recentes / Antigos)
   const [sentPeriodFilter, setSentPeriodFilter] = useState('all');
@@ -394,10 +507,254 @@ export default function FullPlanningView({
     }
   };
 
+  // Renderiza a grade de dias de um mês específico (idêntico a Contas a Pagar)
+  const renderMonthCalendarCard = (monthIndex, year) => {
+    const firstDayOfWeek = new Date(year, monthIndex, 1).getDay(); // 0 (Dom) a 6 (Sáb)
+    const totalDaysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+    const calendarCells = [];
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      calendarCells.push({ empty: true, key: `empty-pre-${i}` });
+    }
+    for (let day = 1; day <= totalDaysInMonth; day++) {
+      const dateKey = `${year}-${monthIndex + 1}-${day}`;
+      const dayPlannings = planningsByDateMap[dateKey] || [];
+      const holidayName = holidaysMap[dateKey] || null;
+
+      const hasPlannings = dayPlannings.length > 0;
+      const allCompleted = hasPlannings && dayPlannings.every(p => {
+        return (p.items || []).every(it => it.completed) || p.status === 'enviado';
+      });
+
+      calendarCells.push({
+        empty: false,
+        day,
+        dateKey,
+        plannings: dayPlannings,
+        hasPlannings,
+        allCompleted,
+        holidayName,
+        isToday: day === today.getDate() && monthIndex === today.getMonth() && year === today.getFullYear()
+      });
+    }
+
+    const isCurrentActive = monthIndex === currentMonthIndex && year === currentYear;
+
+    return (
+      <div
+        key={`${year}-${monthIndex}`}
+        onClick={() => {
+          setCurrentMonthIndex(monthIndex);
+          setCurrentYear(year);
+          setSelectedCalendarDateKey(null);
+        }}
+        style={{
+          width: '320px',
+          minWidth: '320px',
+          background: '#f8fafc',
+          borderRadius: '16px',
+          border: isCurrentActive ? '3px solid #5925dc' : '2px solid #cbd5e1',
+          boxShadow: isCurrentActive ? '0 8px 24px rgba(89, 37, 220, 0.2)' : '0 4px 12px rgba(0,0,0,0.04)',
+          padding: '16px',
+          boxSizing: 'border-box',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          userSelect: 'none'
+        }}
+      >
+        {/* Cabeçalho do Card: Ano (pílula roxa) e Nome do Mês */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <div
+            style={{
+              background: '#b8a6f8',
+              color: '#1e1b4b',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              fontWeight: '900',
+              fontSize: '18px',
+              letterSpacing: '0.5px'
+            }}
+          >
+            {year}
+          </div>
+          <div
+            style={{
+              fontSize: '20px',
+              fontWeight: '900',
+              color: '#1e293b',
+              letterSpacing: '1px'
+            }}
+          >
+            {MONTH_NAMES[monthIndex]}
+          </div>
+        </div>
+
+        {/* Linha dos Dias da Semana */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            background: '#b8a6f8',
+            borderRadius: '6px',
+            padding: '5px 2px',
+            marginBottom: '6px',
+            textAlign: 'center'
+          }}
+        >
+          {WEEK_DAYS.map(d => (
+            <span
+              key={d}
+              style={{
+                fontSize: '10px',
+                fontWeight: '800',
+                color: '#1e1b4b',
+                textTransform: 'uppercase'
+              }}
+            >
+              {d}
+            </span>
+          ))}
+        </div>
+
+        {/* Grade de Dias */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '4px',
+            background: '#ffffff',
+            borderRadius: '10px',
+            padding: '8px 4px',
+            border: '1px solid #e2e8f0'
+          }}
+        >
+          {calendarCells.map((cell, idx) => {
+            if (cell.empty) {
+              return (
+                <div
+                  key={cell.key || idx}
+                  style={{
+                    height: '32px',
+                    borderRadius: '6px',
+                    background: '#f1f5f9'
+                  }}
+                />
+              );
+            }
+
+            const isSelectedDay = selectedCalendarDateKey === cell.dateKey;
+            const isHighlighted = cell.hasPlannings;
+            const tooltipParts = [];
+            if (cell.holidayName) tooltipParts.push(`🎉 Feriado Nacional: ${cell.holidayName}`);
+            if (cell.hasPlannings) tooltipParts.push(`📦 ${cell.plannings.length} envio(s) Full: ${cell.plannings.map(p => p.platformName).join(', ')}`);
+            if (tooltipParts.length === 0) tooltipParts.push(`Criar envio no dia ${cell.day}/${monthIndex + 1}`);
+
+            return (
+              <div
+                key={cell.dateKey}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentMonthIndex(monthIndex);
+                  setCurrentYear(year);
+                  if (isSelectedDay) {
+                    setSelectedCalendarDateKey(null);
+                  } else {
+                    setSelectedCalendarDateKey(cell.dateKey);
+                  }
+                }}
+                title={tooltipParts.join(' | ')}
+                style={{
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  fontSize: '15px',
+                  fontWeight: isHighlighted ? '900' : '700',
+                  color: isHighlighted ? '#ffffff' : (cell.holidayName ? '#dc2626' : '#1e293b'),
+                  background: isSelectedDay ? '#5925dc' : (isHighlighted ? (cell.allCompleted ? '#10b981' : '#b8a6f8') : (cell.isToday ? '#ede9fe' : (cell.holidayName ? '#fef2f2' : 'transparent'))),
+                  cursor: 'pointer',
+                  transition: 'transform 0.1s ease',
+                  border: isSelectedDay ? '2px solid #31108a' : (cell.isToday && !isHighlighted ? '1.5px dashed #7c3aed' : 'none'),
+                  position: 'relative'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.15)';
+                  if (!isHighlighted && !isSelectedDay) e.currentTarget.style.background = '#e2e8f0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  if (!isHighlighted && !isSelectedDay) e.currentTarget.style.background = cell.isToday ? '#ede9fe' : (cell.holidayName ? '#fef2f2' : 'transparent');
+                }}
+              >
+                {cell.day}
+
+                {/* Marcador de Envio no dia */}
+                {isHighlighted && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '2px',
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      background: '#ffffff'
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   // Separação dos planejamentos por status: Embalar vs Enviado
+  // e filtro baseado no Mês/Ano e dia selecionado no calendário
   const embalarPlannings = useMemo(() => {
-    return plannings.filter(p => String(p.status || 'embalar').toLowerCase() !== 'enviado');
-  }, [plannings]);
+    return plannings.filter(p => {
+      if (String(p.status || 'embalar').toLowerCase() === 'enviado') return false;
+
+      // Se há um dia específico selecionado no calendário (ex: '2026-11-27')
+      if (selectedCalendarDateKey) {
+        let pDateKey = null;
+        if (p.rawDate && p.rawDate.includes('-')) {
+          const parts = p.rawDate.split('-');
+          pDateKey = `${parseInt(parts[0], 10)}-${parseInt(parts[1], 10)}-${parseInt(parts[2], 10)}`;
+        } else if (p.date && p.date.includes('/')) {
+          const parts = p.date.split('/');
+          const y = parts[2] ? parseInt(parts[2], 10) : (p.createdAt ? new Date(p.createdAt).getFullYear() : currentYear);
+          pDateKey = `${y}-${parseInt(parts[1], 10)}-${parseInt(parts[0], 10)}`;
+        }
+        return pDateKey === selectedCalendarDateKey;
+      }
+
+      // Se não tem dia específico, filtra pelo mês e ano ativos no calendário
+      let pMonth = null;
+      let pYear = null;
+      if (p.rawDate && p.rawDate.includes('-')) {
+        const parts = p.rawDate.split('-');
+        pYear = parseInt(parts[0], 10);
+        pMonth = parseInt(parts[1], 10);
+      } else if (p.date && p.date.includes('/')) {
+        const parts = p.date.split('/');
+        pMonth = parseInt(parts[1], 10);
+        pYear = parts[2] ? parseInt(parts[2], 10) : (p.createdAt ? new Date(p.createdAt).getFullYear() : currentYear);
+      } else if (p.createdAt) {
+        const d = new Date(p.createdAt);
+        if (!isNaN(d.getTime())) {
+          pMonth = d.getMonth() + 1;
+          pYear = d.getFullYear();
+        }
+      }
+
+      if (pMonth && pYear) {
+        return pMonth === (currentMonthIndex + 1) && pYear === currentYear;
+      }
+      return true;
+    });
+  }, [plannings, currentMonthIndex, currentYear, selectedCalendarDateKey]);
 
   const enviadoPlannings = useMemo(() => {
     let list = plannings.filter(p => String(p.status || '').toLowerCase() === 'enviado');
@@ -687,8 +1044,39 @@ export default function FullPlanningView({
           </div>
         </div>
 
-        {/* Botões do topo: Ajuste de Fonte (na aba Embalar), Impressora e Adicionar (+) */}
+        {/* Botões do topo: Navegador de Mês, Ajuste de Fonte, Impressora e Adicionar (+) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {/* Navegador de Mês (idêntico a Contas a Pagar) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            background: '#ffffff',
+            borderRadius: '10px',
+            border: '1.5px solid #cbd5e1',
+            padding: '2px'
+          }}>
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              title="Mês anterior"
+              style={{ padding: '6px 10px', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
+            >
+              <ChevronLeft size={18} color="#475569" />
+            </button>
+            <span style={{ fontSize: '13px', fontWeight: '800', color: '#334155', minWidth: '120px', textAlign: 'center' }}>
+              {MONTH_NAMES[currentMonthIndex].slice(0, 3)} / {currentYear}
+            </span>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              title="Próximo mês"
+              style={{ padding: '6px 10px', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
+            >
+              <ChevronRight size={18} color="#475569" />
+            </button>
+          </div>
+
           {/* Seletor de Tamanho da Fonte (apenas na aba Embalar, como em Contas a Pagar) */}
           {activeFullTab === 'embalar' && (
             <div style={{
@@ -819,47 +1207,108 @@ export default function FullPlanningView({
         </div>
 
         {/* ============================================================ */}
-        {/* ABA 1: EMBALAR (Lista de envios pendentes com checklist)     */}
+        {/* ABA 1: EMBALAR (Lista de envios pendentes com calendário)     */}
         {/* ============================================================ */}
         {activeFullTab === 'embalar' && (
-          <div>
-            {embalarPlannings.length === 0 ? (
-              <div className="no-print" style={{
-                background: '#f8fafc',
-                border: '2px dashed #cbd5e1',
-                borderRadius: '16px',
-                padding: '48px 24px',
-                textAlign: 'center',
-                color: '#64748b'
-              }}>
-                <Zap size={48} style={{ color: '#cbd5e1', margin: '0 auto 12px auto' }} />
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#334155', margin: '0 0 6px 0' }}>
-                  Nenhum Envio para Embalar
-                </h3>
-                <p style={{ fontSize: '14px', margin: '0 0 20px 0' }}>
-                  Todos os envios foram enviados ou ainda não foram cadastrados. Clique no botão circular com <b>(+)</b> acima para adicionar.
-                </p>
-                <button
-                  onClick={handleOpenModal}
-                  style={{
-                    background: '#0f172a',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    fontWeight: '700',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <Plus size={18} /> Novo Planejamento
-                </button>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(330px, 350px) 1fr',
+            gap: '32px',
+            alignItems: 'stretch',
+            flex: 1,
+            minHeight: 0
+          }}>
+            {/* Coluna Esquerda: Calendários dos meses com rolagem vertical independente */}
+            <div className="no-print" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+              <div
+                style={{
+                  height: '100%',
+                  maxHeight: 'calc(100vh - 220px)',
+                  overflowY: 'auto',
+                  paddingRight: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px'
+                }}
+              >
+                {displayedMonths.map(item => renderMonthCalendarCard(item.monthIndex, item.year))}
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            </div>
+
+            {/* Coluna Direita: Lista de Envios para Embalar */}
+            <div style={{ minHeight: 0, maxHeight: 'calc(100vh - 220px)', overflowY: 'auto', paddingRight: '4px' }}>
+              {selectedCalendarDateKey && (
+                <div className="no-print" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: '#ecebfa',
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #b8a6f8',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#5925dc', fontWeight: '800', fontSize: '13px' }}>
+                    <CalendarDays size={16} />
+                    <span>Filtrando pelo dia: <b>{selectedCalendarDateKey.split('-').reverse().join('/')}</b></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCalendarDateKey(null)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#6d28d9',
+                      fontWeight: '800',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <X size={14} /> Ver mês inteiro
+                  </button>
+                </div>
+              )}
+
+              {embalarPlannings.length === 0 ? (
+                <div className="no-print" style={{
+                  background: '#f8fafc',
+                  border: '2px dashed #cbd5e1',
+                  borderRadius: '16px',
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                  color: '#64748b'
+                }}>
+                  <Zap size={48} style={{ color: '#cbd5e1', margin: '0 auto 12px auto' }} />
+                  <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#334155', margin: '0 0 6px 0' }}>
+                    Nenhum Envio para Embalar {selectedCalendarDateKey ? 'neste dia' : 'neste mês'}
+                  </h3>
+                  <p style={{ fontSize: '14px', margin: '0 0 20px 0' }}>
+                    Não há envios pendentes com base na data do calendário. Clique no botão circular com <b>(+)</b> acima para adicionar.
+                  </p>
+                  <button
+                    onClick={handleOpenModal}
+                    style={{
+                      background: '#0f172a',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '10px 20px',
+                      borderRadius: '8px',
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <Plus size={18} /> Novo Planejamento
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                 {embalarPlannings.map((plan) => {
                   const platColor = getPlatformColor(plan.platformId, plan.platformName);
                   const totalUnits = (plan.items || []).reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
@@ -1089,6 +1538,7 @@ export default function FullPlanningView({
                 })}
               </div>
             )}
+            </div>
           </div>
         )}
 
