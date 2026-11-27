@@ -20,7 +20,8 @@ import {
   Send,
   ArrowUpDown,
   Search,
-  RotateCcw
+  RotateCcw,
+  Box
 } from 'lucide-react';
 import { SheetsApi } from '../services/sheetsApi';
 
@@ -522,25 +523,35 @@ export default function FullPlanningView({
           width: var(--full-circle-size, 38px);
           height: var(--full-circle-size, 38px);
           border-radius: 50%;
-          border: 3px solid #111827;
+          border: 2.5px solid #0f172a;
           display: flex;
           align-items: center;
           justifyContent: center;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
           flex-shrink: 0;
           background: #ffffff;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         }
 
         .custom-big-circle:hover {
-          transform: scale(1.06);
-          border-color: #6366f1;
+          transform: scale(1.08);
+          border-color: #10b981;
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
         }
 
         .custom-big-circle.checked {
-          background: #10b981;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
           border-color: #059669;
           color: #ffffff;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+          animation: popCheck 0.25s ease-out;
+        }
+
+        @keyframes popCheck {
+          0% { transform: scale(0.85); }
+          50% { transform: scale(1.15); }
+          100% { transform: scale(1); }
         }
       `}</style>
 
@@ -594,6 +605,7 @@ export default function FullPlanningView({
                 transition: 'all 0.15s ease'
               }}
             >
+              <Box size={14} strokeWidth={2.4} />
               <span>Embalar</span>
               <span style={{
                 fontSize: '11px',
@@ -959,7 +971,9 @@ export default function FullPlanningView({
                               padding: fontStyles.padding,
                               borderRadius: '12px',
                               background: item.completed ? '#f0fdf4' : 'transparent',
-                              transition: 'background 0.15s ease'
+                              border: item.completed ? '1px solid #bbf7d0' : '1px solid transparent',
+                              boxShadow: item.completed ? '0 2px 6px rgba(34, 197, 94, 0.06)' : 'none',
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                             }}
                           >
                             <div
@@ -977,18 +991,39 @@ export default function FullPlanningView({
                                 className={`custom-big-circle print-circle ${item.completed ? 'checked' : ''}`}
                                 title="Clique para marcar / desmarcar"
                               >
-                                {item.completed && <Check size={fontStyles.checkIconSize} strokeWidth={3.2} />}
+                                {item.completed && <Check size={fontStyles.checkIconSize} strokeWidth={3.5} />}
                               </div>
 
                               {/* Qtd - SKU com tamanho ajustável */}
                               <div style={{
                                 fontSize: fontStyles.itemFontSize,
-                                fontWeight: '800',
+                                fontWeight: item.completed ? '700' : '800',
                                 color: item.completed ? '#15803d' : '#0f172a',
-                                textDecoration: item.completed ? 'line-through' : 'none',
-                                letterSpacing: '-0.2px'
+                                opacity: item.completed ? 0.9 : 1,
+                                letterSpacing: '-0.2px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '10px'
                               }}>
-                                {item.quantity} - {item.sku}
+                                <span>{item.quantity} - {item.sku}</span>
+                                {item.completed && (
+                                  <span
+                                    className="no-print"
+                                    style={{
+                                      fontSize: '11px',
+                                      fontWeight: '800',
+                                      padding: '2px 8px',
+                                      borderRadius: '6px',
+                                      background: '#dcfce7',
+                                      color: '#16a34a',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}
+                                  >
+                                    <Check size={11} strokeWidth={3} /> Pronto
+                                  </span>
+                                )}
                               </div>
                             </div>
 

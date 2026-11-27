@@ -2579,6 +2579,31 @@ function getFullPlanningsDataAsJson() {
       status = 'enviado';
     }
 
+    let dateVal = idxDate !== -1 ? row[idxDate] : '';
+    if (dateVal instanceof Date) {
+      const dd = String(dateVal.getDate()).padStart(2, '0');
+      const mm = String(dateVal.getMonth() + 1).padStart(2, '0');
+      dateVal = `${dd}/${mm}`;
+    } else {
+      dateVal = String(dateVal || '').trim();
+      if (dateVal.includes('GMT') || (dateVal.includes('-') && dateVal.length === 10)) {
+        try {
+          const d = new Date(dateVal);
+          if (!isNaN(d.getTime())) {
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            dateVal = `${dd}/${mm}`;
+          }
+        } catch (e) {}
+      }
+    }
+
+    let rawStatus = idxStatus !== -1 ? String(row[idxStatus] || '').trim().toLowerCase() : '';
+    let status = 'embalar';
+    if (rawStatus === 'enviado' || rawStatus === 'sent' || rawStatus === 'concluido' || rawStatus === 'concluído') {
+      status = 'enviado';
+    }
+
     list.push({
       id: id,
       date: dateVal,
@@ -2624,6 +2649,24 @@ function upsertFullPlanningRecord(planning) {
         break;
       }
     }
+  }
+
+  let formattedDate = planning.date || '';
+  if (formattedDate && formattedDate.length > 10 && (formattedDate.includes('GMT') || formattedDate.includes('T'))) {
+    try {
+      const d = new Date(formattedDate);
+      if (!isNaN(d.getTime())) {
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        formattedDate = `${dd}/${mm}`;
+      }
+    } catch (e) {}
+  }
+
+  // Se a coluna Status não existir no cabeçalho atual da planilha, adiciona
+  if (idxStatus === -1) {
+    const lastCol = sheet.getLastColumn();
+    sheet.getRange(1, lastCol + 1).setValue('Status');
   }
 
   let formattedDate = planning.date || '';
