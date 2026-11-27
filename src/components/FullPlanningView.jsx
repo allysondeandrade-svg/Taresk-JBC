@@ -23,7 +23,12 @@ import { SheetsApi } from '../services/sheetsApi';
 export default function FullPlanningView({
   platforms = [],
   products = [],
-  currentUser
+  currentUser,
+  plannings: propsPlannings,
+  onSavePlanning: propsOnSavePlanning,
+  onDeletePlanning: propsOnDeletePlanning,
+  onToggleItemComplete: propsOnToggleItemComplete,
+  onDeleteItem: propsOnDeleteItem
 }) {
   // Ordenação das plataformas agrupando por marketplace: Shopee (JBC, Jeremias, Izabela...), Mercado Livre, Amazon, Magalu, Shein, Nuvemshop etc.
   const sortedPlatforms = React.useMemo(() => {
@@ -49,33 +54,47 @@ export default function FullPlanningView({
   }, [platforms]);
 
   // Estado com os planejamentos salvos no localStorage
-  const [plannings, setPlannings] = useState(() => {
+  const [localPlannings, setLocalPlannings] = useState(() => {
     try {
       const saved = localStorage.getItem('taresk_full_plannings');
       if (saved) return JSON.parse(saved);
-      // Dados de exemplo se vazio
-      const today = new Date();
-      const dd = String(today.getDate()).padStart(2, '0');
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dateStr = `${dd}/${mm}`;
-      return [
-        {
-          id: 'full_demo_1',
-          date: dateStr,
-          rawDate: new Date().toISOString().split('T')[0],
-          platformId: platforms[0]?.id || 'shopee',
-          platformName: platforms[0]?.name || 'Shopee',
-          items: [
-            { id: 'item_1', sku: products[0]?.sku || 'SKU-001', quantity: 10, completed: false },
-            { id: 'item_2', sku: products[1]?.sku || 'SKU-002', quantity: 5, completed: false }
-          ],
-          createdAt: new Date().toISOString()
-        }
-      ];
+      return [];
     } catch (e) {
       return [];
     }
   });
+
+  const plannings = propsPlannings !== undefined ? propsPlannings : localPlannings;
+  const setPlannings = (updater) => {
+    if (typeof updater === 'function') {
+      setLocalPlannings(prev => {
+        const next = updater(propsPlannings !== undefined ? propsPlannings : prev);
+        try { localStorage.setItem('taresk_full_plannings', JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+    } else {
+      setLocalPlannings(updater);
+      try { localStorage.setItem('taresk_full_plannings', JSON.stringify(updater)); } catch (e) {}
+    }
+  };
+
+  // Carrega da planilha caso venha vazio localmente
+  useEffect(() => {
+    if (!propsPlannings) {
+      SheetsApi.fetchFullPlannings().then(remoteList => {
+        if (Array.isArray(remoteList) && remoteList.length > 0) {
+          setLocalPlannings(prev => {
+            const map = new Map();
+            remoteList.forEach(p => map.set(String(p.id), p));
+            prev.forEach(p => map.set(String(p.id), p));
+            const merged = Array.from(map.values());
+            try { localStorage.setItem('taresk_full_plannings', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          });
+        }
+      }).catch(err => console.warn('Erro ao carregar full do sheets:', err));
+    }
+  }, [propsPlannings]);
 
   // Salvar no localStorage sempre que plannings mudar
   useEffect(() => {
@@ -182,50 +201,83 @@ export default function FullPlanningView({
     };
 
     setPlannings(prev => [newPlanning, ...prev]);
-    // Sincroniza em segundo plano com a planilha Google
-    try {
-      SheetsApi.saveFullPlanning(newPlanning);
-    } catch (err) {
-      console.warn('Erro ao salvar no sheets:', err);
+    if (propsOnSavePlanning) {
+      propsOnSavePlanning(newPlanning);
+    } else {
+      try {
+        SheetsApi.saveFullPlanning(newPlanning);
+      } catch (err) {
+        console.warn('Erro ao salvar no sheets:', err);
+      }
     }
     setIsModalOpen(false);
   };
 
   // Alternar checkbox de item individual
   const handleToggleItemComplete = (planningId, itemId) => {
+    let updatedTarget = null;
     setPlannings(prev => prev.map(plan => {
       if (plan.id !== planningId) return plan;
-      return {
+      const updated = {
         ...plan,
         items: plan.items.map(it => {
           if (it.id !== itemId) return it;
           return { ...it, completed: !it.completed };
         })
       };
+      updatedTarget = updated;
+      return updated;
     }));
+
+    if (propsOnToggleItemComplete) {
+      propsOnToggleItemComplete(planningId, itemId);
+    } else if (updatedTarget) {
+      try {
+        SheetsApi.saveFullPlanning(updatedTarget);
+      } catch (err) {
+        console.warn('Erro ao sincronizar checkbox full:', err);
+      }
+    }
   };
 
   // Excluir planejamento inteiro
   const handleDeletePlanning = (planningId) => {
     if (window.confirm('Deseja realmente remover este planejamento Full?')) {
       setPlannings(prev => prev.filter(p => p.id !== planningId));
-      try {
-        SheetsApi.deleteFullPlanning(planningId);
-      } catch (err) {
-        console.warn('Erro ao deletar no sheets:', err);
+      if (propsOnDeletePlanning) {
+        propsOnDeletePlanning(planningId);
+      } else {
+        try {
+          SheetsApi.deleteFullPlanning(planningId);
+        } catch (err) {
+          console.warn('Erro ao deletar no sheets:', err);
+        }
       }
     }
   };
 
   // Excluir item individual de um planejamento
   const handleDeleteItem = (planningId, itemId) => {
+    let updatedTarget = null;
+    let willRemoveAll = false;
     setPlannings(prev => prev.map(p => {
       if (p.id !== planningId) return p;
-      return {
-        ...p,
-        items: p.items.filter(it => it.id !== itemId)
-      };
+      const newItems = p.items.filter(it => it.id !== itemId);
+      if (newItems.length === 0) {
+        willRemoveAll = true;
+      }
+      const updated = { ...p, items: newItems };
+      updatedTarget = updated;
+      return updated;
     }).filter(p => p.items.length > 0)); // Se ficar sem itens, remove o bloco
+
+    if (propsOnDeleteItem) {
+      propsOnDeleteItem(planningId, itemId);
+    } else if (willRemoveAll) {
+      try { SheetsApi.deleteFullPlanning(planningId); } catch (e) {}
+    } else if (updatedTarget) {
+      try { SheetsApi.saveFullPlanning(updatedTarget); } catch (e) {}
+    }
   };
 
   // Obter cor da plataforma

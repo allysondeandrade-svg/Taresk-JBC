@@ -390,7 +390,7 @@ export default function PricingView({ products = [] }) {
       </div>
 
       {/* Grid com os 4 Cards de Canais em linha única no Desktop (4 colunas) */}
-      <div 
+      <div
         className="pricing-cards-grid"
         style={{
           display: 'grid',

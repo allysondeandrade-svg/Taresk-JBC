@@ -106,7 +106,12 @@ export default function MobileAppView({
   isSyncing,
   appTheme,
   onSwitchToDesktop,
-  onOpenAnnotationModal
+  onOpenAnnotationModal,
+  fullPlannings,
+  onSaveFullPlanning,
+  onDeleteFullPlanning,
+  onToggleFullItemComplete,
+  onDeleteFullItem
 }) {
   const isDark = appTheme === 'dark';
   // Abas do topo: 'tarefas', 'cadastro', 'anotacoes'
@@ -1238,6 +1243,11 @@ export default function MobileAppView({
             platforms={platforms}
             products={products}
             currentUser={currentUser}
+            plannings={fullPlannings}
+            onSavePlanning={onSaveFullPlanning}
+            onDeletePlanning={onDeleteFullPlanning}
+            onToggleItemComplete={onToggleFullItemComplete}
+            onDeleteItem={onDeleteFullItem}
           />
         </div>
       )}

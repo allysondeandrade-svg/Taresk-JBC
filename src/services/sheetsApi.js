@@ -615,6 +615,28 @@ export const SheetsApi = {
   },
 
   /**
+   * Busca todos os planejamentos Full da planilha Google
+   */
+  async fetchFullPlannings() {
+    const url = this.getUrl();
+    if (!url) return [];
+
+    try {
+      const resp = await fetch(`${url}?action=getFullPlannings&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      const json = await resp.json();
+      if (json.status === 'success' && Array.isArray(json.data)) {
+        return json.data;
+      }
+      return [];
+    } catch (err) {
+      console.error('Erro ao buscar planejamentos Full do Sheets:', err);
+      return [];
+    }
+  },
+
+  /**
    * Sincroniza / salva um planejamento Full no Google Sheets
    */
   async saveFullPlanning(planning) {

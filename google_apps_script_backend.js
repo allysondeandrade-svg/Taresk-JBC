@@ -2547,9 +2547,28 @@ function getFullPlanningsDataAsJson() {
       }
     }
 
+    let dateVal = idxDate !== -1 ? row[idxDate] : '';
+    if (dateVal instanceof Date) {
+      const dd = String(dateVal.getDate()).padStart(2, '0');
+      const mm = String(dateVal.getMonth() + 1).padStart(2, '0');
+      dateVal = `${dd}/${mm}`;
+    } else {
+      dateVal = String(dateVal || '').trim();
+      if (dateVal.includes('GMT') || (dateVal.includes('-') && dateVal.length === 10)) {
+        try {
+          const d = new Date(dateVal);
+          if (!isNaN(d.getTime())) {
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            dateVal = `${dd}/${mm}`;
+          }
+        } catch (e) {}
+      }
+    }
+
     list.push({
       id: id,
-      date: idxDate !== -1 ? String(row[idxDate] || '') : '',
+      date: dateVal,
       platformName: idxPlat !== -1 ? String(row[idxPlat] || '') : '',
       totalItems: idxTotal !== -1 ? Number(row[idxTotal] || 0) : items.length,
       items: Array.isArray(items) ? items : [],
@@ -2591,9 +2610,21 @@ function upsertFullPlanningRecord(planning) {
     }
   }
 
+  let formattedDate = planning.date || '';
+  if (formattedDate && formattedDate.length > 10 && (formattedDate.includes('GMT') || formattedDate.includes('T'))) {
+    try {
+      const d = new Date(formattedDate);
+      if (!isNaN(d.getTime())) {
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        formattedDate = `${dd}/${mm}`;
+      }
+    } catch (e) {}
+  }
+
   const rowData = [
     finalId,
-    planning.date || '',
+    formattedDate,
     planning.platformName || planning.platformId || '',
     totalQty,
     itemsJson,

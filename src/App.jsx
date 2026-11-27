@@ -188,6 +188,19 @@ export default function App() {
     ];
   });
 
+  // Planejamento Full (Aba Full)
+  const [fullPlannings, setFullPlannings] = useState(() => {
+    const saved = localStorage.getItem('taresk_full_plannings');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return []; }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('taresk_full_plannings', JSON.stringify(fullPlannings));
+  }, [fullPlannings]);
+
   const [appTheme, setAppTheme] = useState(() => {
     const saved = localStorage.getItem('taresk_app_theme');
     if (saved === 'dark') return 'dark';
@@ -485,6 +498,28 @@ export default function App() {
             }
           }
           setBills(cleanBills);
+        }
+        if (Array.isArray(data.fullPlannings)) {
+          // Formata e sanitiza os itens de full plannings
+          const sanitizedFull = data.fullPlannings.map(fp => {
+            let dStr = fp.date || '';
+            if (dStr && (dStr.includes('GMT') || dStr.includes('T'))) {
+              try {
+                const d = new Date(dStr);
+                if (!isNaN(d.getTime())) {
+                  const dd = String(d.getDate()).padStart(2, '0');
+                  const mm = String(d.getMonth() + 1).padStart(2, '0');
+                  dStr = `${dd}/${mm}`;
+                }
+              } catch (e) {}
+            }
+            return {
+              ...fp,
+              date: dStr,
+              items: Array.isArray(fp.items) ? fp.items : []
+            };
+          });
+          setFullPlannings(sanitizedFull);
         }
         setLastSyncTime(new Date());
       }
@@ -960,6 +995,72 @@ export default function App() {
     await SheetsApi.deleteBill(billOrId);
   };
 
+  // Handlers de Planejamento Full (Aba Full)
+  const handleSaveFullPlanning = async (planning) => {
+    setFullPlannings(prev => {
+      const idx = prev.findIndex(p => String(p.id) === String(planning.id));
+      if (idx !== -1) {
+        const next = [...prev];
+        next[idx] = planning;
+        return next;
+      }
+      return [planning, ...prev];
+    });
+    await SheetsApi.saveFullPlanning(planning);
+  };
+
+  const handleDeleteFullPlanning = async (planningOrId) => {
+    const id = typeof planningOrId === 'object' ? planningOrId.id : planningOrId;
+    setFullPlannings(prev => prev.filter(p => String(p.id) !== String(id)));
+    await SheetsApi.deleteFullPlanning(planningOrId);
+  };
+
+  const handleToggleFullItemComplete = async (planningId, itemId) => {
+    let targetToSync = null;
+    setFullPlannings(prev => prev.map(p => {
+      if (String(p.id) !== String(planningId)) return p;
+      const updated = {
+        ...p,
+        items: p.items.map(it => {
+          if (String(it.id) !== String(itemId)) return it;
+          return { ...it, completed: !it.completed };
+        })
+      };
+      targetToSync = updated;
+      return updated;
+    }));
+    if (targetToSync) {
+      await SheetsApi.saveFullPlanning(targetToSync);
+    }
+  };
+
+  const handleDeleteFullItem = async (planningId, itemId) => {
+    let targetToSync = null;
+    let willDeleteAll = false;
+    setFullPlannings(prev => {
+      const matched = prev.find(p => String(p.id) === String(planningId));
+      if (matched && matched.items.filter(it => String(it.id) !== String(itemId)).length === 0) {
+        willDeleteAll = true;
+        return prev.filter(p => String(p.id) !== String(planningId));
+      }
+      return prev.map(p => {
+        if (String(p.id) !== String(planningId)) return p;
+        const updated = {
+          ...p,
+          items: p.items.filter(it => String(it.id) !== String(itemId))
+        };
+        targetToSync = updated;
+        return updated;
+      });
+    });
+
+    if (willDeleteAll) {
+      await SheetsApi.deleteFullPlanning(planningId);
+    } else if (targetToSync) {
+      await SheetsApi.saveFullPlanning(targetToSync);
+    }
+  };
+
   // Handlers de Produtos
   const handleAddProduct = (newProd) => {
     // Insere o produto e mantém a lista de produtos ordenada alfabeticamente por SKU / Título
@@ -1147,6 +1248,11 @@ export default function App() {
               window.location.hash = '';
             }
           }}
+          fullPlannings={fullPlannings}
+          onSaveFullPlanning={handleSaveFullPlanning}
+          onDeleteFullPlanning={handleDeleteFullPlanning}
+          onToggleFullItemComplete={handleToggleFullItemComplete}
+          onDeleteFullItem={handleDeleteFullItem}
           onOpenAnnotationModal={() => setIsAnnotationModalOpen(true)}
         />
 
@@ -1362,6 +1468,11 @@ export default function App() {
             platforms={platforms}
             products={products}
             currentUser={currentUser}
+            plannings={fullPlannings}
+            onSavePlanning={handleSaveFullPlanning}
+            onDeletePlanning={handleDeleteFullPlanning}
+            onToggleItemComplete={handleToggleFullItemComplete}
+            onDeleteItem={handleDeleteFullItem}
           />
         )}
 

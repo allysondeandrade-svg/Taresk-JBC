@@ -149,13 +149,12 @@ export default function AnnotationModal({
   // Regras de exibição de campos por marcador:
   // - Entrega Local: Valor
   // - Retira Fábrica e Gasto Pontual: Descrição e Valor
-  // - Envio Próprio e Prejuízo: Plataforma, SKU, Pedido, Descrição e Valor
-  // - Anotação: Descrição
-  const showPlatform = selectedType === 'envio_proprio' || selectedType === 'prejuizo';
-  const showSku = selectedType === 'envio_proprio' || selectedType === 'prejuizo';
-  const showPedido = selectedType === 'envio_proprio' || selectedType === 'prejuizo';
+  // - Envio Próprio, Prejuízo e Anotação: Plataforma, SKU, Pedido, Descrição e Valor
+  const showPlatform = selectedType === 'envio_proprio' || selectedType === 'prejuizo' || selectedType === 'anotacao';
+  const showSku = selectedType === 'envio_proprio' || selectedType === 'prejuizo' || selectedType === 'anotacao';
+  const showPedido = selectedType === 'envio_proprio' || selectedType === 'prejuizo' || selectedType === 'anotacao';
   const showDescricao = selectedType !== 'entrega_local'; // Todos exceto Entrega Local
-  const showValor = selectedType !== 'anotacao'; // Todos exceto Anotação pura
+  const showValor = true; // Disponível em todos os modelos incluindo Anotação (modelo de prejuízo)
 
   const handleSelectType = (id) => {
     setSelectedType(id);
