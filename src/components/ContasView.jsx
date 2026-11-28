@@ -785,15 +785,13 @@ export default function ContasView({
       overflow: 'hidden',
       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif"
     }}>
-      {/* Barra Superior de Controle e Opções */}
+      {/* Linha 1 Superior: Título + Badge à esquerda, Botão (+) à direita */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px',
-          marginBottom: '24px',
+          marginBottom: '14px',
           flexShrink: 0
         }}
       >
@@ -801,138 +799,153 @@ export default function ContasView({
           <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '900', color: '#1e293b', letterSpacing: '-0.5px' }}>
             Contas a Pagar
           </h1>
-          <span style={{ fontSize: '14px', fontWeight: '700', color: '#6d28d9', background: '#ecebfa', padding: '4px 12px', borderRadius: '9999px' }}>
+          <span style={{ fontSize: '13px', fontWeight: '800', color: '#6d28d9', background: '#ecebfa', padding: '5px 14px', borderRadius: '9999px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
             {MONTH_NAMES[currentMonthIndex]} {currentYear}
           </span>
         </div>
 
-        {/* Controles: Barra de Pesquisa, Navegação de Mês, Ajuste de Fonte e Botão de Nova Conta */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          {/* Barra de Pesquisa (à esquerda do navegador de mês) */}
-          <div
+        {/* Botão Circular Roxo com + padronizado */}
+        <button
+          type="button"
+          onClick={() => handleOpenAdd()}
+          title="Adicionar Nova Conta"
+          style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '50%',
+            background: '#5925dc',
+            color: '#ffffff',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 4px 14px rgba(89, 37, 220, 0.4)',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.background = '#4e1fc4'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#5925dc'; }}
+        >
+          <Plus size={24} strokeWidth={3} />
+        </button>
+      </div>
+
+      {/* Linha 2: Barra Branca de Filtros e Opções (de ponta a ponta, alinhada à direita) */}
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          border: '1.5px solid #cbd5e1',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          gap: '14px',
+          flexWrap: 'wrap',
+          marginBottom: '20px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          flexShrink: 0
+        }}
+      >
+        {/* Barra de Pesquisa */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: '#ffffff',
+            borderRadius: '10px',
+            border: '1.5px solid #cbd5e1',
+            padding: '6px 12px',
+            minWidth: '220px'
+          }}
+        >
+          <Search size={16} color="#94a3b8" />
+          <input
+            type="text"
+            placeholder="Buscar conta ou categoria..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: '#ffffff',
-              borderRadius: '10px',
-              border: '1.5px solid #cbd5e1',
-              padding: '6px 12px',
-              minWidth: '220px'
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#1e293b',
+              width: '100%'
             }}
-          >
-            <Search size={16} color="#94a3b8" />
-            <input
-              type="text"
-              placeholder="Buscar conta ou categoria..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              title="Limpar busca"
               style={{
                 border: 'none',
-                outline: 'none',
                 background: 'transparent',
-                fontSize: '13px',
-                fontWeight: '600',
-                color: '#1e293b',
-                width: '100%'
+                cursor: 'pointer',
+                color: '#94a3b8',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center'
               }}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                title="Limpar busca"
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  color: '#94a3b8',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {/* Navegador de Mês */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#ffffff', borderRadius: '10px', border: '1.5px solid #cbd5e1', padding: '2px' }}>
-            <button
-              type="button"
-              onClick={handlePrevMonth}
-              title="Mês anterior"
-              style={{ padding: '6px 10px', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
             >
-              <ChevronLeft size={18} color="#475569" />
+              <X size={14} />
             </button>
-            <span style={{ fontSize: '13px', fontWeight: '800', color: '#334155', minWidth: '120px', textAlign: 'center' }}>
-              {MONTH_NAMES[currentMonthIndex].slice(0, 3)} / {currentYear}
-            </span>
-            <button
-              type="button"
-              onClick={handleNextMonth}
-              title="Próximo mês"
-              style={{ padding: '6px 10px', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
-            >
-              <ChevronRight size={18} color="#475569" />
-            </button>
-          </div>
+          )}
+        </div>
 
-          {/* Seletor de Tamanho da Fonte */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#ffffff', padding: '4px 8px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
-            <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>Tamanho:</span>
-            {[
-              { id: 'small', label: 'P' },
-              { id: 'medium', label: 'M' },
-              { id: 'large', label: 'G' },
-              { id: 'xlarge', label: 'GG' }
-            ].map(sz => (
-              <button
-                key={sz.id}
-                type="button"
-                onClick={() => handleFontSizeChange(sz.id)}
-                style={{
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  border: fontSizeLevel === sz.id ? '1.5px solid #5925dc' : '1px solid transparent',
-                  background: fontSizeLevel === sz.id ? '#ecebfa' : 'transparent',
-                  color: fontSizeLevel === sz.id ? '#5925dc' : '#64748b',
-                  fontWeight: '800',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                {sz.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Botão Circular Roxo com + padronizado */}
+        {/* Navegador de Mês */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#ffffff', borderRadius: '10px', border: '1.5px solid #cbd5e1', padding: '2px' }}>
           <button
             type="button"
-            onClick={() => handleOpenAdd()}
-            title="Adicionar Nova Conta"
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              background: '#5925dc',
-              color: '#ffffff',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(89, 37, 220, 0.4)',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.background = '#4e1fc4'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = '#5925dc'; }}
+            onClick={handlePrevMonth}
+            title="Mês anterior"
+            style={{ padding: '6px 10px', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
           >
-            <Plus size={24} strokeWidth={3} />
+            <ChevronLeft size={18} color="#475569" />
           </button>
+          <span style={{ fontSize: '13px', fontWeight: '800', color: '#334155', minWidth: '120px', textAlign: 'center' }}>
+            {MONTH_NAMES[currentMonthIndex].slice(0, 3)} / {currentYear}
+          </span>
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            title="Próximo mês"
+            style={{ padding: '6px 10px', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
+          >
+            <ChevronRight size={18} color="#475569" />
+          </button>
+        </div>
+
+        {/* Seletor de Tamanho da Fonte */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#ffffff', padding: '4px 8px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
+          <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>Tamanho:</span>
+          {[
+            { id: 'small', label: 'P' },
+            { id: 'medium', label: 'M' },
+            { id: 'large', label: 'G' },
+            { id: 'xlarge', label: 'GG' }
+          ].map(sz => (
+            <button
+              key={sz.id}
+              type="button"
+              onClick={() => handleFontSizeChange(sz.id)}
+              style={{
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: fontSizeLevel === sz.id ? '1.5px solid #5925dc' : '1px solid transparent',
+                background: fontSizeLevel === sz.id ? '#ecebfa' : 'transparent',
+                color: fontSizeLevel === sz.id ? '#5925dc' : '#64748b',
+                fontWeight: '800',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              {sz.label}
+            </button>
+          ))}
         </div>
       </div>
 
