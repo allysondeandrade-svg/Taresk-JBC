@@ -945,35 +945,77 @@ export default function FullPlanningView({
         }
       `}</style>
 
-      {/* ÁREA DE CABEÇALHO */}
-      <div className="no-print" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '16px',
-        marginBottom: '20px'
-      }}>
-        {/* Título e Sub-abas: [ Embalar (X) ] [ Enviado (Y) ] */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+      {/* ÁREA DE CABEÇALHO (Conforme design do usuário: Título e Botão (+) no topo, e barra arredondada abaixo) */}
+      <div className="no-print" style={{ marginBottom: '20px' }}>
+        {/* Linha 1: Título 'Planejamento Full' à esquerda e Botão (+) circular à direita */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '16px'
+        }}>
           <h1 style={{
             margin: 0,
-            fontSize: '28px',
+            fontSize: '32px',
             fontWeight: '900',
             color: '#1e293b',
-            letterSpacing: '-0.5px'
+            letterSpacing: '-0.8px'
           }}>
             Planejamento Full
           </h1>
 
-          {/* Abas Embalar vs Enviado */}
+          {/* Botão Circular Roxo com + padronizado */}
+          <button
+            onClick={handleOpenModal}
+            title="Novo Planejamento Full"
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '50%',
+              background: '#5925dc',
+              color: '#ffffff',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(89, 37, 220, 0.4)',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.08)';
+              e.currentTarget.style.background = '#4e1fc4';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.background = '#5925dc';
+            }}
+          >
+            <Plus size={26} strokeWidth={3} />
+          </button>
+        </div>
+
+        {/* Linha 2: Barra branca arredondada contendo as abas Embalar/Enviado à esquerda, e Mês, Tamanho e Imprimir à direita */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          border: '1.5px solid #cbd5e1',
+          padding: '10px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '14px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+        }}>
+          {/* Lado Esquerdo: Pílula Embalar / Enviado */}
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
-            background: '#f1f5f9',
+            background: '#f8fafc',
             padding: '4px',
             borderRadius: '9999px',
-            border: '1px solid #e2e8f0',
+            border: '1.5px solid #e2e8f0',
             gap: '4px'
           }}>
             <button
@@ -1017,7 +1059,7 @@ export default function FullPlanningView({
                 borderRadius: '9999px',
                 border: 'none',
                 background: activeFullTab === 'enviado' ? '#ffffff' : 'transparent',
-                color: activeFullTab === 'enviado' ? '#059669' : '#64748b',
+                color: activeFullTab === 'enviado' ? '#64748b' : '#64748b',
                 fontWeight: '800',
                 fontSize: '13px',
                 cursor: 'pointer',
@@ -1034,156 +1076,122 @@ export default function FullPlanningView({
                 fontSize: '11px',
                 padding: '1px 7px',
                 borderRadius: '9999px',
-                background: activeFullTab === 'enviado' ? '#dcfce7' : '#e2e8f0',
-                color: activeFullTab === 'enviado' ? '#15803d' : '#64748b',
+                background: '#e2e8f0',
+                color: '#64748b',
                 fontWeight: '900'
               }}>
                 {enviadoPlannings.length}
               </span>
             </button>
           </div>
-        </div>
 
-        {/* Botões do topo: Navegador de Mês, Ajuste de Fonte, Impressora e Adicionar (+) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          {/* Navegador de Mês (idêntico a Contas a Pagar) */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            background: '#ffffff',
-            borderRadius: '10px',
-            border: '1.5px solid #cbd5e1',
-            padding: '2px'
-          }}>
-            <button
-              type="button"
-              onClick={handlePrevMonth}
-              title="Mês anterior"
-              style={{ padding: '6px 10px', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
-            >
-              <ChevronLeft size={18} color="#475569" />
-            </button>
-            <span style={{ fontSize: '13px', fontWeight: '800', color: '#334155', minWidth: '120px', textAlign: 'center' }}>
-              {MONTH_NAMES[currentMonthIndex].slice(0, 3)} / {currentYear}
-            </span>
-            <button
-              type="button"
-              onClick={handleNextMonth}
-              title="Próximo mês"
-              style={{ padding: '6px 10px', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
-            >
-              <ChevronRight size={18} color="#475569" />
-            </button>
-          </div>
-
-          {/* Seletor de Tamanho da Fonte (apenas na aba Embalar, como em Contas a Pagar) */}
-          {activeFullTab === 'embalar' && (
+          {/* Lado Direito: Navegador de Mês, Seletor de Tamanho e Botão Imprimir PDF */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            {/* Navegador de Mês */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '4px',
               background: '#ffffff',
-              padding: '4px 8px',
               borderRadius: '10px',
-              border: '1.5px solid #cbd5e1'
-            }}>
-              <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>Tamanho:</span>
-              {[
-                { id: 'small', label: 'P' },
-                { id: 'medium', label: 'M' },
-                { id: 'large', label: 'G' },
-                { id: 'xlarge', label: 'GG' }
-              ].map(sz => (
-                <button
-                  key={sz.id}
-                  type="button"
-                  onClick={() => handleFontSizeChange(sz.id)}
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    border: fontSizeLevel === sz.id ? '1.5px solid #5925dc' : '1px solid transparent',
-                    background: fontSizeLevel === sz.id ? '#ecebfa' : 'transparent',
-                    color: fontSizeLevel === sz.id ? '#5925dc' : '#64748b',
-                    fontWeight: '800',
-                    fontSize: '12px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {sz.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Botão de Impressão Refinado e Moderno */}
-          <button
-            onClick={handlePrint}
-            title="Imprimir Resumo em PDF com Checklist"
-            style={{
-              height: '42px',
-              padding: '0 16px',
-              borderRadius: '9999px',
               border: '1.5px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#1e293b',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '13px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              transition: 'all 0.18s ease',
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = '#0f172a';
-              e.currentTarget.style.borderColor = '#0f172a';
-              e.currentTarget.style.color = '#ffffff';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.15)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = '#ffffff';
-              e.currentTarget.style.borderColor = '#cbd5e1';
-              e.currentTarget.style.color = '#1e293b';
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.04)';
-            }}
-          >
-            <Printer size={18} strokeWidth={2.4} />
-            <span>Imprimir PDF</span>
-          </button>
+              padding: '4px 8px'
+            }}>
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                title="Mês anterior"
+                style={{ padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+              >
+                <ChevronLeft size={18} color="#475569" />
+              </button>
+              <span style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b', minWidth: '110px', textAlign: 'center', letterSpacing: '0.3px' }}>
+                {MONTH_NAMES[currentMonthIndex].slice(0, 3)} / {currentYear}
+              </span>
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                title="Próximo mês"
+                style={{ padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+              >
+                <ChevronRight size={18} color="#475569" />
+              </button>
+            </div>
 
-          {/* Botão Circular Roxo com + padronizado idêntico a Tarefas, Disputas, etc. */}
-          <button
-            onClick={handleOpenModal}
-            title="Novo Planejamento Full"
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              background: '#5925dc',
-              color: '#ffffff',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(89, 37, 220, 0.4)',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.08)';
-              e.currentTarget.style.background = '#4e1fc4';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.background = '#5925dc';
-            }}
-          >
-            <Plus size={24} strokeWidth={3} />
-          </button>
+            {/* Seletor de Tamanho da Fonte (apenas na aba Embalar) */}
+            {activeFullTab === 'embalar' && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#ffffff',
+                padding: '5px 12px',
+                borderRadius: '10px',
+                border: '1.5px solid #cbd5e1'
+              }}>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>Tamanho:</span>
+                {[
+                  { id: 'small', label: 'P' },
+                  { id: 'medium', label: 'M' },
+                  { id: 'large', label: 'G' },
+                  { id: 'xlarge', label: 'GG' }
+                ].map(sz => (
+                  <button
+                    key={sz.id}
+                    type="button"
+                    onClick={() => handleFontSizeChange(sz.id)}
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      border: fontSizeLevel === sz.id ? '1.8px solid #5925dc' : '1px solid transparent',
+                      background: fontSizeLevel === sz.id ? '#ffffff' : 'transparent',
+                      color: fontSizeLevel === sz.id ? '#5925dc' : '#64748b',
+                      fontWeight: '800',
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {sz.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Botão de Impressão Refinado e Moderno */}
+            <button
+              onClick={handlePrint}
+              title="Imprimir Resumo em PDF com Checklist"
+              style={{
+                height: '38px',
+                padding: '0 18px',
+                borderRadius: '10px',
+                border: '1.5px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#1e293b',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#0f172a';
+                e.currentTarget.style.borderColor = '#0f172a';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = '#ffffff';
+                e.currentTarget.style.borderColor = '#cbd5e1';
+                e.currentTarget.style.color = '#1e293b';
+              }}
+            >
+              <Printer size={16} strokeWidth={2.4} />
+              <span>Imprimir PDF</span>
+            </button>
+          </div>
         </div>
       </div>
 

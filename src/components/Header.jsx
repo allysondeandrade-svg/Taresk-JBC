@@ -10,14 +10,15 @@ export default function Header({
   onOpenSettings,
   onSync,
   isSyncing,
-  lastSyncTime
+  lastSyncTime,
+  tabsOrder
 }) {
   const norm = (s) => String(s || '').toLowerCase().trim();
   const uName = norm(currentUser?.name);
   const uEmail = norm(currentUser?.email);
   const isAllyson = uName.includes('allyson') || uEmail.includes('allyson') || currentUser?.role === 'premium_admin';
 
-  const tabs = [
+  const defaultTabs = [
     { id: 'tarefas', label: 'Tarefas' },
     { id: 'produtos', label: 'Produtos' },
     { id: 'anotacoes', label: 'Anotações' },
@@ -25,8 +26,23 @@ export default function Header({
     { id: 'disputas', label: 'Disputas' },
     { id: 'precificadora', label: 'Precificadora' },
     { id: 'contas', label: 'Contas' },
-    ...(isAllyson ? [{ id: 'conciliacao', label: 'Financeiro' }] : [])
+    { id: 'conciliacao', label: 'Financeiro' }
   ];
+
+  // Ordena conforme tabsOrder personalizado
+  const tabs = React.useMemo(() => {
+    let order = Array.isArray(tabsOrder) && tabsOrder.length > 0 ? tabsOrder : defaultTabs;
+    // Garante que todas as abas existam
+    const currentIds = new Set(order.map(t => t.id));
+    defaultTabs.forEach(dt => {
+      if (!currentIds.has(dt.id)) order.push(dt);
+    });
+
+    return order.filter(t => {
+      if (t.id === 'conciliacao' && !isAllyson) return false;
+      return true;
+    });
+  }, [tabsOrder, isAllyson]);
 
   return (
     <header style={{

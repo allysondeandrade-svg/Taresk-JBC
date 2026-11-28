@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown, Monitor, Smartphone, Bell, Users, Globe, Volume2, Clock } from 'lucide-react';
+import { X, Settings, Database, Palette, CheckSquare, Plus, Trash2, Check, ArrowUp, ArrowDown, Monitor, Smartphone, Bell, Users, Globe, Volume2, Clock, LayoutGrid } from 'lucide-react';
 import { NotificationService, NOTIFICATION_SOUNDS } from '../services/notificationService';
 import UsersCatalogTab from './UsersCatalogTab';
 import PlatformsCatalogTab from './PlatformsCatalogTab';
@@ -40,10 +40,12 @@ export default function SettingsModal({
   onDeleteUser,
   onAddPlatform,
   onUpdatePlatform,
-  onDeletePlatform
+  onDeletePlatform,
+  tabsOrder = [],
+  onUpdateTabsOrder
 }) {
   const [sheetsUrl, setSheetsUrl] = useState(() => localStorage.getItem('taresk_sheets_api_url') || '');
-  const [activeTab, setActiveTab] = useState('cadastro'); // 'cadastro', 'checklist', 'planilha', 'cores', 'notificacoes' ou 'visualizacao'
+  const [activeTab, setActiveTab] = useState('cadastro'); // 'cadastro', 'checklist', 'planilha', 'cores', 'notificacoes', 'visualizacao' ou 'ordem_abas'
   const [activeCadastroSubTab, setActiveCadastroSubTab] = useState('usuarios'); // 'usuarios' ou 'plataformas'
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [checklistItems, setChecklistItems] = useState(defaultChecklistItems);
@@ -301,6 +303,27 @@ export default function SettingsModal({
           >
             <Monitor size={16} />
             Versão (Desktop / Mobile)
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ordem_abas')}
+            style={{
+              padding: '10px 14px',
+              border: 'none',
+              borderBottom: activeTab === 'ordem_abas' ? '2.5px solid #5925dc' : '2.5px solid transparent',
+              background: 'transparent',
+              color: activeTab === 'ordem_abas' ? '#5925dc' : '#64748b',
+              fontWeight: '700',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <LayoutGrid size={16} />
+            Ordem das Páginas
           </button>
         </div>
 
@@ -1134,6 +1157,179 @@ export default function SettingsModal({
                   }}
                 >
                   Concluir
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Aba de Ordem das Páginas */}
+          {activeTab === 'ordem_abas' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b', marginBottom: '4px' }}>
+                  Reordenar Páginas do Aplicativo
+                </h4>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>
+                  Mude a ordem em que as páginas (Tarefas, Produtos, Full, Disputas, Contas...) aparecem na barra superior do Taresk:
+                </span>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                background: '#f8fafc',
+                borderRadius: '16px',
+                padding: '16px',
+                border: '1.5px solid #e2e8f0'
+              }}>
+                {tabsOrder.map((tab, idx) => {
+                  const isFirst = idx === 0;
+                  const isLast = idx === tabsOrder.length - 1;
+
+                  const handleMove = (direction) => {
+                    const newIndex = idx + direction;
+                    if (newIndex < 0 || newIndex >= tabsOrder.length) return;
+                    const next = [...tabsOrder];
+                    const [removed] = next.splice(idx, 1);
+                    next.splice(newIndex, 0, removed);
+                    if (onUpdateTabsOrder) onUpdateTabsOrder(next);
+                  };
+
+                  return (
+                    <div
+                      key={tab.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        background: '#ffffff',
+                        border: '1.5px solid #cbd5e1',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{
+                          width: '26px',
+                          height: '26px',
+                          borderRadius: '8px',
+                          background: '#ecebfa',
+                          color: '#5925dc',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          fontWeight: '800'
+                        }}>
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <span style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>
+                            {tab.label}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '8px' }}>
+                            ({tab.id})
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          disabled={isFirst}
+                          onClick={() => handleMove(-1)}
+                          title="Mover para cima"
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            background: isFirst ? '#f1f5f9' : '#ffffff',
+                            color: isFirst ? '#cbd5e1' : '#5925dc',
+                            cursor: isFirst ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <ArrowUp size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isLast}
+                          onClick={() => handleMove(1)}
+                          title="Mover para baixo"
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            background: isLast ? '#f1f5f9' : '#ffffff',
+                            color: isLast ? '#cbd5e1' : '#5925dc',
+                            cursor: isLast ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <ArrowDown size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const defaultOrder = [
+                      { id: 'tarefas', label: 'Tarefas' },
+                      { id: 'produtos', label: 'Produtos' },
+                      { id: 'anotacoes', label: 'Anotações' },
+                      { id: 'full', label: 'Full' },
+                      { id: 'disputas', label: 'Disputas' },
+                      { id: 'precificadora', label: 'Precificadora' },
+                      { id: 'contas', label: 'Contas' },
+                      { id: 'conciliacao', label: 'Financeiro' }
+                    ];
+                    if (onUpdateTabsOrder) onUpdateTabsOrder(defaultOrder);
+                  }}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#64748b',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Restaurar Ordem Padrão
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: '#5925dc',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Salvar e Fechar
                 </button>
               </div>
             </div>

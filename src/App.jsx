@@ -233,6 +233,31 @@ export default function App() {
     }
   });
 
+  // Ordem personalizada das abas configurável nas Configurações
+  const [tabsOrder, setTabsOrder] = useState(() => {
+    try {
+      const saved = localStorage.getItem('taresk_tabs_order');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      { id: 'tarefas', label: 'Tarefas' },
+      { id: 'produtos', label: 'Produtos' },
+      { id: 'anotacoes', label: 'Anotações' },
+      { id: 'full', label: 'Full' },
+      { id: 'disputas', label: 'Disputas' },
+      { id: 'precificadora', label: 'Precificadora' },
+      { id: 'contas', label: 'Contas' },
+      { id: 'conciliacao', label: 'Financeiro' }
+    ];
+  });
+
+  const handleUpdateTabsOrder = (newOrder) => {
+    setTabsOrder(newOrder);
+    try {
+      localStorage.setItem('taresk_tabs_order', JSON.stringify(newOrder));
+    } catch (e) {}
+  };
+
   // Aba ativa: 'tarefas', 'cadastro', 'precificadora', 'relatorio', 'tarefas_concluidas'
   const [activeTab, setActiveTab] = useState('tarefas');
 
@@ -1387,6 +1412,7 @@ export default function App() {
         onSync={refreshFromSheets}
         isSyncing={isSyncing}
         lastSyncTime={lastSyncTime}
+        tabsOrder={tabsOrder}
       />
 
 
@@ -1573,6 +1599,8 @@ export default function App() {
         onAddPlatform={handleAddPlatform}
         onUpdatePlatform={handleUpdatePlatform}
         onDeletePlatform={handleDeletePlatform}
+        tabsOrder={tabsOrder}
+        onUpdateTabsOrder={handleUpdateTabsOrder}
       />
 
       {/* Modal de Anotação (Desktop e Mobile) */}
